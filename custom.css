@@ -295,3 +295,853 @@ html body [class~="app-ltr-10t84xr"] {
     padding-left: 0 !important;
   }
 }
+
+[data-mj-app] {
+  --main-font: "__Montserrat_069ab3", "__Montserrat_Fallback_069ab3", sans-serif !important;
+}
+
+html,
+body,
+html *,
+body * {
+  font-family: "__Montserrat_069ab3", "__Montserrat_Fallback_069ab3", sans-serif !important;
+}
+
+html body .css-1qulnur,
+html body [class~="css-1qulnur"] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html body .css-27yrbd,
+html body [class~="css-27yrbd"] {
+  border-radius: 10px !important;
+}
+
+html body [data-mj="widget-bet-win-container"] {
+  max-width: none !important;
+}
+
+html body [data-mj="widget-game-slider-container"] {
+  max-width: none !important;
+}
+
+html body [data-mj="widget-fixed-image-banner-container"] {
+  max-width: none !important;
+}
+
+html body [data-mj="widget-fixed-image-banner-container"] .css-1l44gyp,
+html body [data-mj="widget-fixed-image-banner-container"] [class~="css-1l44gyp"] {
+  max-width: 2000px !important;
+}
+
+html body .css-0 .css-10a4mqi,
+html body [class~="css-0"] [class~="css-10a4mqi"] {
+  width: 181px !important;
+  margin-left: 53px !important;
+}
+
+html body .css-1huuf1k .sl-icon.css-lk14jz,
+html body [class~="css-1huuf1k"] .sl-icon.css-lk14jz,
+html body [class~="css-1huuf1k"] [class~="sl-icon"][class~="css-lk14jz"] {
+  top: 13px !important;
+  left: 13px !important;
+  min-width: 43px !important;
+  min-height: 47px !important;
+}
+
+html body [data-mj="widget-fixed-image-banner"] [data-mj="widget-fixed-image-banner-container"] {
+  max-width: none !important;
+}
+
+html body [data-mj="widget-top-providers"] .css-1l44gyp,
+html body [data-mj="widget-top-providers"] [class~="css-1l44gyp"],
+html body .css-18zw6tz .css-1l44gyp,
+html body [class~="css-18zw6tz"] [class~="css-1l44gyp"] {
+  max-width: 2000px !important;
+}
+
+html body .css-0 .css-1huuf1k .sl-icon.css-lk14jz,
+html body [class~="css-0"] [class~="css-1huuf1k"] .sl-icon.css-lk14jz,
+html body [class~="css-0"] [class~="css-1huuf1k"] [class~="sl-icon"][class~="css-lk14jz"] {
+  position: absolute !important;
+  top: 13px !important;
+  left: 13px !important;
+  min-width: 43px !important;
+  min-height: 47px !important;
+}
+
+html body [data-mj="widget-top-providers-item"] {
+  position: relative !important;
+  overflow: hidden !important;
+  border: 1px solid rgb(0 107 170 / 32%) !important;
+  border-radius: 18px !important;
+  background: radial-gradient(circle at 20% 10%, rgb(0 143 255 / 20%), transparent 34%), radial-gradient(circle at 85% 20%, rgba(70, 130, 255, 0.18), transparent 32%), radial-gradient(circle at 50% 100%, rgb(0 90 255 / 14%), transparent 42%), rgb(5 10 14 / 72%) !important;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.34), 0 0 28px rgb(80 120 174 / 24%), inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 26px rgb(0 90 170 / 10%) !important;
+  backdrop-filter: blur(16px) saturate(1.35) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.35) !important;
+}
+
+html body [data-mj="sidebar"] {
+  padding: 0 !important;
+  top: 70px !important;
+}
+
+html body [data-mj="sidebar"].app-ltr-17u1px6,
+html body [data-mj="sidebar"][class~="app-ltr-17u1px6"] {
+  width: 83px !important;
+}
+
+html body [data-mj="sidebar-content"] {
+  height: 91% !important;
+  border-radius: 6px !important;
+}
+
+html body .css-s4hrud,
+html body [class~="css-s4hrud"] {
+  background-color: rgb(23 31 61 / 53%) !important;
+  border-radius: 22px !important;
+}
+
+html body .app-ltr-s4hrud {
+  margin: 20px !important;
+  width: calc(100% - 40px) !important;
+  box-sizing: border-box !important;
+  border-radius: 22px !important;
+  background-color: transparent !important;
+}
+
+html body [data-mj="widget-game-card"],
+html body [data-mj="widget-game-slider-slide"] {
+  border-radius: 6px !important;
+  margin-left: 2px !important;
+}
+
+html body .sl-select__control,
+html body .sl-select__control.app-ltr-18wxrhy-control,
+html body [class~="sl-select__control"] {
+  background-color: rgb(255 255 255 / 6%) !important;
+  border-color: #181f3d !important;
+}
+
+html body [data-mj="lobby-catalog-search"] {
+  background-color: rgb(255 255 255 / 6%) !important;
+  border-color: #0f1229 !important;
+}
+
+html body [data-mj="lobby-catalog-mobile-provider-input"] {
+  background-color: rgb(255 255 255 / 6%) !important;
+  border-color: #0f1229 !important;
+}
+
+html body [data-mj="lobby-catalog-mobile-search-toggle"] {
+  background-color: rgb(255 255 255 / 6%) !important;
+  border-color: #0d132d !important;
+  box-shadow: none !important;
+}
+
+html body [data-mj="lobby-catalog-provider-bottom-sheet-search"] {
+  background-color: rgb(255 255 255 / 6%) !important;
+  border-color: #0e132a !important;
+}
+
+html body .app-ltr-ja3k2i {
+  background-color: rgb(255 255 255 / 6%) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+html body [data-mj="header"] {
+  position: fixed !important;
+}
+
+html body [data-mj="custom-header"] {
+  padding-left: 56px !important;
+}
+
+html body [data-mj="header"] .app-ltr-i58pjb,
+html body [data-mj="header"].app-ltr-i58pjb,
+html body .app-ltr-i58pjb {
+  max-width: none !important;
+}
+
+html body [data-mj="widget-banner"] {
+  margin-top: 70px !important;
+}
+
+html body [data-mj="content-wrapper"] {
+  max-width: none !important;
+}
+
+html body [data-mj="login-button"] {
+  min-height: 33px !important;
+}
+
+html body [data-mj="sidebar-collapse"] {
+  position: absolute !important;
+  top: -55px !important;
+  left: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 41px !important;
+  height: 41px !important;
+  border-radius: 8px !important;
+  z-index: 70 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+}
+
+html body [data-mj="sidebar-collapse"] > svg {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html body [data-mj="sidebar-collapse"]::before {
+  content: "" !important;
+  display: block !important;
+  width: 17px !important;
+  height: 12px !important;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='12' viewBox='0 0 17 12' fill='none'%3E%3Cpath d='M0.938282 11.9705H7.50594C8.02413 11.9705 8.44419 11.5505 8.44419 11.0323C8.44419 10.5141 8.02413 10.0941 7.50594 10.0941H0.938282C0.420092 10.0941 0 10.5141 0 11.0323C0 11.5505 0.420092 11.9705 0.938282 11.9705ZM0.938282 6.92355H15.95C16.4682 6.92355 16.8883 6.50346 16.8883 5.98531C16.8883 5.46712 16.4682 5.04706 15.95 5.04706H0.938242C0.420062 5.04706 0 5.46712 0 5.98531C0 6.50346 0.420092 6.92355 0.938282 6.92355ZM0.938282 1.87649H15.95C16.4682 1.87649 16.8883 1.45643 16.8883 0.93825C16.8883 0.420059 16.4682 0 15.95 0H0.938242C0.420062 0 0 0.420059 0 0.93825C0 1.45643 0.420092 1.87649 0.938282 1.87649Z' fill='white'/%3E%3C/svg%3E") center / contain no-repeat !important;
+}
+
+html body [data-mj="lobby-catalog-mobile-category-chip"].app-ltr-13u1vz6 {
+  background-image: linear-gradient(122deg, #252d50, #1b2037) !important;
+  border: 1px solid rgb(14 19 41) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+html body [data-mj="lobby-catalog-mobile-category-chip"].app-ltr-7v4hfh {
+  background-image: linear-gradient(98.66deg, #8424f8, #6126bc) !important;
+  box-shadow: 4px 4px 12px 0 rgba(255, 255, 255, 0.3) inset, 0 0 0 0 rgba(132, 36, 248, 1) !important;
+  border: 1px solid rgb(255 255 255 / 6%) !important;
+  border-radius: 16px !important;
+  color: #fff !important;
+}
+
+html body [data-mj="register-button"] {
+  padding: 12px 30px !important;
+  text-align: center !important;
+  transition: 0.5s !important;
+  background-size: 200% auto !important;
+  color: white !important;
+  border-radius: 6px !important;
+  display: block !important;
+  border: 0 !important;
+  font-weight: 500 !important;
+  box-shadow: 0 0 14px -7px #f09819 !important;
+  background-image: linear-gradient(45deg, #ff512f 0%, #f09819 51%, #ff512f 100%) !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: manipulation !important;
+}
+
+html body [data-mj="register-button"]:hover {
+  background-position: right center !important;
+  color: #fff !important;
+  text-decoration: none !important;
+}
+
+html body [data-mj="register-button"]:active {
+  transform: scale(0.95) !important;
+}
+
+html body .app-ltr-10t84xr,
+html body [class~="app-ltr-10t84xr"] {
+  font-size: 14px !important;
+}
+
+@media (min-width: 993px) {
+  html body #root.vertical-nav [data-mj="sidebar"] {
+    position: sticky !important;
+    top: 70px !important;
+    align-self: flex-start !important;
+    z-index: 40 !important;
+    height: calc(100vh - 70px) !important;
+  }
+
+  html body #root.vertical-nav [data-mj="sidebar-content"] {
+    height: calc(100vh - 86px) !important;
+    overflow: auto !important;
+  }
+
+  html body [data-mj="register-button"] {
+    height: 32px !important;
+    min-height: 32px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+}
+
+@media (max-width: 992px) {
+  html body [data-mj="custom-header"] {
+    padding-left: 0 !important;
+  }
+}
+
+/* =========================================================
+   CUSTOM FOOTER BACKGROUND, LOGO, HEIGHT, AND ANIMATIONS
+   Append this entire block to the bottom of custom.css
+========================================================= */
+
+/*
+  Main values to edit later:
+  - --custom-footer-bg-image controls the large footer background.
+  - --custom-footer-logo-image uses your Winrai logo asset.
+*/
+html body {
+  --custom-footer-bg-image: linear-gradient(135deg, #080f22 0%, #050a14 100%);
+  --custom-footer-logo-image: url("https://winrai1.com/api/cmsgateway/api/v1.0/AssetsSite/53b6207b-c530-4e36-b19a-51738382723e");
+
+  --custom-footer-height-desktop: 390px;
+  --custom-footer-height-tablet: 340px;
+  --custom-footer-height-mobile: 285px;
+
+  --custom-footer-logo-width-desktop: 190px;
+  --custom-footer-logo-height-desktop: 68px;
+  --custom-footer-logo-width-mobile: 150px;
+  --custom-footer-logo-height-mobile: 54px;
+
+  --custom-footer-radius: 24px;
+  --custom-footer-link-color: rgba(255, 255, 255, 0.76);
+  --custom-footer-link-hover-color: #ffffff;
+  --custom-footer-blue: #008fff;
+  --custom-footer-purple: #8424f8;
+}
+
+
+/* =========================================================
+   MAIN FOOTER WRAPPER
+   These selectors cover likely footer structures on the site.
+========================================================= */
+
+html body footer,
+html body [data-mj="footer"],
+html body [data-mj="site-footer"],
+html body [data-mj="custom-footer"],
+html body [data-mj="footer-container"],
+html body [data-mj="footer-wrapper"] {
+  position: relative !important;
+  isolation: isolate !important;
+
+  min-height: var(--custom-footer-height-desktop) !important;
+  height: auto !important;
+
+  padding: 132px 48px 72px !important;
+  box-sizing: border-box !important;
+
+  overflow: hidden !important;
+  border-radius: var(--custom-footer-radius) var(--custom-footer-radius) 0 0 !important;
+
+  background-image:
+    linear-gradient(
+      180deg,
+      rgba(5, 10, 20, 0.24) 0%,
+      rgba(5, 10, 20, 0.74) 52%,
+      rgba(5, 10, 20, 0.98) 100%
+    ),
+    radial-gradient(circle at 18% 18%, rgba(0, 143, 255, 0.26), transparent 34%),
+    radial-gradient(circle at 86% 22%, rgba(132, 36, 248, 0.22), transparent 35%),
+    var(--custom-footer-bg-image) !important;
+
+  background-size:
+    cover,
+    120% 120%,
+    120% 120%,
+    cover !important;
+
+  background-position:
+    center center,
+    center center,
+    center center,
+    center center !important;
+
+  background-repeat:
+    no-repeat,
+    no-repeat,
+    no-repeat,
+    no-repeat !important;
+
+  box-shadow:
+    0 -22px 55px rgba(0, 0, 0, 0.42),
+    0 0 36px rgba(0, 143, 255, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 38px rgba(0, 90, 170, 0.12) !important;
+
+  animation:
+    customFooterFadeUp 850ms ease both,
+    customFooterBackgroundBreath 18s ease-in-out infinite alternate !important;
+}
+
+
+/* =========================================================
+   FOOTER GLOW OVERLAY
+========================================================= */
+
+html body footer::before,
+html body [data-mj="footer"]::before,
+html body [data-mj="site-footer"]::before,
+html body [data-mj="custom-footer"]::before,
+html body [data-mj="footer-container"]::before,
+html body [data-mj="footer-wrapper"]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+
+  background:
+    radial-gradient(circle at 14% 24%, rgba(0, 143, 255, 0.24), transparent 32%),
+    radial-gradient(circle at 86% 20%, rgba(132, 36, 248, 0.20), transparent 36%),
+    radial-gradient(circle at 52% 100%, rgba(0, 90, 255, 0.16), transparent 46%),
+    linear-gradient(120deg, rgba(255, 255, 255, 0.08), transparent 28%, transparent 76%, rgba(255, 255, 255, 0.04)) !important;
+
+  mix-blend-mode: screen !important;
+  opacity: 0.78 !important;
+
+  animation:
+    customFooterGlowPulse 5.5s ease-in-out infinite alternate,
+    customFooterGlowFloat 12s ease-in-out infinite alternate !important;
+}
+
+
+/* =========================================================
+   CSS-INJECTED FOOTER LOGO
+   The provided logo URL is added through CSS, so no HTML edit is needed.
+========================================================= */
+
+html body footer::after,
+html body [data-mj="footer"]::after,
+html body [data-mj="site-footer"]::after,
+html body [data-mj="custom-footer"]::after,
+html body [data-mj="footer-container"]::after,
+html body [data-mj="footer-wrapper"]::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 38px !important;
+  left: 48px !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+
+  width: var(--custom-footer-logo-width-desktop) !important;
+  height: var(--custom-footer-logo-height-desktop) !important;
+
+  background-image: var(--custom-footer-logo-image) !important;
+  background-size: contain !important;
+  background-position: center center !important;
+  background-repeat: no-repeat !important;
+
+  opacity: 0.96 !important;
+  filter:
+    drop-shadow(0 0 10px rgba(0, 143, 255, 0.42))
+    drop-shadow(0 0 20px rgba(132, 36, 248, 0.24)) !important;
+
+  animation:
+    customFooterLogoFadeIn 900ms ease both,
+    customFooterLogoFloat 5.5s ease-in-out 900ms infinite alternate !important;
+}
+
+
+/* =========================================================
+   KEEP FOOTER CONTENT ABOVE BACKGROUND LAYERS
+========================================================= */
+
+html body footer > *,
+html body [data-mj="footer"] > *,
+html body [data-mj="site-footer"] > *,
+html body [data-mj="custom-footer"] > *,
+html body [data-mj="footer-container"] > *,
+html body [data-mj="footer-wrapper"] > * {
+  position: relative !important;
+  z-index: 3 !important;
+  animation: customFooterContentReveal 760ms ease both !important;
+}
+
+
+/* =========================================================
+   FOOTER TEXT
+========================================================= */
+
+html body footer,
+html body footer *,
+html body [data-mj="footer"],
+html body [data-mj="footer"] *,
+html body [data-mj="site-footer"],
+html body [data-mj="site-footer"] *,
+html body [data-mj="custom-footer"],
+html body [data-mj="custom-footer"] *,
+html body [data-mj="footer-container"],
+html body [data-mj="footer-container"] *,
+html body [data-mj="footer-wrapper"],
+html body [data-mj="footer-wrapper"] * {
+  color: rgba(255, 255, 255, 0.84) !important;
+}
+
+
+/* =========================================================
+   FOOTER LINKS WITH HOVER ANIMATION
+========================================================= */
+
+html body footer a,
+html body [data-mj="footer"] a,
+html body [data-mj="site-footer"] a,
+html body [data-mj="custom-footer"] a,
+html body [data-mj="footer-container"] a,
+html body [data-mj="footer-wrapper"] a {
+  position: relative !important;
+  display: inline-block !important;
+
+  color: var(--custom-footer-link-color) !important;
+  text-decoration: none !important;
+
+  transform: translateX(0) !important;
+
+  transition:
+    color 260ms ease,
+    transform 260ms ease,
+    text-shadow 260ms ease,
+    opacity 260ms ease !important;
+}
+
+html body footer a:hover,
+html body [data-mj="footer"] a:hover,
+html body [data-mj="site-footer"] a:hover,
+html body [data-mj="custom-footer"] a:hover,
+html body [data-mj="footer-container"] a:hover,
+html body [data-mj="footer-wrapper"] a:hover {
+  color: var(--custom-footer-link-hover-color) !important;
+  transform: translateX(5px) !important;
+  text-shadow:
+    0 0 10px rgba(0, 143, 255, 0.7),
+    0 0 22px rgba(132, 36, 248, 0.35) !important;
+}
+
+html body footer a::after,
+html body [data-mj="footer"] a::after,
+html body [data-mj="site-footer"] a::after,
+html body [data-mj="custom-footer"] a::after,
+html body [data-mj="footer-container"] a::after,
+html body [data-mj="footer-wrapper"] a::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  bottom: -5px !important;
+
+  width: 0 !important;
+  height: 1px !important;
+
+  background: linear-gradient(90deg, var(--custom-footer-blue), var(--custom-footer-purple)) !important;
+
+  box-shadow:
+    0 0 8px rgba(0, 143, 255, 0.75),
+    0 0 14px rgba(132, 36, 248, 0.45) !important;
+
+  transition: width 260ms ease !important;
+}
+
+html body footer a:hover::after,
+html body [data-mj="footer"] a:hover::after,
+html body [data-mj="site-footer"] a:hover::after,
+html body [data-mj="custom-footer"] a:hover::after,
+html body [data-mj="footer-container"] a:hover::after,
+html body [data-mj="footer-wrapper"] a:hover::after {
+  width: 100% !important;
+}
+
+
+/* =========================================================
+   IMAGE / PAYMENT ICON HOVER ANIMATION INSIDE FOOTER
+========================================================= */
+
+html body footer img,
+html body [data-mj="footer"] img,
+html body [data-mj="site-footer"] img,
+html body [data-mj="custom-footer"] img,
+html body [data-mj="footer-container"] img,
+html body [data-mj="footer-wrapper"] img,
+html body footer svg,
+html body [data-mj="footer"] svg,
+html body [data-mj="site-footer"] svg,
+html body [data-mj="custom-footer"] svg,
+html body [data-mj="footer-container"] svg,
+html body [data-mj="footer-wrapper"] svg {
+  transition:
+    transform 320ms ease,
+    filter 320ms ease,
+    opacity 320ms ease !important;
+}
+
+html body footer img:hover,
+html body [data-mj="footer"] img:hover,
+html body [data-mj="site-footer"] img:hover,
+html body [data-mj="custom-footer"] img:hover,
+html body [data-mj="footer-container"] img:hover,
+html body [data-mj="footer-wrapper"] img:hover,
+html body footer svg:hover,
+html body [data-mj="footer"] svg:hover,
+html body [data-mj="site-footer"] svg:hover,
+html body [data-mj="custom-footer"] svg:hover,
+html body [data-mj="footer-container"] svg:hover,
+html body [data-mj="footer-wrapper"] svg:hover {
+  transform: translateY(-4px) scale(1.035) !important;
+  filter:
+    drop-shadow(0 0 10px rgba(0, 143, 255, 0.45))
+    drop-shadow(0 0 18px rgba(132, 36, 248, 0.28)) !important;
+}
+
+
+/* =========================================================
+   TABLET RESPONSIVE FOOTER
+========================================================= */
+
+@media (max-width: 1200px) {
+  html body footer,
+  html body [data-mj="footer"],
+  html body [data-mj="site-footer"],
+  html body [data-mj="custom-footer"],
+  html body [data-mj="footer-container"],
+  html body [data-mj="footer-wrapper"] {
+    min-height: var(--custom-footer-height-tablet) !important;
+    padding: 124px 32px 58px !important;
+  }
+
+  html body footer::after,
+  html body [data-mj="footer"]::after,
+  html body [data-mj="site-footer"]::after,
+  html body [data-mj="custom-footer"]::after,
+  html body [data-mj="footer-container"]::after,
+  html body [data-mj="footer-wrapper"]::after {
+    left: 32px !important;
+  }
+}
+
+
+/* =========================================================
+   MOBILE RESPONSIVE FOOTER
+========================================================= */
+
+@media (max-width: 992px) {
+  html body footer,
+  html body [data-mj="footer"],
+  html body [data-mj="site-footer"],
+  html body [data-mj="custom-footer"],
+  html body [data-mj="footer-container"],
+  html body [data-mj="footer-wrapper"] {
+    min-height: var(--custom-footer-height-mobile) !important;
+    padding: 112px 20px 44px !important;
+    border-radius: 16px 16px 0 0 !important;
+
+    background-size:
+      cover,
+      140% 140%,
+      140% 140%,
+      cover !important;
+
+    animation:
+      customFooterFadeUp 700ms ease both,
+      customFooterBackgroundBreathMobile 16s ease-in-out infinite alternate !important;
+  }
+
+  html body footer::after,
+  html body [data-mj="footer"]::after,
+  html body [data-mj="site-footer"]::after,
+  html body [data-mj="custom-footer"]::after,
+  html body [data-mj="footer-container"]::after,
+  html body [data-mj="footer-wrapper"]::after {
+    top: 34px !important;
+    left: 50% !important;
+    width: var(--custom-footer-logo-width-mobile) !important;
+    height: var(--custom-footer-logo-height-mobile) !important;
+    transform: translateX(-50%) !important;
+
+    animation:
+      customFooterLogoFadeIn 800ms ease both,
+      customFooterLogoFloatMobile 5.5s ease-in-out 800ms infinite alternate !important;
+  }
+
+  html body footer a:hover,
+  html body [data-mj="footer"] a:hover,
+  html body [data-mj="site-footer"] a:hover,
+  html body [data-mj="custom-footer"] a:hover,
+  html body [data-mj="footer-container"] a:hover,
+  html body [data-mj="footer-wrapper"] a:hover {
+    transform: translateX(3px) !important;
+  }
+}
+
+
+/* =========================================================
+   ANIMATION DEFINITIONS
+========================================================= */
+
+@keyframes customFooterFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(34px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes customFooterContentReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes customFooterBackgroundBreath {
+  0% {
+    background-position:
+      center center,
+      center center,
+      center center,
+      center center;
+    background-size:
+      cover,
+      116% 116%,
+      116% 116%,
+      cover;
+  }
+
+  100% {
+    background-position:
+      center center,
+      46% 44%,
+      54% 48%,
+      center 44%;
+    background-size:
+      cover,
+      128% 128%,
+      126% 126%,
+      cover;
+  }
+}
+
+@keyframes customFooterBackgroundBreathMobile {
+  0% {
+    background-position:
+      center center,
+      center center,
+      center center,
+      center center;
+  }
+
+  100% {
+    background-position:
+      center center,
+      48% 46%,
+      52% 48%,
+      center top;
+  }
+}
+
+@keyframes customFooterGlowPulse {
+  0% {
+    opacity: 0.58;
+    filter: saturate(1);
+  }
+
+  100% {
+    opacity: 0.96;
+    filter: saturate(1.35);
+  }
+}
+
+@keyframes customFooterGlowFloat {
+  0% {
+    transform: translate3d(-8px, 0, 0) scale(1);
+  }
+
+  100% {
+    transform: translate3d(8px, -8px, 0) scale(1.035);
+  }
+}
+
+@keyframes customFooterLogoFadeIn {
+  0% {
+    opacity: 0;
+  }
+
+  100% {
+    opacity: 0.96;
+  }
+}
+
+@keyframes customFooterLogoFloat {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    transform: translateY(-6px) scale(1.025);
+  }
+}
+
+@keyframes customFooterLogoFloatMobile {
+  0% {
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  100% {
+    transform: translateX(-50%) translateY(-5px) scale(1.025);
+  }
+}
+
+
+/* =========================================================
+   ACCESSIBILITY: REDUCED MOTION SUPPORT
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  html body footer,
+  html body footer *,
+  html body footer::before,
+  html body footer::after,
+  html body [data-mj="footer"],
+  html body [data-mj="footer"] *,
+  html body [data-mj="footer"]::before,
+  html body [data-mj="footer"]::after,
+  html body [data-mj="site-footer"],
+  html body [data-mj="site-footer"] *,
+  html body [data-mj="site-footer"]::before,
+  html body [data-mj="site-footer"]::after,
+  html body [data-mj="custom-footer"],
+  html body [data-mj="custom-footer"] *,
+  html body [data-mj="custom-footer"]::before,
+  html body [data-mj="custom-footer"]::after,
+  html body [data-mj="footer-container"],
+  html body [data-mj="footer-container"] *,
+  html body [data-mj="footer-container"]::before,
+  html body [data-mj="footer-container"]::after,
+  html body [data-mj="footer-wrapper"],
+  html body [data-mj="footer-wrapper"] *,
+  html body [data-mj="footer-wrapper"]::before,
+  html body [data-mj="footer-wrapper"]::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
