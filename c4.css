@@ -1,0 +1,1365 @@
+/* =========================================================
+   Replacement file: fixes sidebar, banner, sports overlap,
+   footer sizing, and removes the blue/purple-heavy gradient.
+   Use this INSTEAD of the previous premium-custom CSS.
+========================================================= */
+
+/* ================================
+   01. THEME TOKENS
+================================ */
+[data-mj-app],
+html body {
+  --main-font: "__Montserrat_069ab3", "__Montserrat_Fallback_069ab3", sans-serif !important;
+  --site-header-height: 64px;
+
+  --wr-sidebar-width: 82px;
+  --wr-page-gutter: clamp(14px, 1.45vw, 28px);
+  --wr-radius-sm: 8px;
+  --wr-radius-md: 14px;
+  --wr-radius-lg: 20px;
+  --wr-radius-xl: 26px;
+
+  --wr-graphite-0: #07080a;
+  --wr-graphite-1: #0d0e11;
+  --wr-graphite-2: #121318;
+  --wr-graphite-3: #181a20;
+  --wr-graphite-4: #20232b;
+  --wr-panel: rgba(18, 20, 26, 0.84);
+  --wr-panel-soft: rgba(24, 26, 33, 0.66);
+  --wr-line: rgba(255, 255, 255, 0.105);
+  --wr-line-strong: rgba(255, 255, 255, 0.18);
+
+  --wr-text: rgba(255, 255, 255, 0.92);
+  --wr-text-muted: rgba(255, 255, 255, 0.64);
+  --wr-text-soft: rgba(255, 255, 255, 0.48);
+
+  --wr-accent: #ff6a2a;
+  --wr-accent-2: #f09819;
+  --wr-accent-soft: rgba(255, 106, 42, 0.22);
+  --wr-accent-line: rgba(255, 106, 42, 0.44);
+  --wr-silver: #cfd3dc;
+
+  --wr-shadow-panel: 0 18px 42px rgba(0, 0, 0, 0.42);
+  --wr-shadow-card: 0 12px 28px rgba(0, 0, 0, 0.34);
+  --wr-shadow-inset: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+  --wr-graphite-gradient: radial-gradient(circle at 16% 0%, rgba(255, 255, 255, 0.06), transparent 32%), linear-gradient(135deg, #1a1c22 0%, #101116 48%, #07080b 100%);
+}
+
+html,
+body,
+html *,
+body * {
+  font-family: "__Montserrat_069ab3", "__Montserrat_Fallback_069ab3", sans-serif !important;
+  box-sizing: border-box !important;
+}
+
+html,
+body {
+  min-height: 100% !important;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.045), transparent 28%),
+    radial-gradient(circle at 90% 0%, rgba(255, 106, 42, 0.055), transparent 30%),
+    linear-gradient(180deg, #111216 0%, #0b0c10 48%, #07080a 100%) !important;
+  color: var(--wr-text) !important;
+}
+
+html body {
+  overflow-x: hidden !important;
+}
+
+html body #root,
+html body [data-mj="root-layout"],
+html body [data-mj="content-wrapper"] {
+  background: transparent !important;
+}
+
+html body [data-mj="content-wrapper"] {
+  max-width: none !important;
+}
+
+html body [data-mj="page-content"] {
+  position: relative !important;
+  padding-bottom: 34px !important;
+}
+
+html body [data-mj="page-content"]::before {
+  content: "" !important;
+  position: fixed !important;
+  inset: var(--site-header-height, 64px) 0 0 0 !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px) !important;
+  background-size: 58px 58px !important;
+  opacity: 0.28 !important;
+  mask-image: linear-gradient(180deg, transparent 0%, #000 18%, #000 78%, transparent 100%) !important;
+}
+
+/* ================================
+   02. HEADER - KEEP ORIGINAL SIZE, GRAPHITE SKIN
+================================ */
+html body [data-mj="header"] {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 120 !important;
+  min-height: var(--site-header-height, 64px) !important;
+  background:
+    linear-gradient(180deg, rgba(20, 21, 25, 0.98), rgba(12, 13, 16, 0.98)) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.48), inset 0 -1px 0 rgba(255, 106, 42, 0.10) !important;
+  backdrop-filter: blur(16px) saturate(1.08) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(1.08) !important;
+}
+
+html body [data-mj="header"]::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: -1px !important;
+  height: 1px !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 106, 42, 0.48), rgba(255, 255, 255, 0.18), transparent) !important;
+  opacity: 0.72 !important;
+  animation: wrGraphiteLine 5.8s ease-in-out infinite alternate !important;
+}
+
+html body [data-mj="custom-header"] {
+  padding-left: 56px !important;
+}
+
+html body [data-mj="header"] .app-ltr-i58pjb,
+html body [data-mj="header"].app-ltr-i58pjb,
+html body .app-ltr-i58pjb {
+  max-width: none !important;
+}
+
+html body [data-mj="logo"] img,
+html body [data-mj="footer-logo"] img {
+  transition: transform 240ms ease, filter 240ms ease, opacity 240ms ease !important;
+}
+
+html body [data-mj="logo"]:hover img,
+html body [data-mj="footer-logo"]:hover img {
+  transform: translateY(-1px) scale(1.018) !important;
+  filter: drop-shadow(0 0 10px rgba(255, 106, 42, 0.24)) !important;
+}
+
+/* Header promo / login / register buttons */
+html body [data-mj="header-special-button"] {
+  border-radius: 12px !important;
+  background: radial-gradient(circle, rgba(255, 106, 42, 0.20), rgba(255, 255, 255, 0.055)) !important;
+  box-shadow: 0 0 18px rgba(255, 106, 42, 0.16), var(--wr-shadow-inset) !important;
+  transition: transform 220ms ease, filter 220ms ease, box-shadow 220ms ease !important;
+}
+
+html body [data-mj="header-special-button"]:hover {
+  transform: translateY(-2px) !important;
+  filter: brightness(1.10) !important;
+  box-shadow: 0 0 24px rgba(255, 106, 42, 0.25), var(--wr-shadow-inset) !important;
+}
+
+html body [data-mj="login-button"] {
+  min-height: 33px !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  border-radius: 8px !important;
+  color: #fff !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035)) !important;
+  box-shadow: var(--wr-shadow-inset) !important;
+  transition: transform 220ms ease, border-color 220ms ease, background 220ms ease !important;
+}
+
+html body [data-mj="login-button"]:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(255, 255, 255, 0.26) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.05)) !important;
+}
+
+html body [data-mj="register-button"] {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 33px !important;
+  padding: 0 26px !important;
+  overflow: hidden !important;
+  border: 0 !important;
+  border-radius: 8px !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  touch-action: manipulation !important;
+  background-image: linear-gradient(45deg, #ff512f 0%, #f09819 51%, #ff512f 100%) !important;
+  background-size: 220% auto !important;
+  box-shadow: 0 0 16px rgba(240, 152, 25, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.22) !important;
+  transition: transform 220ms ease, filter 220ms ease, background-position 420ms ease, box-shadow 220ms ease !important;
+}
+
+html body [data-mj="register-button"]::before {
+  content: "" !important;
+  position: absolute !important;
+  top: -60% !important;
+  bottom: -60% !important;
+  left: -80% !important;
+  width: 42% !important;
+  pointer-events: none !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent) !important;
+  transform: rotate(18deg) !important;
+  transition: left 520ms ease !important;
+}
+
+html body [data-mj="register-button"]:hover {
+  background-position: right center !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  transform: translateY(-1px) !important;
+  filter: saturate(1.08) brightness(1.04) !important;
+  box-shadow: 0 0 22px rgba(240, 152, 25, 0.40), inset 0 1px 0 rgba(255, 255, 255, 0.24) !important;
+}
+
+html body [data-mj="register-button"]:hover::before {
+  left: 135% !important;
+}
+
+html body [data-mj="register-button"]:active {
+  transform: scale(0.96) !important;
+}
+
+/* ================================
+   03. SIDEBAR - RESTORE ORIGINAL LAYOUT, GRAPHITE EFFECTS
+================================ */
+html body [data-mj="sidebar"] {
+  top: var(--site-header-height, 64px) !important;
+  padding: 0 !important;
+  width: var(--wr-sidebar-width) !important;
+  min-width: var(--wr-sidebar-width) !important;
+  background: linear-gradient(180deg, #111217 0%, #090a0d 100%) !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.075) !important;
+  box-shadow: 10px 0 30px rgba(0, 0, 0, 0.34) !important;
+}
+
+html body [data-mj="sidebar"].app-ltr-17u1px6,
+html body [data-mj="sidebar"][class~="app-ltr-17u1px6"] {
+  width: var(--wr-sidebar-width) !important;
+  min-width: var(--wr-sidebar-width) !important;
+}
+
+html body [data-mj="sidebar-content"] {
+  height: calc(100vh - var(--site-header-height, 64px)) !important;
+  border-radius: 0 !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
+    rgba(11, 12, 16, 0.88) !important;
+  overflow: auto !important;
+  scrollbar-width: none !important;
+}
+
+html body [data-mj="sidebar-content"]::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* Preserve original intent: hide sidebar promo/special tile. */
+html body [data-mj="sidebar-special-button"],
+html body .css-1qulnur,
+html body [class~="css-1qulnur"],
+html body [class~="app-ltr-1qulnur"]:has(a[href*="promotions"]) {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+}
+
+html body [data-mj="sidebar-nav-list"] {
+  gap: 6px !important;
+}
+
+html body [data-mj="sidebar-group"],
+html body [data-mj="sidebar-section"] a {
+  position: relative !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.06) !important;
+  border-radius: 9px !important;
+  background: rgba(255, 255, 255, 0.035) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055) !important;
+  transition: background 180ms ease, border-color 180ms ease, box-shadow 180ms ease, filter 180ms ease !important;
+}
+
+html body [data-mj="sidebar-group"]:hover,
+html body [data-mj="sidebar-section"] a:hover {
+  background: rgba(255, 255, 255, 0.075) !important;
+  border-color: rgba(255, 106, 42, 0.34) !important;
+  box-shadow: inset 3px 0 0 rgba(255, 106, 42, 0.72), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 18px rgba(0, 0, 0, 0.26) !important;
+  filter: brightness(1.07) !important;
+}
+
+html body [data-mj="sidebar-section"] span[style*="mask-image"] {
+  background-color: rgba(235, 238, 246, 0.88) !important;
+  transition: background-color 180ms ease, filter 180ms ease !important;
+}
+
+html body [data-mj="sidebar-section"] a:hover span[style*="mask-image"] {
+  background-color: #ffffff !important;
+  filter: drop-shadow(0 0 8px rgba(255, 106, 42, 0.26)) !important;
+}
+
+html body .app-ltr-10t84xr,
+html body [class~="app-ltr-10t84xr"] {
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+html body [data-mj="sidebar-footer"] [data-mj="social-links"] a,
+html body [data-mj="social-links"] a {
+  transition: transform 220ms ease, filter 220ms ease, opacity 220ms ease !important;
+}
+
+html body [data-mj="sidebar-footer"] [data-mj="social-links"] a:hover,
+html body [data-mj="social-links"] a:hover {
+  transform: translateY(-2px) scale(1.06) !important;
+  filter: drop-shadow(0 0 9px rgba(255, 106, 42, 0.28)) !important;
+}
+
+/* Restore collapse button position from original CSS, only restyle the skin. */
+html body [data-mj="sidebar-collapse"] {
+  position: absolute !important;
+  top: -55px !important;
+  left: 14px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 41px !important;
+  height: 41px !important;
+  border-radius: 8px !important;
+  z-index: 130 !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.13) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.045)) !important;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.32), var(--wr-shadow-inset) !important;
+  transition: transform 220ms ease, background 220ms ease, border-color 220ms ease !important;
+}
+
+html body [data-mj="sidebar-collapse"]:hover {
+  transform: translateY(-1px) !important;
+  border-color: rgba(255, 106, 42, 0.36) !important;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.07)) !important;
+}
+
+html body [data-mj="sidebar-collapse"] > svg {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+html body [data-mj="sidebar-collapse"]::before {
+  content: "" !important;
+  display: block !important;
+  width: 17px !important;
+  height: 12px !important;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='17' height='12' viewBox='0 0 17 12' fill='none'%3E%3Cpath d='M0.938282 11.9705H7.50594C8.02413 11.9705 8.44419 11.5505 8.44419 11.0323C8.44419 10.5141 8.02413 10.0941 7.50594 10.0941H0.938282C0.420092 10.0941 0 10.5141 0 11.0323C0 11.5505 0.420092 11.9705 0.938282 11.9705ZM0.938282 6.92355H15.95C16.4682 6.92355 16.8883 6.50346 16.8883 5.98531C16.8883 5.46712 16.4682 5.04706 15.95 5.04706H0.938242C0.420062 5.04706 0 5.46712 0 5.98531C0 6.50346 0.420092 6.92355 0.938282 6.92355ZM0.938282 1.87649H15.95C16.4682 1.87649 16.8883 1.45643 16.8883 0.93825C16.8883 0.420059 16.4682 0 15.95 0H0.938242C0.420062 0 0 0.420059 0 0.93825C0 1.45643 0.420092 1.87649 0.938282 1.87649Z' fill='white'/%3E%3C/svg%3E") center / contain no-repeat !important;
+}
+
+/* ================================
+   04. GLOBAL PANELS, SELECTS, MOBILE CHIPS
+================================ */
+html body .sl-select__control,
+html body .sl-select__control.app-ltr-18wxrhy-control,
+html body [class~="sl-select__control"],
+html body [data-mj="lobby-catalog-search"],
+html body [data-mj="lobby-catalog-mobile-provider-input"],
+html body [data-mj="lobby-catalog-mobile-search-toggle"],
+html body [data-mj="lobby-catalog-provider-bottom-sheet-search"] {
+  background: rgba(255, 255, 255, 0.055) !important;
+  border-color: rgba(255, 255, 255, 0.115) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+html body .app-ltr-ja3k2i {
+  background-color: rgba(255, 255, 255, 0.055) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+}
+
+html body .css-27yrbd,
+html body [class~="css-27yrbd"] {
+  border-radius: 10px !important;
+}
+
+html body .css-s4hrud,
+html body [class~="css-s4hrud"] {
+  background-color: rgba(24, 26, 33, 0.64) !important;
+  border-radius: 22px !important;
+}
+
+html body .app-ltr-s4hrud {
+  margin: 20px !important;
+  width: calc(100% - 40px) !important;
+  box-sizing: border-box !important;
+  border-radius: 22px !important;
+  background-color: transparent !important;
+}
+
+html body [data-mj="lobby-catalog-mobile-category-chip"].app-ltr-13u1vz6 {
+  background-image: linear-gradient(122deg, #24262d, #17191f) !important;
+  border: 1px solid rgba(255, 255, 255, 0.09) !important;
+  border-radius: 16px !important;
+  box-shadow: none !important;
+}
+
+html body [data-mj="lobby-catalog-mobile-category-chip"].app-ltr-7v4hfh {
+  color: #fff !important;
+  background-image: linear-gradient(98.66deg, #ff512f, #f09819) !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 16px !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 0 16px rgba(240, 152, 25, 0.20) !important;
+}
+
+/* ================================
+   05. WIDGET CONTAINERS - KEEP WIDE LAYOUT
+================================ */
+html body [data-mj="widget-bet-win-container"],
+html body [data-mj="widget-game-slider-container"],
+html body [data-mj="widget-collection-slider-container"],
+html body [data-mj="widget-top-promotions-container"],
+html body [data-mj="widget-egt-jackpot-container"],
+html body [data-mj="widget-fixed-image-banner-container"],
+html body [data-mj="widget-banner-container"],
+html body [data-mj="widget-phoenix-sport-header-container"],
+html body [data-mj="widget-phoenix-sport-container"],
+html body [data-mj="content-wrapper"] {
+  max-width: none !important;
+}
+
+html body [data-mj="widget-fixed-image-banner-container"] .css-1l44gyp,
+html body [data-mj="widget-fixed-image-banner-container"] [class~="css-1l44gyp"],
+html body [data-mj="widget-top-providers"] .css-1l44gyp,
+html body [data-mj="widget-top-providers"] [class~="css-1l44gyp"],
+html body .css-18zw6tz .css-1l44gyp,
+html body [class~="css-18zw6tz"] [class~="css-1l44gyp"] {
+  max-width: 2000px !important;
+}
+
+html body [data-mj="widget-game-slider"],
+html body [data-mj="widget-collection-slider"],
+html body [data-mj="widget-top-promotions"],
+html body [data-mj="widget-top-providers"],
+html body [data-mj="widget-egt-jackpot"],
+html body [data-mj="widget-phoenix-sport"],
+html body [data-mj="widget-phoenix-sport-header"] {
+  margin-top: 28px !important;
+}
+
+html body [data-mj="widget-game-slider-container"],
+html body [data-mj="widget-collection-slider-container"],
+html body [data-mj="widget-top-promotions-container"],
+html body [data-mj="widget-bet-win-container"],
+html body [data-mj="widget-top-providers"] > [class~="app-ltr-1l44gyp"],
+html body [data-mj="widget-egt-jackpot-container"],
+html body [data-mj="widget-phoenix-sport-header-container"],
+html body [data-mj="widget-phoenix-sport-container"],
+html body [data-mj="widget-banner-container"] {
+  padding-left: var(--wr-page-gutter) !important;
+  padding-right: var(--wr-page-gutter) !important;
+}
+
+/* Titles */
+html body [data-mj="widget-game-slider-header"] p,
+html body [data-mj="widget-phoenix-sport-header"] p,
+html body [data-mj="widget-top-providers"] p,
+html body [data-mj="widget-collection-slider-container"] p,
+html body [data-mj="widget-bet-win"] p,
+html body [data-mj="widget-top-promotions-container"] p {
+  color: #fff !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.01em !important;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.42) !important;
+}
+
+html body [data-mj="widget-game-slider-header"] p::after,
+html body [data-mj="widget-phoenix-sport-header"] p::after,
+html body [data-mj="widget-top-providers"] p::after,
+html body [data-mj="widget-collection-slider-container"] p::after,
+html body [data-mj="widget-bet-win"] p::after {
+  content: "" !important;
+  display: block !important;
+  width: 52px !important;
+  height: 3px !important;
+  margin-top: 7px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, var(--wr-accent), rgba(255, 255, 255, 0.22), transparent) !important;
+  box-shadow: 0 0 12px rgba(255, 106, 42, 0.22) !important;
+  animation: wrUnderlinePulse 4s ease-in-out infinite alternate !important;
+}
+
+/* ================================
+   06. BANNER - RESTORED HEIGHT, NO BIG EMPTY PANEL
+================================ */
+html body [data-mj="widget-banner"] {
+  margin-top: calc(var(--site-header-height, 64px) + 14px) !important;
+  position: relative !important;
+  overflow: hidden !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  border-radius: 20px !important;
+  background: var(--wr-graphite-2) !important;
+  box-shadow: var(--wr-shadow-panel), var(--wr-shadow-inset) !important;
+}
+
+/* Kill the previous large overlay/sweep that made the banner look empty. */
+html body [data-mj="widget-banner"]::before,
+html body [data-mj="widget-banner"]::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body [data-mj="widget-banner-slider"],
+html body [data-mj="widget-banner-item"],
+html body [data-mj="widget-banner-link"] {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+html body [data-mj="widget-banner-item"] {
+  overflow: hidden !important;
+  border-radius: 20px !important;
+}
+
+html body [data-mj="widget-banner-link"] {
+  display: block !important;
+}
+
+html body [data-mj="widget-banner-link"] img,
+html body [data-mj="widget-banner-item"] img {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  object-fit: contain !important;
+  border-radius: 20px !important;
+  transform: none !important;
+  filter: none !important;
+  transition: filter 260ms ease !important;
+}
+
+html body [data-mj="widget-banner"]:hover [data-mj="widget-banner-link"] img,
+html body [data-mj="widget-banner"]:hover [data-mj="widget-banner-item"] img {
+  filter: brightness(1.035) contrast(1.015) !important;
+}
+
+html body [data-mj="widget-banner"] button,
+html body [data-mj="widget-game-slider-header"] button,
+html body [data-mj="widget-top-providers"] button,
+html body [data-mj="widget-collection-slider-container"] button {
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: 10px !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  box-shadow: var(--wr-shadow-inset) !important;
+  transition: transform 200ms ease, background 200ms ease, border-color 200ms ease, opacity 200ms ease !important;
+}
+
+html body [data-mj="widget-banner"] button:hover,
+html body [data-mj="widget-game-slider-header"] button:hover,
+html body [data-mj="widget-top-providers"] button:hover,
+html body [data-mj="widget-collection-slider-container"] button:hover {
+  transform: translateY(-1px) !important;
+  background: rgba(255, 255, 255, 0.095) !important;
+  border-color: rgba(255, 106, 42, 0.34) !important;
+}
+
+/* ================================
+   07. PHOENIX SPORT - FIX OVERLAP
+================================ */
+html body [data-mj="widget-phoenix-sport-container"] {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+html body #ph-sport-widget {
+  position: relative !important;
+  overflow: visible !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 18px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.055), transparent 30%),
+    radial-gradient(circle at 100% 0%, rgba(255, 106, 42, 0.06), transparent 34%),
+    linear-gradient(135deg, rgba(30, 32, 39, 0.84), rgba(12, 13, 17, 0.90)) !important;
+  box-shadow: var(--wr-shadow-panel), var(--wr-shadow-inset) !important;
+  backdrop-filter: blur(10px) saturate(1.04) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.04) !important;
+}
+
+html body #ph-sport-widget::before,
+html body #ph-sport-widget::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body #ph-sport-widget .top-events {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+  gap: 14px !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+}
+
+html body .ph-event-card {
+  position: relative !important;
+  inset: auto !important;
+  isolation: isolate !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 11px !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 158px !important;
+  margin: 0 !important;
+  padding: 14px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  border-radius: 16px !important;
+  color: #fff !important;
+  text-decoration: none !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.070), rgba(255, 255, 255, 0.032)),
+    rgba(17, 18, 23, 0.92) !important;
+  box-shadow: var(--wr-shadow-card), var(--wr-shadow-inset) !important;
+  transform: none !important;
+  transition: border-color 220ms ease, box-shadow 220ms ease, filter 220ms ease, transform 220ms ease !important;
+}
+
+html body .ph-event-card::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: -1 !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  background: radial-gradient(circle at 24% 0%, rgba(255, 106, 42, 0.16), transparent 38%) !important;
+  transition: opacity 220ms ease !important;
+}
+
+html body .ph-event-card:hover {
+  transform: translateY(-3px) !important;
+  border-color: rgba(255, 106, 42, 0.34) !important;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.40), 0 0 18px rgba(255, 106, 42, 0.11), var(--wr-shadow-inset) !important;
+  filter: brightness(1.035) !important;
+}
+
+html body .ph-event-card:hover::before {
+  opacity: 1 !important;
+}
+
+html body .ph-event-header {
+  display: grid !important;
+  gap: 5px !important;
+  min-width: 0 !important;
+}
+
+html body .ph-sport {
+  width: fit-content !important;
+  max-width: 100% !important;
+  padding: 4px 9px !important;
+  border-radius: 999px !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+  background: linear-gradient(90deg, rgba(255, 106, 42, 0.56), rgba(255, 255, 255, 0.13)) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 0 10px rgba(255, 106, 42, 0.16) !important;
+}
+
+html body .ph-tournament,
+html body .ph-time {
+  overflow: hidden !important;
+  color: rgba(255, 255, 255, 0.66) !important;
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html body .ph-time {
+  color: rgba(240, 152, 25, 0.92) !important;
+  font-weight: 700 !important;
+}
+
+html body .ph-outcomes {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-top: auto !important;
+}
+
+html body .ph-outcomes > div {
+  min-width: 0 !important;
+  padding: 8px !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.085) !important;
+  border-radius: 11px !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease !important;
+}
+
+html body .ph-outcomes > div:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(255, 106, 42, 0.38) !important;
+  background: rgba(255, 106, 42, 0.10) !important;
+  box-shadow: 0 0 14px rgba(255, 106, 42, 0.12) !important;
+}
+
+html body .ph-participant {
+  overflow: hidden !important;
+  color: rgba(255, 255, 255, 0.76) !important;
+  font-size: 12px !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+html body .ph-outcome {
+  margin-top: 5px !important;
+  color: #fff !important;
+  font-size: 16px !important;
+  line-height: 1.1 !important;
+  font-weight: 900 !important;
+  text-shadow: 0 0 10px rgba(240, 152, 25, 0.20) !important;
+}
+
+/* ================================
+   08. GAME CARDS / SLIDERS - SAFE EFFECTS ONLY
+================================ */
+html body [data-mj="widget-game-slider-list"],
+html body [data-mj="widget-collection-slider-list"],
+html body [data-mj="widget-top-promotions-slider"],
+html body [data-mj="widget-top-providers-slider"] {
+  padding-top: 6px !important;
+  padding-bottom: 10px !important;
+}
+
+html body [data-mj="widget-game-slider-slide"] {
+  border-radius: 12px !important;
+  margin-left: 2px !important;
+}
+
+html body [data-mj="widget-game-card"] {
+  position: relative !important;
+  isolation: isolate !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 12px !important;
+  background: rgba(18, 20, 26, 0.78) !important;
+  box-shadow: var(--wr-shadow-card), var(--wr-shadow-inset) !important;
+  cursor: pointer !important;
+  transition: transform 240ms cubic-bezier(.2, .8, .2, 1), border-color 240ms ease, box-shadow 240ms ease, filter 240ms ease !important;
+}
+
+html body [data-mj="widget-game-card"]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  background: linear-gradient(180deg, transparent 45%, rgba(0, 0, 0, 0.40)), radial-gradient(circle at 22% 0%, rgba(255, 106, 42, 0.18), transparent 38%) !important;
+  transition: opacity 240ms ease !important;
+}
+
+html body [data-mj="widget-game-card"]::after {
+  content: "" !important;
+  position: absolute !important;
+  top: -45% !important;
+  bottom: -45% !important;
+  left: -74% !important;
+  z-index: 3 !important;
+  width: 34% !important;
+  pointer-events: none !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.18), transparent) !important;
+  transform: rotate(18deg) !important;
+  transition: left 500ms ease !important;
+}
+
+html body [data-mj="widget-game-card"] img {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  border-radius: 11px !important;
+  transition: transform 440ms ease, filter 240ms ease !important;
+}
+
+html body [data-mj="widget-game-card"]:hover {
+  transform: translateY(-4px) !important;
+  border-color: rgba(255, 106, 42, 0.34) !important;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.42), 0 0 18px rgba(255, 106, 42, 0.11), var(--wr-shadow-inset) !important;
+  filter: brightness(1.035) !important;
+}
+
+html body [data-mj="widget-game-card"]:hover::before {
+  opacity: 1 !important;
+}
+
+html body [data-mj="widget-game-card"]:hover::after {
+  left: 132% !important;
+}
+
+html body [data-mj="widget-game-card"]:hover img {
+  transform: scale(1.035) !important;
+  filter: contrast(1.03) saturate(1.05) !important;
+}
+
+/* ================================
+   09. COLLECTIONS, PROMOTIONS, PROVIDERS
+================================ */
+html body [data-mj="widget-collection-slider-item"] > a,
+html body [data-mj="widget-promotion-link"] {
+  position: relative !important;
+  display: block !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 18px !important;
+  background: rgba(18, 20, 26, 0.74) !important;
+  box-shadow: var(--wr-shadow-card), var(--wr-shadow-inset) !important;
+  transition: transform 260ms ease, border-color 260ms ease, box-shadow 260ms ease, filter 260ms ease !important;
+}
+
+html body [data-mj="widget-collection-slider-item"] > a::before,
+html body [data-mj="widget-promotion-link"]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  background: linear-gradient(180deg, transparent 48%, rgba(0, 0, 0, 0.42)), radial-gradient(circle at 20% 0%, rgba(255, 106, 42, 0.15), transparent 34%) !important;
+  transition: opacity 260ms ease !important;
+}
+
+html body [data-mj="widget-collection-slider-item"] > a:hover,
+html body [data-mj="widget-promotion-link"]:hover {
+  transform: translateY(-5px) !important;
+  border-color: rgba(255, 106, 42, 0.30) !important;
+  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.42), 0 0 18px rgba(255, 106, 42, 0.10), var(--wr-shadow-inset) !important;
+  filter: brightness(1.035) !important;
+}
+
+html body [data-mj="widget-collection-slider-item"] > a:hover::before,
+html body [data-mj="widget-promotion-link"]:hover::before {
+  opacity: 1 !important;
+}
+
+html body [data-mj="widget-collection-slider-item"] img,
+html body [data-mj="widget-promotion-link"] img {
+  display: block !important;
+  width: 100% !important;
+  transition: transform 440ms ease, filter 240ms ease !important;
+}
+
+html body [data-mj="widget-collection-slider-item"] > a:hover img,
+html body [data-mj="widget-promotion-link"]:hover img {
+  transform: scale(1.025) !important;
+  filter: contrast(1.03) saturate(1.04) !important;
+}
+
+html body [data-mj="widget-top-providers-item"] {
+  position: relative !important;
+  overflow: hidden !important;
+  border: 1px solid rgba(255, 255, 255, 0.11) !important;
+  border-radius: 16px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.060), rgba(255, 255, 255, 0.024)),
+    rgba(18, 20, 26, 0.82) !important;
+  box-shadow: var(--wr-shadow-card), var(--wr-shadow-inset) !important;
+  backdrop-filter: blur(10px) saturate(1.05) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(1.05) !important;
+  transition: border-color 240ms ease, box-shadow 240ms ease, filter 240ms ease, background 240ms ease !important;
+}
+
+html body [data-mj="widget-top-providers-item"]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 1 !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+  background: radial-gradient(circle at 20% 0%, rgba(255, 106, 42, 0.18), transparent 40%) !important;
+  transition: opacity 240ms ease !important;
+}
+
+html body [data-mj="widget-top-providers-item"]:hover {
+  border-color: rgba(255, 106, 42, 0.34) !important;
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.40), 0 0 18px rgba(255, 106, 42, 0.12), var(--wr-shadow-inset) !important;
+  filter: brightness(1.05) !important;
+}
+
+html body [data-mj="widget-top-providers-item"]:hover::before {
+  opacity: 1 !important;
+}
+
+html body [data-mj="widget-top-providers-item"] img {
+  position: relative !important;
+  z-index: 2 !important;
+  transition: transform 240ms ease, filter 240ms ease !important;
+}
+
+html body [data-mj="widget-top-providers-item"]:hover img {
+  transform: scale(1.035) !important;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.12)) !important;
+}
+
+/* ================================
+   10. LAST WINNERS + EGT JACKPOT
+================================ */
+html body [data-mj="widget-bet-win"] {
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 20px !important;
+  background: var(--wr-graphite-gradient) !important;
+  box-shadow: var(--wr-shadow-card), var(--wr-shadow-inset) !important;
+}
+
+html body .jp_horizontal_panel,
+html body .jp_horizontal_container,
+html body [data-mj="widget-egt-jackpot-container"] > div {
+  border-radius: 20px !important;
+}
+
+html body [data-mj="widget-egt-jackpot-container"] {
+  overflow: hidden !important;
+}
+
+html body [data-mj="widget-egt-jackpot-container"] .app-ltr-17a73ig,
+html body .jp_horizontal_panel {
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 22px !important;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 255, 255, 0.055), transparent 34%),
+    linear-gradient(135deg, rgba(29, 31, 38, 0.86), rgba(12, 13, 17, 0.92)) !important;
+  box-shadow: var(--wr-shadow-panel), var(--wr-shadow-inset) !important;
+}
+
+html body .jp_horizontal_inside {
+  transition: filter 220ms ease !important;
+}
+
+html body .jp_horizontal_inside:hover {
+  filter: brightness(1.08) drop-shadow(0 0 12px rgba(240, 152, 25, 0.24)) !important;
+}
+
+/* ================================
+   11. FOOTER - COMPACT GRAPHITE, ORIGINAL STRUCTURE
+================================ */
+html body [data-mj="footer"],
+html body footer[data-mj="footer"] {
+  position: relative !important;
+  isolation: isolate !important;
+  min-height: 0 !important;
+  height: auto !important;
+  margin-top: 48px !important;
+  padding: 42px 0 28px !important;
+  overflow: hidden !important;
+  border-radius: 24px 24px 0 0 !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.11) !important;
+  background:
+    radial-gradient(circle at 12% 0%, rgba(255, 255, 255, 0.055), transparent 32%),
+    radial-gradient(circle at 88% 0%, rgba(255, 106, 42, 0.055), transparent 34%),
+    linear-gradient(180deg, #181a20 0%, #101115 58%, #08090b 100%) !important;
+  box-shadow: 0 -18px 44px rgba(0, 0, 0, 0.42), var(--wr-shadow-inset) !important;
+}
+
+html body [data-mj="footer"]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  pointer-events: none !important;
+  background: linear-gradient(120deg, rgba(255, 255, 255, 0.050), transparent 24%, transparent 78%, rgba(255, 255, 255, 0.030)) !important;
+  opacity: 0.8 !important;
+  animation: wrFooterSheen 7s ease-in-out infinite alternate !important;
+}
+
+/* Disable the previous huge footer watermark/logo pseudo-element. */
+html body [data-mj="footer"]::after {
+  content: none !important;
+  display: none !important;
+}
+
+html body [data-mj="footer"] > *,
+html body [data-mj="footer-content"],
+html body [data-mj="footer-top"],
+html body [data-mj="footer-bottom"] {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+html body [data-mj="footer"] [class~="app-ltr-1l44gyp"] {
+  width: calc(100% - (var(--wr-page-gutter) * 2)) !important;
+  max-width: none !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+}
+
+html body [data-mj="footer-content"] {
+  padding: 26px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 22px !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.060), rgba(255, 255, 255, 0.026)),
+    rgba(17, 18, 23, 0.68) !important;
+  box-shadow: var(--wr-shadow-panel), var(--wr-shadow-inset) !important;
+  backdrop-filter: blur(12px) saturate(1.04) !important;
+  -webkit-backdrop-filter: blur(12px) saturate(1.04) !important;
+}
+
+html body [data-mj="footer-top"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 22px !important;
+  flex-wrap: wrap !important;
+}
+
+html body [data-mj="footer-logo"] {
+  position: relative !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-width: 156px !important;
+  padding: 10px 16px !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  box-shadow: var(--wr-shadow-inset), 0 0 14px rgba(255, 106, 42, 0.08) !important;
+}
+
+html body [data-mj="footer-logo"]::before {
+  content: "" !important;
+  position: absolute !important;
+  inset: -1px !important;
+  z-index: -1 !important;
+  border-radius: inherit !important;
+  background: linear-gradient(120deg, rgba(255, 106, 42, 0.28), rgba(255, 255, 255, 0.12), rgba(240, 152, 25, 0.18)) !important;
+  opacity: 0.50 !important;
+}
+
+html body [data-mj="footer-logo"] img {
+  max-width: 150px !important;
+  height: auto !important;
+  animation: none !important;
+}
+
+html body [data-mj="footer-nav"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-wrap: wrap !important;
+  gap: 12px 24px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+}
+
+html body [data-mj="footer-nav-item"] a,
+html body [data-mj="footer"] a:not([data-mj="footer-logo"]) {
+  position: relative !important;
+  display: inline-block !important;
+  color: rgba(255, 255, 255, 0.70) !important;
+  text-decoration: none !important;
+  transition: color 200ms ease, text-shadow 200ms ease !important;
+}
+
+html body [data-mj="footer-nav-item"] a::after,
+html body [data-mj="footer"] a:not([data-mj="footer-logo"])::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 0 !important;
+  bottom: -5px !important;
+  width: 0 !important;
+  height: 1px !important;
+  border-radius: 999px !important;
+  background: linear-gradient(90deg, var(--wr-accent), rgba(255, 255, 255, 0.30), transparent) !important;
+  transition: width 200ms ease !important;
+}
+
+html body [data-mj="footer-nav-item"] a:hover,
+html body [data-mj="footer"] a:not([data-mj="footer-logo"]):hover {
+  color: #fff !important;
+  text-shadow: 0 0 10px rgba(255, 106, 42, 0.22) !important;
+}
+
+html body [data-mj="footer-nav-item"] a:hover::after,
+html body [data-mj="footer"] a:not([data-mj="footer-logo"]):hover::after {
+  width: 100% !important;
+}
+
+html body [data-mj="footer-content"] > div:not([data-mj]) {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-end !important;
+  flex-wrap: wrap !important;
+  gap: 14px !important;
+  margin-top: 18px !important;
+}
+
+html body [data-mj="footer"] [class~="app-ltr-12r9dhn"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 46px !important;
+  height: 46px !important;
+  border: 1px solid rgba(255, 106, 42, 0.42) !important;
+  border-radius: 50% !important;
+  color: #fff !important;
+  font-weight: 900 !important;
+  background: radial-gradient(circle, rgba(255, 106, 42, 0.22), rgba(255, 255, 255, 0.055)) !important;
+  box-shadow: 0 0 16px rgba(255, 106, 42, 0.16), var(--wr-shadow-inset) !important;
+  animation: wrBadgePulse 4.2s ease-in-out infinite !important;
+}
+
+html body [data-mj="footer"] hr,
+html body [data-mj="footer"] .app-ltr-xxgoyj {
+  height: 1px !important;
+  border: 0 !important;
+  margin: 24px 0 !important;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.14), rgba(255, 106, 42, 0.22), transparent) !important;
+}
+
+html body [data-mj="footer-bottom"] {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 18px !important;
+}
+
+html body [data-mj="footer-copyright"] {
+  color: rgba(255, 255, 255, 0.56) !important;
+  font-size: 13px !important;
+}
+
+html body [data-mj="footer"] [data-mj="social-links"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+html body [data-mj="footer"] [data-mj="social-links"] a {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  background: rgba(255, 255, 255, 0.055) !important;
+  border: 1px solid rgba(255, 255, 255, 0.10) !important;
+  box-shadow: var(--wr-shadow-inset) !important;
+}
+
+/* ================================
+   12. RESPONSIVE FIXES
+================================ */
+@media (min-width: 993px) {
+  html body #root.vertical-nav [data-mj="sidebar"] {
+    position: sticky !important;
+    top: var(--site-header-height, 64px) !important;
+    align-self: flex-start !important;
+    z-index: 80 !important;
+    height: calc(100vh - var(--site-header-height, 64px)) !important;
+  }
+
+  html body #root.vertical-nav [data-mj="sidebar-content"] {
+    height: calc(100vh - var(--site-header-height, 64px)) !important;
+    overflow: auto !important;
+  }
+
+  html body [data-mj="register-button"] {
+    height: 33px !important;
+    min-height: 33px !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  html body #ph-sport-widget .top-events {
+    grid-template-columns: repeat(auto-fill, minmax(245px, 1fr)) !important;
+  }
+
+  html body [data-mj="footer-content"] {
+    padding: 22px !important;
+  }
+}
+
+@media (max-width: 992px) {
+  html body [data-mj="custom-header"] {
+    padding-left: 0 !important;
+  }
+
+  html body [data-mj="sidebar"] {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  html body [data-mj="widget-banner"] {
+    margin-top: calc(var(--site-header-height, 64px) + 10px) !important;
+    border-radius: 16px !important;
+  }
+
+  html body [data-mj="widget-banner-item"],
+  html body [data-mj="widget-banner-link"] img,
+  html body [data-mj="widget-banner-item"] img {
+    border-radius: 16px !important;
+  }
+
+  html body #ph-sport-widget {
+    padding: 14px !important;
+    border-radius: 18px !important;
+  }
+
+  html body #ph-sport-widget .top-events {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)) !important;
+    gap: 12px !important;
+  }
+
+  html body .ph-event-card {
+    min-height: 150px !important;
+    padding: 12px !important;
+  }
+
+  html body [data-mj="footer"] {
+    margin-top: 36px !important;
+    padding: 32px 0 24px !important;
+    border-radius: 18px 18px 0 0 !important;
+  }
+
+  html body [data-mj="footer-content"] {
+    padding: 18px !important;
+    border-radius: 18px !important;
+  }
+
+  html body [data-mj="footer-top"],
+  html body [data-mj="footer-bottom"],
+  html body [data-mj="footer-content"] > div:not([data-mj]) {
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  html body [data-mj="footer-nav"] {
+    gap: 10px 18px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  html body {
+    --wr-page-gutter: 12px;
+  }
+
+  html body #ph-sport-widget .top-events {
+    grid-template-columns: 1fr !important;
+  }
+
+  html body .ph-outcomes {
+    gap: 6px !important;
+  }
+
+  html body .ph-outcomes > div {
+    padding: 7px 6px !important;
+  }
+
+  html body [data-mj="footer-logo"] {
+    min-width: 142px !important;
+  }
+
+  html body [data-mj="footer-logo"] img {
+    max-width: 132px !important;
+  }
+}
+
+/* ================================
+   13. ANIMATIONS
+================================ */
+@keyframes wrGraphiteLine {
+  0% {
+    opacity: 0.42;
+    transform: translateX(-2%);
+  }
+
+  100% {
+    opacity: 0.82;
+    transform: translateX(2%);
+  }
+}
+
+@keyframes wrUnderlinePulse {
+  0% {
+    width: 42px;
+    opacity: 0.65;
+  }
+
+  100% {
+    width: 66px;
+    opacity: 1;
+  }
+}
+
+@keyframes wrFooterSheen {
+  0% {
+    opacity: 0.48;
+    transform: translateX(-1.5%);
+  }
+
+  100% {
+    opacity: 0.82;
+    transform: translateX(1.5%);
+  }
+}
+
+@keyframes wrBadgePulse {
+  0%,
+  100% {
+    box-shadow: 0 0 12px rgba(255, 106, 42, 0.12), var(--wr-shadow-inset);
+  }
+
+  50% {
+    box-shadow: 0 0 22px rgba(255, 106, 42, 0.24), var(--wr-shadow-inset);
+  }
+}
+
+/* ================================
+   14. ACCESSIBILITY
+================================ */
+@media (prefers-reduced-motion: reduce) {
+  html body *,
+  html body *::before,
+  html body *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
