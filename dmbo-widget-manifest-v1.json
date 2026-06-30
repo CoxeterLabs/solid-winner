@@ -1,5 +1,5 @@
 {
-  "version": "20260630-adv-account-8",
+  "version": "20260630-live-stats-1",
   "global": {
     "styles": [],
     "scripts": []
@@ -58,6 +58,19 @@
             },
             "youtube",
             "iframe",
+            {
+              "name": "liveMatch",
+              "title": "Live Match Center",
+              "pollMs": 8000,
+              "resolverPath": "/matchtracker-resolver/resolve",
+              "events": {
+                "4542851": {
+                  "home": "Serena Williams",
+                  "away": "Maya Joint",
+                  "animationUrl": "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66083805?s=3&lang=en"
+                }
+              }
+            },
             "top",
             "worldcup",
             "sports",

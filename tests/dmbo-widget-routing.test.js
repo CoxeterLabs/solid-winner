@@ -136,11 +136,94 @@ test("default manifest mounts the DMBO widget only on the Advanced Features page
     "video",
     "youtube",
     "iframe",
+    "liveMatch",
     "top",
     "worldcup",
     "sports",
     "casino"
   ]);
+});
+
+test("default live match panel config enables per-event stats modal", () => {
+  const api = loadWidgetTestApi();
+  const manifest = api.createDefaultManifest();
+  const panels = manifest.pages[0].widgets[0].panels;
+  const liveMatch = panels.find((panel) => panel && typeof panel === "object" && panel.name === "liveMatch");
+
+  assert.equal(api.panelEnabled(manifest.pages[0].widgets[0], "liveMatch"), true);
+  assert.equal(liveMatch.title, "Live Match Center");
+  assert.equal(liveMatch.pollMs, 8000);
+  assert.equal(liveMatch.resolverPath, "/matchtracker-resolver/resolve");
+});
+
+test("live event summary maps score, periods, stats, and animation hints", () => {
+  const api = loadWidgetTestApi();
+
+  const summary = api.liveEventSummary({
+    eventId: "4542851",
+    eventName: "Serena Williams vs Maya Joint",
+    eventStatus: "LIVE",
+    sportName: "Tennis",
+    tournamentName: "WTA Wimbledon | Women | Singles",
+    participants: [
+      { qualifier: "away", translatedName: "Maya Joint" },
+      { qualifier: "home", translatedName: "Serena Williams" }
+    ],
+    score: {
+      homeScore: 1,
+      awayScore: 1,
+      currentPeriodName: "3rd Set",
+      liveExtraData: { TURN: "1", SERVE_NUMBER: "1" }
+    },
+    periodScoreInfo: {
+      scores: [
+        { periodName: "1st Set", homeScore: 3, awayScore: 6 },
+        { periodName: "Game", homeScore: 0, awayScore: 15 }
+      ]
+    },
+    eventStatistics: {
+      statistics: [
+        { type: "ACES", home: 7, away: 8 },
+        { type: "FIRST_SERVE_WINS", home: 35, away: 50 }
+      ]
+    },
+    videoStreaming: { status: "started", streamId: "959206810" }
+  }, { h: "Fallback Home", a: "Fallback Away" });
+
+  assert.equal(summary.eventId, "4542851");
+  assert.equal(summary.title, "Serena Williams vs Maya Joint");
+  assert.equal(summary.status, "LIVE");
+  assert.equal(summary.homeName, "Serena Williams");
+  assert.equal(summary.awayName, "Maya Joint");
+  assert.equal(summary.scoreText, "1 - 1");
+  assert.equal(summary.period, "3rd Set");
+  assert.equal(summary.serviceText, "Server: Serena Williams · Serve 1");
+  assert.deepEqual(plain(summary.periodRows), [
+    { label: "1st Set", home: "3", away: "6" },
+    { label: "Game", home: "0", away: "15" }
+  ]);
+  assert.deepEqual(plain(summary.statRows), [
+    { label: "Aces", home: "7", away: "8" },
+    { label: "First Serve Wins", home: "35", away: "50" }
+  ]);
+  assert.equal(summary.streamText, "Stream started");
+});
+
+test("live match resolver URL uses the Worker proxy with event teams", () => {
+  const api = loadWidgetTestApi();
+  const url = api.liveAnimationResolverUrl(
+    { sportsProxyUrl: "https://sports.hypercubik.workers.dev/" },
+    { resolverPath: "/matchtracker-resolver/resolve" },
+    { eventId: "4542851" },
+    { h: "Serena Williams", a: "Maya Joint" }
+  );
+
+  const parsed = new URL(url);
+  assert.equal(parsed.origin + parsed.pathname, "https://sports.hypercubik.workers.dev/");
+  assert.equal(parsed.searchParams.get("path"), "/matchtracker-resolver/resolve");
+  assert.equal(parsed.searchParams.get("home"), "Serena Williams");
+  assert.equal(parsed.searchParams.get("away"), "Maya Joint");
+  assert.equal(parsed.searchParams.get("nocache"), "1");
 });
 
 test("resolves object panel settings for modular widgets", () => {

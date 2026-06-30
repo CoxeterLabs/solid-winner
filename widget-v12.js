@@ -9,7 +9,7 @@
   var CONFIG_URL = WORKER + "config.js?v=" + Date.now();
   var LOTTIE_URL = "https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js";
   var MANIFEST_URL = "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/dmbo-widget-manifest-v1.json";
-  var DEFAULT_PANELS = ["account", "lottie", "video", "youtube", "iframe", "top", "worldcup", "sports", "casino"];
+  var DEFAULT_PANELS = ["account", "lottie", "video", "youtube", "iframe", "liveMatch", "top", "worldcup", "sports", "casino"];
 
   var logoIndex = null;
   var logoWaiters = [];
@@ -25,6 +25,7 @@
   var casino = { page: 0, query: "", loading: false, done: false, games: [] };
   var sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
   var lastAccountRender = null;
+  var live = { timer: 0, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {} };
 
   function log() { try { console.log.apply(console, arguments); } catch (e) {} }
   function err() { try { console.error.apply(console, arguments); } catch (e) {} }
@@ -106,7 +107,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-account-8",
+      version: "20260630-live-stats-1",
       global: {
         styles: [],
         scripts: []
@@ -165,6 +166,19 @@
                 },
                 "youtube",
                 "iframe",
+                {
+                  name: "liveMatch",
+                  title: "Live Match Center",
+                  pollMs: 8000,
+                  resolverPath: "/matchtracker-resolver/resolve",
+                  events: {
+                    "4542851": {
+                      home: "Serena Williams",
+                      away: "Maya Joint",
+                      animationUrl: "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66083805?s=3&lang=en"
+                    }
+                  }
+                },
                 "top",
                 "worldcup",
                 "sports",
@@ -401,6 +415,8 @@
   }
 
   function cleanup(c) {
+    closeLiveModal(true);
+
     [
       "conditional-lottie",
       "dmbo-s8-widget",
@@ -543,6 +559,7 @@
   function resetWidgetData() {
     casino = { page: 0, query: "", loading: false, done: false, games: [] };
     sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
+    live.store = {};
   }
 
   function applyDocumentTitle(layers) {
@@ -580,6 +597,8 @@
       "#" + c.containerId + " .init{display:inline-flex;width:22px;height:22px;border-radius:50%;align-items:center;justify-content:center;background:#24314f;font-size:10px;font-weight:900}" +
       "#" + c.containerId + " .od{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}#" + c.containerId + " .pill{display:inline-flex;gap:5px;align-items:center;padding:5px 7px;border-radius:7px;background:#1f2a44;color:#fff;font-size:11px;border:0}" +
       "#" + c.containerId + " a.pill{text-decoration:none}#" + c.containerId + " a.pill:hover{background:#2f4068}" +
+      "#" + c.containerId + " .stat-btn{display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;width:24px;height:24px;margin-left:6px;border:0;border-radius:7px;background:#fd224e;color:#fff;cursor:pointer}#" + c.containerId + " .stat-btn:hover{background:#ff4569}#" + c.containerId + " .stat-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}" +
+      "#" + c.containerId + " .stat-bars{display:inline-grid;grid-template-columns:repeat(3,3px);align-items:end;gap:2px;height:12px}#" + c.containerId + " .stat-bars i{display:block;width:3px;border-radius:2px;background:#fff}#" + c.containerId + " .stat-bars i:nth-child(1){height:6px}#" + c.containerId + " .stat-bars i:nth-child(2){height:10px}#" + c.containerId + " .stat-bars i:nth-child(3){height:8px}" +
       "#" + c.containerId + " .btn{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:800;padding:6px 8px;cursor:pointer}#" + c.containerId + " .btn2{background:#24314f}" +
       "#" + c.containerId + " .search{display:flex;gap:6px;margin-bottom:8px}#" + c.containerId + " input{min-width:0;flex:1;border:1px solid rgba(255,255,255,.15);background:#101827;color:#fff;border-radius:7px;padding:7px;font-size:12px}" +
       "#" + c.containerId + " .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}#" + c.containerId + " .game{border:1px solid rgba(255,255,255,.1);border-radius:10px;background:#111827;overflow:hidden}" +
@@ -588,8 +607,9 @@
       "#" + c.containerId + " .video-empty{height:176px;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:rgba(255,255,255,.7);font-size:12px}" +
       "#" + c.containerId + " .vc{position:absolute;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:6px;padding:6px;border-radius:9px;background:rgba(0,0,0,.68)}#" + c.containerId + " .vc button{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:900;padding:5px 7px;cursor:pointer}#" + c.containerId + " .vc input{padding:0;min-width:0;accent-color:#fd224e;background:transparent;border:0}#" + c.containerId + " .vc .time{font-size:10px;color:rgba(255,255,255,.78);min-width:60px;text-align:right}" +
       "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv .wide{grid-column:1/-1}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .kv .wide b{white-space:normal;line-height:1.35}#" + c.containerId + " .bal-toggle{display:flex;gap:4px;margin-top:7px}#" + c.containerId + " .bal-toggle button{border:0;border-radius:6px;background:#22304f;color:#fff;cursor:pointer;font-size:10px;font-weight:800;line-height:1;padding:5px 8px}#" + c.containerId + " .bal-toggle button.on{background:#fd224e}#" + c.containerId + " .bal-toggle button:focus-visible{outline:2px solid #fff;outline-offset:2px}" +
+      "#dmbo-live-modal{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(3,5,10,.66);font-family:Arial,sans-serif;color:#fff}#dmbo-live-modal.open{display:flex}#dmbo-live-modal .live-dialog{position:relative;width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border-radius:12px;background:#111722;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 70px rgba(0,0,0,.58)}#dmbo-live-modal .live-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.09)}#dmbo-live-modal .live-title{font-size:14px;font-weight:900;line-height:1.25}#dmbo-live-modal .live-meta{margin-top:3px;font-size:11px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-close{width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}#dmbo-live-modal .live-body{padding:12px 14px 14px}#dmbo-live-modal .live-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,.06)}#dmbo-live-modal .live-team{min-width:0;font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-team.away{text-align:right}#dmbo-live-modal .live-score-num{font-size:24px;font-weight:900;line-height:1;color:#fff}#dmbo-live-modal .live-sub{margin-top:8px;font-size:11px;color:rgba(255,255,255,.66)}#dmbo-live-modal .live-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}#dmbo-live-modal .live-panel{min-width:0;border-radius:10px;background:rgba(255,255,255,.05);padding:10px}#dmbo-live-modal .live-panel h3{margin:0 0 8px;font-size:12px;line-height:1.2}#dmbo-live-modal .live-table{display:grid;gap:5px}#dmbo-live-modal .live-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:11px}#dmbo-live-modal .live-row span:nth-child(2){color:rgba(255,255,255,.68);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-row b{text-align:center;font-size:12px}#dmbo-live-modal .live-animation{margin-top:10px;border-radius:10px;overflow:hidden;background:#070a10;border:1px solid rgba(255,255,255,.08)}#dmbo-live-modal .live-animation iframe{display:block;width:100%;height:230px;border:0;background:#070a10}#dmbo-live-modal .live-empty{padding:14px;text-align:center;font-size:12px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-error{margin-top:8px;color:#ff8aa1;font-size:11px}#dmbo-live-modal a{color:#fff}" +
       "#dmbo-v12-close{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}" +
-      "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}";
+      "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-grid{grid-template-columns:1fr}#dmbo-live-modal .live-animation iframe{height:210px}}";
 
     (document.head || document.documentElement).appendChild(s);
   }
@@ -699,6 +719,324 @@
     return s && !s.hasLoginCta ? signedInEventHref(ev) : guestEventHref(ev, tm);
   }
 
+  function eventId(ev) {
+    return String(ev && (ev.eventId || ev.id || ev.eventID) || "");
+  }
+
+  function liveMatchConfig(widget) {
+    var config = panelConfig(widget || currentDmboWidget, "liveMatch");
+    var pollMs = Number(config.pollMs);
+
+    config.title = config.title || "Live Match Center";
+    config.pollMs = isFinite(pollMs) && pollMs >= 3000 ? pollMs : 8000;
+    config.resolverPath = config.resolverPath || "/matchtracker-resolver/resolve";
+    config.events = config.events || {};
+    config.animationUrls = config.animationUrls || {};
+
+    return config;
+  }
+
+  function liveStatsEnabled() {
+    return !!(currentDmboWidget && panelEnabled(currentDmboWidget, "liveMatch"));
+  }
+
+  function scoreValue(v) {
+    var n;
+
+    if (v == null || v === "") return "-";
+    n = Number(v);
+    if (isFinite(n) && String(v).trim() !== "") return String(n % 1 ? n : Math.trunc(n));
+    return String(v);
+  }
+
+  function statLabel(value) {
+    var text = String(value || "").replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+
+    if (!text) return "Stat";
+    return text.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+
+  function liveEventSummary(data, fallbackTeams) {
+    var ev = data || {};
+    var score = ev.score || {};
+    var tm = teams(ev);
+    var fallback = fallbackTeams || {};
+    var extra = score.liveExtraData || {};
+    var server = "";
+    var periods = ((ev.periodScoreInfo && ev.periodScoreInfo.scores) || ev.periodScores || []).map(function (row) {
+      return {
+        label: row.periodName || row.name || row.type || "Period",
+        home: scoreValue(row.homeScore != null ? row.homeScore : row.home),
+        away: scoreValue(row.awayScore != null ? row.awayScore : row.away)
+      };
+    });
+    var stats = ((ev.eventStatistics && ev.eventStatistics.statistics) || ev.statistics || []).map(function (row) {
+      return {
+        label: statLabel(row.type || row.name || row.label),
+        home: scoreValue(row.home),
+        away: scoreValue(row.away)
+      };
+    });
+    var status = ev.eventStatus || ev.status || "";
+    var streamStatus = ev.videoStreaming && ev.videoStreaming.status;
+
+    if ((!tm.h || tm.h === "Home") && fallback.h) tm.h = fallback.h;
+    if ((!tm.a || tm.a === "Away") && fallback.a) tm.a = fallback.a;
+
+    if (String(extra.TURN || "") === "1") server = tm.h;
+    if (String(extra.TURN || "") === "2") server = tm.a;
+    if (server) server = "Server: " + server + (extra.SERVE_NUMBER ? " · Serve " + extra.SERVE_NUMBER : "");
+
+    return {
+      eventId: eventId(ev),
+      title: ev.eventName || ((tm.h || "Home") + " vs " + (tm.a || "Away")),
+      tournament: ev.tournamentName || ev.regionName || ev.sportName || "",
+      status: status || "-",
+      homeName: tm.h || "Home",
+      awayName: tm.a || "Away",
+      scoreText: scoreValue(score.homeScore != null ? score.homeScore : ev.homeScore) + " - " + scoreValue(score.awayScore != null ? score.awayScore : ev.awayScore),
+      period: score.currentPeriodName || ev.currentPeriodName || status || "Live",
+      serviceText: server,
+      periodRows: periods,
+      statRows: stats,
+      streamText: streamStatus ? "Stream " + String(streamStatus).toLowerCase() : ""
+    };
+  }
+
+  function liveEventOverride(config, ev) {
+    var id = eventId(ev);
+    var item = id && config && config.events ? config.events[id] : null;
+
+    return item && typeof item === "object" ? item : {};
+  }
+
+  function liveAnimationPresetUrl(config, ev) {
+    var id = eventId(ev);
+    var mapped = id && config && config.animationUrls ? config.animationUrls[id] : "";
+    var item = liveEventOverride(config || {}, ev || {});
+
+    if (mapped && typeof mapped === "string") return mapped;
+    if (mapped && typeof mapped === "object" && mapped.animationUrl) return mapped.animationUrl;
+    if (item.animationUrl) return item.animationUrl;
+    if (config && config.eventId && String(config.eventId) === id && config.animationUrl) return config.animationUrl;
+
+    return "";
+  }
+
+  function liveAnimationResolverUrl(c, config, ev, tm) {
+    var item = liveEventOverride(config || {}, ev || {});
+    var home = item.home || (tm && tm.h) || "";
+    var away = item.away || (tm && tm.a) || "";
+
+    if (config && config.resolveAnimation === false) return "";
+    if (!home || !away) return "";
+
+    return proxy(c || cfg(), (config && config.resolverPath) || "/matchtracker-resolver/resolve", {
+      home: home,
+      away: away,
+      nocache: "1"
+    });
+  }
+
+  function liveAnimationUrlFromResolver(data) {
+    var src = data && (data.url || data.animationUrl || data.trackerUrl || "");
+    var broadcast = data && data.broadcastUrl;
+
+    if (src) return String(src);
+    if (broadcast && /^https?:\/\//i.test(String(broadcast))) return String(broadcast);
+    if (broadcast && String(broadcast).charAt(0) === "/") return "https://ui-monitor.lynon.online" + String(broadcast);
+
+    return "";
+  }
+
+  function registerLiveEvent(ev, tm) {
+    var id = eventId(ev);
+    var key;
+
+    if (!id || !liveStatsEnabled()) return "";
+
+    live.seq += 1;
+    key = "live-" + id + "-" + live.seq;
+    live.store[key] = {
+      key: key,
+      event: ev,
+      teams: tm,
+      config: liveMatchConfig(currentDmboWidget)
+    };
+
+    return key;
+  }
+
+  function liveStatsButtonHtml(key, label) {
+    if (!key) return "";
+
+    return '<button type="button" class="stat-btn" data-dmbo-live-key="' + esc(key) + '" title="Live stats" aria-label="' + esc("Open live stats for " + (label || "event")) + '"><span class="stat-bars" aria-hidden="true"><i></i><i></i><i></i></span></button>';
+  }
+
+  function ensureLiveModal() {
+    var modal = qs("dmbo-live-modal");
+
+    if (modal) return modal;
+    if (!document.body) return null;
+
+    modal = document.createElement("div");
+    modal.id = "dmbo-live-modal";
+    modal.innerHTML = '<div class="live-dialog" role="dialog" aria-modal="true" aria-labelledby="dmbo-live-title">' +
+      '<div class="live-head"><div><div class="live-title" id="dmbo-live-title">Live Match Center</div><div class="live-meta" id="dmbo-live-meta">Loading...</div></div><button type="button" class="live-close" id="dmbo-live-close" aria-label="Close">x</button></div>' +
+      '<div class="live-body" id="dmbo-live-body"><div class="live-empty">Loading live data...</div></div></div>';
+    document.body.appendChild(modal);
+
+    qs("dmbo-live-close").onclick = function () { closeLiveModal(false); };
+    modal.onclick = function (e) {
+      if (e && e.target === modal) closeLiveModal(false);
+    };
+
+    return modal;
+  }
+
+  function closeLiveModal(remove) {
+    var modal = qs("dmbo-live-modal");
+
+    if (live.timer) {
+      clearTimeout(live.timer);
+      live.timer = 0;
+    }
+
+    live.activeKey = "";
+
+    if (!modal) return;
+    modal.className = "";
+    if (remove && modal.parentNode) modal.parentNode.removeChild(modal);
+  }
+
+  function tableRows(rows) {
+    if (!rows || !rows.length) return '<div class="live-empty">No rows yet.</div>';
+
+    return '<div class="live-table">' + rows.map(function (row) {
+      return '<div class="live-row"><b>' + esc(row.home) + '</b><span>' + esc(row.label) + '</span><b>' + esc(row.away) + '</b></div>';
+    }).join("") + '</div>';
+  }
+
+  function liveAnimationHtml(src) {
+    return '<iframe title="Live match animation" src="' + esc(src) + '" loading="lazy" allowfullscreen referrerpolicy="no-referrer"></iframe>';
+  }
+
+  function renderLiveAnimation(c, item, summary) {
+    var slot = qs("dmbo-live-animation");
+    var preset = liveAnimationPresetUrl(item.config, item.event);
+    var cached = live.animationCache[item.key];
+    var src = preset || cached;
+    var resolverUrl;
+
+    if (!slot) return;
+
+    if (src) {
+      slot.innerHTML = liveAnimationHtml(src);
+      return;
+    }
+
+    if (live.animationMiss[item.key]) {
+      slot.innerHTML = '<div class="live-empty">Animation is not available for this event yet.</div>';
+      return;
+    }
+
+    resolverUrl = liveAnimationResolverUrl(c, item.config, item.event, {
+      h: summary.homeName,
+      a: summary.awayName
+    });
+
+    if (!resolverUrl) {
+      live.animationMiss[item.key] = true;
+      slot.innerHTML = '<div class="live-empty">Animation resolver is not configured for this event.</div>';
+      return;
+    }
+
+    slot.innerHTML = '<div class="live-empty">Resolving live animation...</div>';
+    getJson(resolverUrl, "omit", function (e, d) {
+      var resolved = e ? "" : liveAnimationUrlFromResolver(d);
+
+      if (live.activeKey !== item.key) return;
+      if (resolved) {
+        live.animationCache[item.key] = resolved;
+        slot.innerHTML = liveAnimationHtml(resolved);
+      } else {
+        live.animationMiss[item.key] = true;
+        slot.innerHTML = '<div class="live-empty">Animation unavailable until the Worker allows the matchtracker resolver.</div>';
+      }
+    });
+  }
+
+  function renderLiveModal(c, item, data, error) {
+    var modal = ensureLiveModal();
+    var title = qs("dmbo-live-title");
+    var meta = qs("dmbo-live-meta");
+    var body = qs("dmbo-live-body");
+    var summary = liveEventSummary(data || item.event, item.teams);
+
+    if (!modal || !body) return;
+
+    if (title) title.textContent = item.config.title || "Live Match Center";
+    if (meta) meta.textContent = summary.tournament + (summary.status && summary.status !== "-" ? " · " + summary.status : "");
+
+    body.innerHTML = '<div class="live-score"><div class="live-team">' + esc(summary.homeName) + '</div><div class="live-score-num">' + esc(summary.scoreText) + '</div><div class="live-team away">' + esc(summary.awayName) + '</div></div>' +
+      '<div class="live-sub">' + esc(summary.period) + (summary.serviceText ? " · " + esc(summary.serviceText) : "") + (summary.streamText ? " · " + esc(summary.streamText) : "") + '</div>' +
+      (error ? '<div class="live-error">Live update failed. Showing latest known event data.</div>' : "") +
+      '<div class="live-grid"><div class="live-panel"><h3>Result</h3>' + tableRows(summary.periodRows) + '</div><div class="live-panel"><h3>Stats</h3>' + tableRows(summary.statRows) + '</div></div>' +
+      '<div class="live-animation" id="dmbo-live-animation"><div class="live-empty">Loading animation...</div></div>';
+
+    renderLiveAnimation(c, item, summary);
+  }
+
+  function loadLiveEvent(c, item) {
+    var id = eventId(item && item.event);
+    var url;
+
+    if (!item || !id || live.activeKey !== item.key) return;
+
+    url = proxy(c, "/partner-api/sportsbook/public/v2/event/" + encodeURIComponent(id));
+    getJson(url, "omit", function (e, d) {
+      if (live.activeKey !== item.key) return;
+
+      renderLiveModal(c, item, e ? item.event : d, e);
+
+      if (live.timer) clearTimeout(live.timer);
+      live.timer = setTimeout(function () {
+        loadLiveEvent(c, item);
+      }, item.config.pollMs || 8000);
+    });
+  }
+
+  function openLiveStats(c, key) {
+    var item = live.store[key];
+    var modal;
+
+    if (!item) return;
+    modal = ensureLiveModal();
+    if (!modal) return;
+
+    if (live.timer) {
+      clearTimeout(live.timer);
+      live.timer = 0;
+    }
+
+    live.activeKey = key;
+    modal.className = "open";
+    renderLiveModal(c, item, item.event, null);
+    loadLiveEvent(c, item);
+  }
+
+  function bindLiveButtons(c, root) {
+    if (!root || !liveStatsEnabled()) return;
+
+    Array.prototype.forEach.call(root.querySelectorAll("[data-dmbo-live-key]"), function (button) {
+      if (button.__DMBO_LIVE_BOUND__) return;
+      button.__DMBO_LIVE_BOUND__ = true;
+      button.onclick = function () {
+        openLiveStats(c, button.getAttribute("data-dmbo-live-key"));
+      };
+    });
+  }
+
   function logoIndexLoad(c, cb) {
     if (logoIndex) return cb(logoIndex);
 
@@ -797,8 +1135,10 @@
       var odds = (ev.market && ev.market.outcomes) || [];
       var p = id + "-" + i;
       var href = eventHref(ev, tm, signals);
+      var liveKey = registerLiveEvent(ev, tm);
+      var liveButton = liveStatsButtonHtml(liveKey, tm.h + " vs " + tm.a);
 
-      html += '<div class="ev"><div class="m">' + (fl ? '<img class="flag" src="' + fl + '"> ' : '') + esc(ev.tournamentName || ev.regionName || "") + ' · ' + esc(dateText(ev.startTime)) + ' · <a class="m" href="' + esc(href) + '">Open match</a></div>';
+      html += '<div class="ev"><div class="m">' + (fl ? '<img class="flag" src="' + fl + '"> ' : '') + esc(ev.tournamentName || ev.regionName || "") + ' · ' + esc(dateText(ev.startTime)) + ' · <a class="m" href="' + esc(href) + '">Open match</a>' + liveButton + '</div>';
       html += '<div class="match"><div class="team"><span id="' + p + '-hi" class="init">' + esc(initials(tm.h)) + '</span><img id="' + p + '-hl" class="logo" style="display:none"><span>' + esc(tm.h) + '</span></div><span class="m">vs</span><div class="team"><span id="' + p + '-ai" class="init">' + esc(initials(tm.a)) + '</span><img id="' + p + '-al" class="logo" style="display:none"><span>' + esc(tm.a) + '</span></div></div><div class="od">';
 
       odds.slice(0, 4).forEach(function (o) {
@@ -810,6 +1150,7 @@
     });
 
     box.innerHTML = html;
+    bindLiveButtons(c, box);
 
     events.slice(0, max).forEach(function (ev, i) {
       var tm = teams(ev);
@@ -1949,6 +2290,8 @@
       createDefaultManifest: createDefaultManifest,
       eventHref: eventHref,
       getActiveLayers: getActiveLayers,
+      liveAnimationResolverUrl: liveAnimationResolverUrl,
+      liveEventSummary: liveEventSummary,
       matchesPath: matchesPath,
       normalizePagePath: normalizePagePath,
       pageMatches: pageMatches,
