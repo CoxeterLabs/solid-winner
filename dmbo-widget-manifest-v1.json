@@ -1,0 +1,30 @@
+{
+  "version": "20260630-adv-router-1",
+  "global": {
+    "styles": [],
+    "scripts": []
+  },
+  "pages": [
+    {
+      "id": "advanced-features",
+      "paths": ["/home/adv"],
+      "widgets": [
+        {
+          "id": "dmbo-media-widget-v12",
+          "type": "dmbo-v12",
+          "panels": [
+            "lottie",
+            "youtube",
+            "iframe",
+            "top",
+            "worldcup",
+            "sports",
+            "casino"
+          ]
+        }
+      ],
+      "styles": [],
+      "scripts": []
+    }
+  ]
+}

@@ -8,10 +8,18 @@
   var WORKER = "https://sports.hypercubik.workers.dev/";
   var CONFIG_URL = WORKER + "config.js?v=" + Date.now();
   var LOTTIE_URL = "https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js";
+  var MANIFEST_URL = "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/dmbo-widget-manifest-v1.json";
+  var DEFAULT_PANELS = ["lottie", "youtube", "iframe", "top", "worldcup", "sports", "casino"];
 
   var logoIndex = null;
   var logoWaiters = [];
   var logoLoading = false;
+  var manifest = null;
+  var currentRouteKey = "";
+  var currentDmboWidget = null;
+  var lottieReady = false;
+  var routeHooked = false;
+  var loadedScriptIds = {};
   var casino = { page: 0, query: "", loading: false, done: false, games: [] };
   var sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
 
@@ -75,8 +83,177 @@
     c.sportsProxyUrl = c.sportsProxyUrl || WORKER;
     c.casinoGamesUrl = c.casinoGamesUrl || "/api/integration/api/v1.0/webSites/pages/casino/lobby-games";
     c.casinoMaxPages = c.casinoMaxPages || 20;
+    c.manifestUrl = c.manifestUrl || MANIFEST_URL;
     window.DMBO_MEDIA_WIDGET_CONFIG = c;
     return c;
+  }
+
+  function copyObject(v) {
+    var out = {};
+
+    Object.keys(v || {}).forEach(function (k) {
+      out[k] = v[k];
+    });
+
+    return out;
+  }
+
+  function createDefaultManifest() {
+    return {
+      version: "20260630-adv-router-1",
+      global: {
+        styles: [],
+        scripts: []
+      },
+      pages: [
+        {
+          id: "advanced-features",
+          paths: ["/home/adv"],
+          widgets: [
+            {
+              id: "dmbo-media-widget-v12",
+              type: "dmbo-v12",
+              panels: DEFAULT_PANELS.slice(0)
+            }
+          ],
+          styles: [],
+          scripts: []
+        }
+      ]
+    };
+  }
+
+  function normalizePagePath(value) {
+    var raw = String(value || "");
+    var path = raw;
+    var parts;
+
+    try {
+      if (/^https?:\/\//i.test(raw)) path = new URL(raw).pathname;
+    } catch (e) {}
+
+    path = path.split(/[?#]/)[0] || "/";
+    path = path.replace(/\/+/g, "/");
+    if (path.length > 1) path = path.replace(/\/+$/g, "");
+
+    parts = path.split("/").filter(Boolean);
+    if (parts.length && /^[a-z]{2}(?:-[a-z]{2})?$/i.test(parts[0])) parts.shift();
+
+    return "/" + parts.join("/");
+  }
+
+  function matchesPath(pattern, path, mode) {
+    var p = normalizePagePath(pattern);
+    var x = normalizePagePath(path);
+
+    if (mode === "prefix") return x === p || x.indexOf(p + "/") === 0;
+    if (mode === "contains") return x.indexOf(p) !== -1;
+
+    if (p.slice(-2) === "/*") {
+      p = p.slice(0, -2);
+      return x === p || x.indexOf(p + "/") === 0;
+    }
+
+    if (p.indexOf("*") !== -1) {
+      var re = new RegExp("^" + p.replace(/[.+?^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") + "$");
+      return re.test(x);
+    }
+
+    return x === p;
+  }
+
+  function pageMatches(page, path) {
+    var paths = [];
+    var i;
+
+    if (!page || page.enabled === false) return false;
+    if (page.path) paths.push(page.path);
+    if (Array.isArray(page.paths)) paths = paths.concat(page.paths);
+    if (!paths.length) return false;
+
+    for (i = 0; i < paths.length; i++) {
+      if (matchesPath(paths[i], path, page.match)) return true;
+    }
+
+    return false;
+  }
+
+  function addLayers(target, list, scope) {
+    (list || []).forEach(function (item) {
+      var x;
+
+      if (!item || item.enabled === false) return;
+
+      x = copyObject(item);
+      x.__dmboScope = scope;
+      target.push(x);
+    });
+  }
+
+  function uniqueLayers(list) {
+    var seen = {};
+    var out = [];
+
+    (list || []).forEach(function (item) {
+      var key = item.id || item.domId || item.href || item.src || item.code || JSON.stringify(item);
+      if (seen[key]) return;
+      seen[key] = true;
+      out.push(item);
+    });
+
+    return out;
+  }
+
+  function getActiveLayers(inputManifest, path) {
+    var m = inputManifest && typeof inputManifest === "object" ? inputManifest : createDefaultManifest();
+    var pages = Array.isArray(m.pages) ? m.pages : [];
+    var result = {
+      path: normalizePagePath(path),
+      pageIds: [],
+      styles: [],
+      scripts: [],
+      widgets: [],
+      dmboWidget: null
+    };
+
+    addLayers(result.styles, m.global && m.global.styles, "global");
+    addLayers(result.scripts, m.global && m.global.scripts, "global");
+
+    pages.forEach(function (page) {
+      if (!pageMatches(page, path)) return;
+
+      result.pageIds.push(page.id || "");
+      addLayers(result.styles, page.styles, "page");
+      addLayers(result.scripts, page.scripts, "page");
+      addLayers(result.widgets, page.widgets, "page");
+    });
+
+    result.styles = uniqueLayers(result.styles);
+    result.scripts = uniqueLayers(result.scripts);
+    result.widgets = uniqueLayers(result.widgets);
+
+    result.widgets.some(function (widget) {
+      if (widget && widget.enabled !== false && widget.type === "dmbo-v12") {
+        result.dmboWidget = widget;
+        if (!Array.isArray(result.dmboWidget.panels) || !result.dmboWidget.panels.length) {
+          result.dmboWidget.panels = DEFAULT_PANELS.slice(0);
+        }
+        return true;
+      }
+      return false;
+    });
+
+    return result;
+  }
+
+  function panelEnabled(widget, name) {
+    var panels = widget && widget.panels;
+    if (!Array.isArray(panels) || !panels.length) return true;
+    return panels.indexOf(name) !== -1;
+  }
+
+  function needsLottie(widget) {
+    return panelEnabled(widget, "lottie");
   }
 
   function proxy(c, path, params) {
@@ -132,6 +309,96 @@
       var el = id && qs(id);
       if (el && el.parentNode) el.parentNode.removeChild(el);
     });
+  }
+
+  function safeDomId(v) {
+    return String(v || "asset").replace(/[^a-z0-9_-]+/gi, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "asset";
+  }
+
+  function assetDomId(item, type) {
+    return item.domId || ("dmbo-" + type + "-" + safeDomId(item.id || item.href || item.src || item.code || type));
+  }
+
+  function setAssetScope(el, item) {
+    if (!el || !el.setAttribute) return;
+
+    el.setAttribute("data-dmbo-asset", "true");
+    if (item.__dmboScope === "page") el.setAttribute("data-dmbo-page-asset", "true");
+  }
+
+  function removePageAssets() {
+    try {
+      Array.prototype.forEach.call(document.querySelectorAll("[data-dmbo-page-asset='true']"), function (el) {
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+      });
+    } catch (e) {}
+  }
+
+  function injectStyleAsset(item) {
+    var id;
+    var el;
+
+    if (!item || item.enabled === false) return;
+
+    id = assetDomId(item, "style");
+    if (qs(id)) return;
+
+    if (item.href) {
+      el = document.createElement("link");
+      el.rel = "stylesheet";
+      el.href = item.href;
+    } else if (item.css) {
+      el = document.createElement("style");
+      el.textContent = item.css;
+    } else {
+      return;
+    }
+
+    el.id = id;
+    setAssetScope(el, item);
+    (document.head || document.documentElement).appendChild(el);
+  }
+
+  function injectScriptAsset(item) {
+    var id;
+    var el;
+    var runOnce;
+
+    if (!item || item.enabled === false) return;
+
+    id = assetDomId(item, "script");
+    runOnce = item.once === true || (item.once !== false && item.__dmboScope !== "page");
+    if (runOnce && loadedScriptIds[id]) return;
+    if (qs(id)) return;
+
+    el = document.createElement("script");
+    el.id = id;
+    el.async = item.async !== false;
+    if (item.type) el.type = item.type;
+    if (item.defer) el.defer = true;
+
+    if (item.src) {
+      el.src = item.src;
+      el.onerror = function () { err("[DMBO] script asset failed", item.id || item.src); };
+    } else if (item.code) {
+      el.textContent = item.code;
+    } else {
+      return;
+    }
+
+    setAssetScope(el, item);
+    if (runOnce) loadedScriptIds[id] = true;
+    (document.head || document.documentElement).appendChild(el);
+  }
+
+  function applyAssets(layers) {
+    (layers.styles || []).forEach(injectStyleAsset);
+    (layers.scripts || []).forEach(injectScriptAsset);
+  }
+
+  function resetWidgetData() {
+    casino = { page: 0, query: "", loading: false, done: false, games: [] };
+    sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
   }
 
   function styles(c) {
@@ -537,8 +804,9 @@
     next();
   }
 
-  function mount() {
+  function mount(widget) {
     var c = cfg();
+    var html = '<button id="dmbo-v12-close" type="button">x</button>';
 
     if (!document.body || window.__DMBO_WIDGET_CLOSED__ || qs(c.containerId)) return;
 
@@ -554,15 +822,35 @@
     var root = document.createElement("div");
     root.id = c.containerId;
 
-    root.innerHTML =
-      '<button id="dmbo-v12-close" type="button">x</button>' +
-      '<div class="b"><div id="dmbo-lottie" style="width:100%;height:176px"></div></div>' +
-      '<div class="b"><iframe title="YouTube" src="' + esc(c.youtubeEmbedUrl) + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>' +
-      '<div class="b"><iframe title="' + esc(c.iframeTitle) + '" src="' + esc(c.iframeUrl) + '" loading="lazy" referrerpolicy="no-referrer"></iframe><div class="note">External iframe may be blocked. <a href="' + esc(c.iframeUrl) + '" target="_blank" rel="noopener noreferrer">Open</a></div></div>' +
-      '<div class="b d" id="dmbo-top"><div class="t">Top Events & Odds</div><div class="m">Loading...</div></div>' +
-      '<div class="b d" id="dmbo-worldcup"><div class="t">World Cup 2026</div><div class="m">Loading...</div></div>' +
-      '<div class="b d s2" id="dmbo-sports"><div class="t">All Sports</div><div class="m">Loading...</div></div>' +
-      '<div class="b d s3" id="dmbo-casino"><div class="t">All Casino Games</div><div class="m">Loading...</div></div>';
+    if (panelEnabled(widget, "lottie")) {
+      html += '<div class="b"><div id="dmbo-lottie" style="width:100%;height:176px"></div></div>';
+    }
+
+    if (panelEnabled(widget, "youtube")) {
+      html += '<div class="b"><iframe title="YouTube" src="' + esc(c.youtubeEmbedUrl) + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe></div>';
+    }
+
+    if (panelEnabled(widget, "iframe")) {
+      html += '<div class="b"><iframe title="' + esc(c.iframeTitle) + '" src="' + esc(c.iframeUrl) + '" loading="lazy" referrerpolicy="no-referrer"></iframe><div class="note">External iframe may be blocked. <a href="' + esc(c.iframeUrl) + '" target="_blank" rel="noopener noreferrer">Open</a></div></div>';
+    }
+
+    if (panelEnabled(widget, "top")) {
+      html += '<div class="b d" id="dmbo-top"><div class="t">Top Events & Odds</div><div class="m">Loading...</div></div>';
+    }
+
+    if (panelEnabled(widget, "worldcup")) {
+      html += '<div class="b d" id="dmbo-worldcup"><div class="t">World Cup 2026</div><div class="m">Loading...</div></div>';
+    }
+
+    if (panelEnabled(widget, "sports")) {
+      html += '<div class="b d s2" id="dmbo-sports"><div class="t">All Sports</div><div class="m">Loading...</div></div>';
+    }
+
+    if (panelEnabled(widget, "casino")) {
+      html += '<div class="b d s3" id="dmbo-casino"><div class="t">All Casino Games</div><div class="m">Loading...</div></div>';
+    }
+
+    root.innerHTML = html;
 
     document.body.appendChild(root);
 
@@ -571,7 +859,7 @@
       if (root.parentNode) root.parentNode.removeChild(root);
     };
 
-    if (window.lottie && window.lottie.loadAnimation && qs("dmbo-lottie")) {
+    if (panelEnabled(widget, "lottie") && window.lottie && window.lottie.loadAnimation && qs("dmbo-lottie")) {
       window.lottie.loadAnimation({
         container: qs("dmbo-lottie"),
         renderer: "svg",
@@ -581,25 +869,141 @@
       });
     }
 
-    topEvents(c);
-    worldCup(c);
-    sports(c);
-    casinoPage(c);
+    resetWidgetData();
+
+    if (panelEnabled(widget, "top")) topEvents(c);
+    if (panelEnabled(widget, "worldcup")) worldCup(c);
+    if (panelEnabled(widget, "sports")) sports(c);
+    if (panelEnabled(widget, "casino")) casinoPage(c);
 
     log("[DMBO] widget mounted");
   }
 
+  function layerRouteKey(layers) {
+    var widget = layers.dmboWidget;
+    return [
+      layers.path,
+      layers.pageIds.join(","),
+      widget ? widget.id || widget.type || "dmbo-v12" : "none",
+      widget && widget.panels ? widget.panels.join(",") : ""
+    ].join("|");
+  }
+
+  function syncRoute() {
+    var c = cfg();
+    var layers = getActiveLayers(manifest || createDefaultManifest(), window.location && window.location.href);
+    var key = layerRouteKey(layers);
+
+    if (key !== currentRouteKey) {
+      cleanup(c);
+      removePageAssets();
+      currentRouteKey = key;
+      applyAssets(layers);
+    }
+
+    currentDmboWidget = layers.dmboWidget;
+
+    if (!currentDmboWidget) {
+      cleanup(c);
+      return;
+    }
+
+    if (qs(c.containerId)) return;
+
+    if (needsLottie(currentDmboWidget) && !lottieReady) {
+      loadScript(LOTTIE_URL, function (ok) {
+        lottieReady = !!ok;
+        mount(currentDmboWidget);
+      });
+      return;
+    }
+
+    mount(currentDmboWidget);
+  }
+
+  function scheduleSyncRoute() {
+    clearTimeout(window.__DMBO_WIDGET_ROUTE_TIMER__);
+    window.__DMBO_WIDGET_ROUTE_TIMER__ = setTimeout(syncRoute, 120);
+  }
+
+  function installRouteHooks() {
+    var pushState;
+    var replaceState;
+
+    if (routeHooked) return;
+    routeHooked = true;
+
+    try {
+      pushState = window.history && window.history.pushState;
+      replaceState = window.history && window.history.replaceState;
+
+      if (pushState) {
+        window.history.pushState = function () {
+          var result = pushState.apply(this, arguments);
+          scheduleSyncRoute();
+          return result;
+        };
+      }
+
+      if (replaceState) {
+        window.history.replaceState = function () {
+          var result = replaceState.apply(this, arguments);
+          scheduleSyncRoute();
+          return result;
+        };
+      }
+    } catch (e) {}
+
+    try {
+      window.addEventListener("popstate", scheduleSyncRoute);
+      window.addEventListener("hashchange", scheduleSyncRoute);
+      window.addEventListener("dmbo-media-config-ready", scheduleSyncRoute);
+    } catch (e) {}
+  }
+
+  function loadManifest(cb) {
+    var c = cfg();
+    var url = c.manifestUrl || MANIFEST_URL;
+    var bust = (url.indexOf("?") === -1 ? "?" : "&") + "v=" + Date.now();
+
+    if (!window.fetch) {
+      manifest = createDefaultManifest();
+      window.DMBO_WIDGET_MANIFEST = manifest;
+      cb(manifest);
+      return;
+    }
+
+    fetch(url + bust, {
+      cache: "no-store",
+      credentials: "omit",
+      headers: { accept: "application/json" }
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (d) {
+        manifest = d && typeof d === "object" ? d : createDefaultManifest();
+        window.DMBO_WIDGET_MANIFEST = manifest;
+        cb(manifest);
+      })
+      .catch(function (e) {
+        err("[DMBO] manifest failed; using default", e && e.message ? e.message : e);
+        manifest = createDefaultManifest();
+        window.DMBO_WIDGET_MANIFEST = manifest;
+        cb(manifest);
+      });
+  }
+
   function boot() {
     cfg();
-    cleanup(cfg());
-    mount();
+    installRouteHooks();
+    syncRoute();
 
     if (typeof MutationObserver === "function" && document.body) {
-      var timer = null;
-
       new MutationObserver(function () {
-        clearTimeout(timer);
-        timer = setTimeout(mount, 150);
+        if (!currentDmboWidget || qs(cfg().containerId)) return;
+        scheduleSyncRoute();
       }).observe(document.body, {
         childList: true,
         subtree: true
@@ -610,9 +1014,20 @@
   function start() {
     loadScript(CONFIG_URL, function () {
       cfg();
-
-      loadScript(LOTTIE_URL, boot);
+      loadManifest(boot);
     });
+  }
+
+  if (window.__DMBO_WIDGET_TEST_MODE__) {
+    window.__DMBO_WIDGET_TESTS__ = {
+      createDefaultManifest: createDefaultManifest,
+      getActiveLayers: getActiveLayers,
+      matchesPath: matchesPath,
+      normalizePagePath: normalizePagePath,
+      pageMatches: pageMatches,
+      panelEnabled: panelEnabled
+    };
+    return;
   }
 
   if (document.readyState === "loading") {
