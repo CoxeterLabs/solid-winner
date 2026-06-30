@@ -325,6 +325,57 @@ test("sportscast provider rows expose safe feed metadata", () => {
   ]);
 });
 
+test("sportscast timeline rows expose latest provider events without guessing unknown types", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.sportscastTimelineRows({
+    items: [{ code: 115629700, players: [{ playerId: "7", playerName: "Dembele, Ousmane" }] }]
+  }, {
+    extraInfo: { teamsReverse: false },
+    events: [
+      { id: 1, type: 2681, i1: 64, i2: 75, i3: 0, i4: 2, i5: 5383 },
+      { id: 2, type: 1106, i1: 2, i2: 2, i3: 5386, i4: 0 },
+      { id: 3, type: 1867, i1: 20, i3: 7, i4: 0 },
+      { id: 4, type: 1200, i1: 1, i2: 3 }
+    ]
+  }, { homeName: "France", awayName: "Sweden" }, 3);
+
+  assert.deepEqual(plain(rows), [
+    { id: "4", label: "Score update", time: "", team: "France", detail: "Score 3", type: "1200" },
+    { id: "3", label: "Goal detail", time: "", team: "", detail: "Dembele, Ousmane", type: "1867" },
+    { id: "2", label: "Action 1106", time: "89:46", team: "Sweden", detail: "i2 2 · i4 0", type: "1106" }
+  ]);
+});
+
+test("sportscast team rows group starters, substitutes, and optional coaches", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.sportscastTeamRows({
+    items: [{
+      homeCoachName: "Didier Deschamps",
+      awayCoachName: "Jon Dahl Tomasson",
+      players: [
+        { playerId: "1", playerName: "Mbappe, Kylian", teamNumber: 1, shirtNumber: 10, isSubstitute: false },
+        { playerId: "2", playerName: "Barcola, Bradley", teamNumber: 1, shirtNumber: 12, isSubstitute: true },
+        { playerId: "3", playerName: "Isak, Alexander", teamNumber: 2, shirtNumber: 9, isSubstitute: false }
+      ]
+    }]
+  }, null, { homeName: "France", awayName: "Sweden" });
+
+  assert.deepEqual(plain(rows), [
+    {
+      team: "France",
+      coach: "Didier Deschamps",
+      starters: ["10 Mbappe, Kylian"],
+      substitutes: ["12 Barcola, Bradley"]
+    },
+    {
+      team: "Sweden",
+      coach: "Jon Dahl Tomasson",
+      starters: ["9 Isak, Alexander"],
+      substitutes: []
+    }
+  ]);
+});
+
 test("sportscast id is read from top-parser animation URLs", () => {
   const api = loadWidgetTestApi();
 
