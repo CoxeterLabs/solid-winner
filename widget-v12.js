@@ -25,7 +25,7 @@
   var casino = { page: 0, query: "", loading: false, done: false, games: [] };
   var sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
   var lastAccountRender = null;
-  var live = { timer: 0, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {} };
+  var live = { timer: 0, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {} };
 
   function log() { try { console.log.apply(console, arguments); } catch (e) {} }
   function err() { try { console.error.apply(console, arguments); } catch (e) {} }
@@ -107,7 +107,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-live-animation-ui-2",
+      version: "20260701-live-animation-ui-3",
       global: {
         styles: [],
         scripts: []
@@ -960,6 +960,8 @@
       return;
     }
 
+    if (live.animationPending[item.key]) return;
+
     resolverUrl = liveAnimationResolverUrl(c, item.config, item.event, {
       h: summary.homeName,
       a: summary.awayName
@@ -971,10 +973,12 @@
       return;
     }
 
+    live.animationPending[item.key] = true;
     slot.innerHTML = '<div class="live-empty">Resolving live animation...</div>';
     getJson(resolverUrl, "omit", function (e, d) {
       var resolved = e ? "" : liveAnimationUrlFromResolver(d);
 
+      delete live.animationPending[item.key];
       if (live.activeKey !== item.key) return;
       if (resolved) {
         live.animationCache[item.key] = resolved;
