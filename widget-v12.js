@@ -25,7 +25,7 @@
   var casino = { page: 0, query: "", loading: false, done: false, games: [] };
   var sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
   var lastAccountRender = null;
-  var live = { timer: 0, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {} };
+  var live = { timer: 0, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {}, timelineCache: {}, timelinePending: {}, newsCache: {}, newsPending: {}, weatherCache: {}, weatherPending: {} };
 
   function log() { try { console.log.apply(console, arguments); } catch (e) {} }
   function err() { try { console.error.apply(console, arguments); } catch (e) {} }
@@ -107,7 +107,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-live-animation-ui-5",
+      version: "20260701-live-animation-ui-6",
       global: {
         styles: [],
         scripts: []
@@ -607,7 +607,7 @@
       "#" + c.containerId + " .video-empty{height:176px;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:rgba(255,255,255,.7);font-size:12px}" +
       "#" + c.containerId + " .vc{position:absolute;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:6px;padding:6px;border-radius:9px;background:rgba(0,0,0,.68)}#" + c.containerId + " .vc button{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:900;padding:5px 7px;cursor:pointer}#" + c.containerId + " .vc input{padding:0;min-width:0;accent-color:#fd224e;background:transparent;border:0}#" + c.containerId + " .vc .time{font-size:10px;color:rgba(255,255,255,.78);min-width:60px;text-align:right}" +
       "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv .wide{grid-column:1/-1}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .kv .wide b{white-space:normal;line-height:1.35}#" + c.containerId + " .bal-toggle{display:flex;gap:4px;margin-top:7px}#" + c.containerId + " .bal-toggle button{border:0;border-radius:6px;background:#22304f;color:#fff;cursor:pointer;font-size:10px;font-weight:800;line-height:1;padding:5px 8px}#" + c.containerId + " .bal-toggle button.on{background:#fd224e}#" + c.containerId + " .bal-toggle button:focus-visible{outline:2px solid #fff;outline-offset:2px}" +
-      "#dmbo-live-modal{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(3,5,10,.66);font-family:Arial,sans-serif;color:#fff}#dmbo-live-modal.open{display:flex}#dmbo-live-modal .live-dialog{position:relative;width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border-radius:12px;background:#111722;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 70px rgba(0,0,0,.58)}#dmbo-live-modal .live-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.09)}#dmbo-live-modal .live-title{font-size:14px;font-weight:900;line-height:1.25}#dmbo-live-modal .live-meta{margin-top:3px;font-size:11px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-close{width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}#dmbo-live-modal .live-body{padding:12px 14px 14px}#dmbo-live-modal .live-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,.06)}#dmbo-live-modal .live-team{min-width:0;font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-team.away{text-align:right}#dmbo-live-modal .live-score-num{font-size:24px;font-weight:900;line-height:1;color:#fff}#dmbo-live-modal .live-sub{margin-top:8px;font-size:11px;color:rgba(255,255,255,.66)}#dmbo-live-modal .live-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}#dmbo-live-modal .live-panel{min-width:0;border-radius:10px;background:rgba(255,255,255,.05);padding:10px}#dmbo-live-modal .live-panel h3{margin:0 0 8px;font-size:12px;line-height:1.2}#dmbo-live-modal .live-table{display:grid;gap:5px}#dmbo-live-modal .live-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:11px}#dmbo-live-modal .live-row span:nth-child(2){color:rgba(255,255,255,.68);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-row b{text-align:center;font-size:12px}#dmbo-live-modal .live-animation{margin-top:10px;border-radius:10px;overflow:hidden;background:#070a10;border:1px solid rgba(255,255,255,.08)}#dmbo-live-modal .live-tabs{display:flex;gap:6px;padding:8px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}#dmbo-live-modal .live-tabs button{border:0;border-radius:7px;background:#24314f;color:#fff;font-size:11px;font-weight:900;padding:6px 9px;cursor:pointer}#dmbo-live-modal .live-tabs button.on{background:#fd224e}#dmbo-live-modal .live-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#dmbo-live-modal .live-animation iframe{display:block;width:100%;height:230px;border:0;background:#070a10}#dmbo-live-modal .live-empty{padding:14px;text-align:center;font-size:12px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-error{margin-top:8px;color:#ff8aa1;font-size:11px}#dmbo-live-modal a{color:#fff}" +
+      "#dmbo-live-modal{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(3,5,10,.66);font-family:Arial,sans-serif;color:#fff}#dmbo-live-modal.open{display:flex}#dmbo-live-modal .live-dialog{position:relative;width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border-radius:12px;background:#111722;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 70px rgba(0,0,0,.58)}#dmbo-live-modal .live-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.09)}#dmbo-live-modal .live-title{font-size:14px;font-weight:900;line-height:1.25}#dmbo-live-modal .live-meta{margin-top:3px;font-size:11px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-close{width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}#dmbo-live-modal .live-body{padding:12px 14px 14px}#dmbo-live-modal .live-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,.06)}#dmbo-live-modal .live-team{min-width:0;font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-team.away{text-align:right}#dmbo-live-modal .live-score-num{font-size:24px;font-weight:900;line-height:1;color:#fff}#dmbo-live-modal .live-sub{margin-top:8px;font-size:11px;color:rgba(255,255,255,.66)}#dmbo-live-modal .live-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}#dmbo-live-modal .live-panel{min-width:0;border-radius:10px;background:rgba(255,255,255,.05);padding:10px}#dmbo-live-modal .live-panel h3{margin:0 0 8px;font-size:12px;line-height:1.2}#dmbo-live-modal .live-table{display:grid;gap:5px}#dmbo-live-modal .live-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:11px}#dmbo-live-modal .live-row span:nth-child(2){color:rgba(255,255,255,.68);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-row b{text-align:center;font-size:12px}#dmbo-live-modal .live-info-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}#dmbo-live-modal .live-info-list div{min-width:0;border-radius:7px;background:rgba(255,255,255,.045);padding:6px}#dmbo-live-modal .live-info-list span{display:block;font-size:10px;color:rgba(255,255,255,.55)}#dmbo-live-modal .live-info-list b{display:block;margin-top:2px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-goals{display:grid;gap:6px}#dmbo-live-modal .live-goals div{display:grid;grid-template-columns:38px minmax(0,82px) minmax(0,1fr);gap:7px;align-items:center;border-radius:7px;background:rgba(255,255,255,.045);padding:6px;font-size:11px}#dmbo-live-modal .live-goals b{font-size:11px;color:#fff}#dmbo-live-modal .live-goals span,#dmbo-live-modal .live-goals strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-goals em{grid-column:3;font-style:normal;color:rgba(255,255,255,.58);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-news-list{display:grid;gap:6px}#dmbo-live-modal .live-news-list a{display:block;border-radius:7px;background:rgba(255,255,255,.045);padding:7px;text-decoration:none;font-size:11px;line-height:1.25}#dmbo-live-modal .live-news-list a span{display:block;margin-top:3px;color:rgba(255,255,255,.52);font-size:10px}.live-open-news{display:inline-block;margin-top:7px;font-size:11px;text-decoration:none;color:#fff}#dmbo-live-modal .live-animation{margin-top:10px;border-radius:10px;overflow:hidden;background:#070a10;border:1px solid rgba(255,255,255,.08)}#dmbo-live-modal .live-tabs{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}#dmbo-live-modal .live-tabs span{flex:1}#dmbo-live-modal .live-tabs button{border:0;border-radius:7px;background:#24314f;color:#fff;font-size:11px;font-weight:900;padding:6px 9px;cursor:pointer}#dmbo-live-modal .live-tabs button.on{background:#fd224e}#dmbo-live-modal .live-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#dmbo-live-modal .live-animation iframe{display:block;width:100%;height:230px;border:0;background:#070a10}#dmbo-live-modal .live-empty{padding:14px;text-align:center;font-size:12px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-error{margin-top:8px;color:#ff8aa1;font-size:11px}#dmbo-live-modal a{color:#fff}" +
       "#dmbo-v12-close{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}" +
       "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-grid{grid-template-columns:1fr}#dmbo-live-modal .live-animation iframe{height:210px}}";
 
@@ -756,6 +756,65 @@
     return text.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
   }
 
+  function firstText() {
+    var i;
+    var v;
+
+    for (i = 0; i < arguments.length; i += 1) {
+      v = arguments[i];
+      if (v == null) continue;
+      if (typeof v === "object") continue;
+      v = String(v).replace(/\s+/g, " ").trim();
+      if (v) return v;
+    }
+
+    return "";
+  }
+
+  function formatMatchClock(value) {
+    var seconds = Number(value);
+    var minutes;
+    var rest;
+
+    if (!isFinite(seconds) || seconds < 0) return "";
+    seconds = Math.floor(seconds);
+    minutes = Math.floor(seconds / 60);
+    rest = seconds % 60;
+
+    return String(minutes) + ":" + (rest < 10 ? "0" : "") + String(rest);
+  }
+
+  function matchMinute(value) {
+    var seconds = Number(value);
+
+    if (!isFinite(seconds) || seconds < 0) return "";
+    return String(Math.floor(seconds / 60) + 1) + "'";
+  }
+
+  function weatherText(value) {
+    var w = value || {};
+    var temp = firstText(w.temperature, w.temperatureText, w.temp, w.temperature_2m);
+    var condition = firstText(w.condition, w.description, w.summary, w.weather);
+    var wind = firstText(w.wind, w.windText, w.wind_speed_10m);
+    var parts = [];
+
+    if (temp) parts.push(temp);
+    if (condition) parts.push(condition);
+    if (wind) parts.push("Wind " + wind);
+    return parts.join(" · ");
+  }
+
+  function infoRows(rows) {
+    var out = [];
+
+    (rows || []).forEach(function (row) {
+      var value = firstText(row && row.value);
+      if (row && row.label && value) out.push({ label: row.label, value: value });
+    });
+
+    return out;
+  }
+
   function liveEventSummary(data, fallbackTeams) {
     var ev = data || {};
     var score = ev.score || {};
@@ -763,6 +822,11 @@
     var fallback = fallbackTeams || {};
     var extra = score.liveExtraData || {};
     var server = "";
+    var clock = formatMatchClock(score.matchClock != null ? score.matchClock : ev.matchClock);
+    var venue = ev.venue || ev.stadium || ev.location || {};
+    var venueName = firstText(ev.stadiumName, ev.venueName, ev.groundName, venue.name, venue.stadium, venue.venue);
+    var cityName = firstText(ev.cityName, ev.city, venue.city, venue.town, venue.location);
+    var weather = weatherText(ev.weather || ev.weatherConditions || ev.currentWeather);
     var periods = ((ev.periodScoreInfo && ev.periodScoreInfo.scores) || ev.periodScores || []).map(function (row) {
       return {
         label: row.periodName || row.name || row.type || "Period",
@@ -796,10 +860,26 @@
       awayName: tm.a || "Away",
       scoreText: scoreValue(score.homeScore != null ? score.homeScore : ev.homeScore) + " - " + scoreValue(score.awayScore != null ? score.awayScore : ev.awayScore),
       period: score.currentPeriodName || ev.currentPeriodName || status || "Live",
+      clockText: clock,
       serviceText: server,
       periodRows: periods,
       statRows: stats,
-      streamText: streamStatus ? "Stream " + String(streamStatus).toLowerCase() : ""
+      streamText: streamStatus ? "Stream " + String(streamStatus).toLowerCase() : "",
+      venueName: venueName,
+      cityName: cityName,
+      weatherText: weather,
+      infoRows: infoRows([
+        { label: "Status", value: status || "-" },
+        { label: "Clock", value: clock },
+        { label: "Start", value: dateText(ev.startTime) },
+        { label: "Sport", value: ev.sportName },
+        { label: "Region", value: ev.regionName },
+        { label: "Tournament", value: ev.tournamentName },
+        { label: "Venue", value: venueName },
+        { label: "City", value: cityName },
+        { label: "Weather", value: weather },
+        { label: "Stream", value: streamStatus ? String(streamStatus).toLowerCase() : "" }
+      ])
     };
   }
 
@@ -898,6 +978,189 @@
     return src.animation + "||" + src.video;
   }
 
+  function sportscastIdFromAnimationUrl(value) {
+    var text = String(value || "");
+    var match = text.match(/\/tracker\/get\/(\d+)/i) || text.match(/[?&]eventId=(\d+)/i);
+
+    return match ? match[1] : "";
+  }
+
+  function sportscastActransUrl(id) {
+    return id ? "https://line-lb61-w.bk6bba-resources.com/ma/sportscast/actrans?fonid=" + encodeURIComponent(id) : "";
+  }
+
+  function sportscastEventsUrl(code) {
+    return code ? "https://line-lb61-w.bk6bba-resources.com/ma/sportscast/events?code=" + encodeURIComponent(code) + "&lastid=0" : "";
+  }
+
+  function sportscastBestItem(data) {
+    var items = (data && data.items) || [];
+    var best = null;
+
+    items.forEach(function (item) {
+      if (!best || ((item.players || []).length > (best.players || []).length)) best = item;
+    });
+
+    return best || {};
+  }
+
+  function playerMapFromSportscast(actrans, eventsPayload) {
+    var item = sportscastBestItem(actrans);
+    var players = (item.players || (eventsPayload && eventsPayload.extraInfo && eventsPayload.extraInfo.players) || []);
+    var map = {};
+
+    players.forEach(function (p) {
+      if (p && p.playerId != null) map[String(p.playerId)] = p;
+    });
+
+    return map;
+  }
+
+  function sportscastTeamName(number, summary, reverse) {
+    var n = String(number || "");
+
+    if (reverse) {
+      if (n === "1") return summary.awayName;
+      if (n === "2") return summary.homeName;
+    }
+    if (n === "1") return summary.homeName;
+    if (n === "2") return summary.awayName;
+    return "";
+  }
+
+  function sportscastGoalTimeline(actrans, eventsPayload, summary) {
+    var events = (eventsPayload && eventsPayload.events) || [];
+    var players = playerMapFromSportscast(actrans, eventsPayload);
+    var reverse = !!(eventsPayload && eventsPayload.extraInfo && eventsPayload.extraInfo.teamsReverse);
+    var canceled = {};
+    var goals = [];
+    var homeScore = 0;
+    var awayScore = 0;
+
+    events.forEach(function (ev) {
+      if (ev && ev.type === 1020 && ev.i2 != null) canceled[String(ev.i2)] = true;
+    });
+
+    events.forEach(function (ev, index) {
+      var scorerEvent;
+      var scorer;
+      var assist;
+      var teamNumber;
+      var next;
+      var i;
+
+      if (!ev) return;
+      if (ev.type === 1200) {
+        if (String(ev.i1) === "1") homeScore = Number(ev.i2) || 0;
+        if (String(ev.i1) === "2") awayScore = Number(ev.i2) || 0;
+        return;
+      }
+
+      if (ev.type !== 1100 || canceled[String(ev.id)]) return;
+
+      teamNumber = String(ev.i1 || "");
+      for (i = index + 1; i < events.length && i < index + 24; i += 1) {
+        next = events[i];
+        if (!next) continue;
+        if (next.type === 1100) break;
+        if (next.type === 1200) {
+          if (String(next.i1) === "1") homeScore = Number(next.i2) || homeScore;
+          if (String(next.i1) === "2") awayScore = Number(next.i2) || awayScore;
+        }
+        if (!scorerEvent && (next.type === 1867 || next.type === 1866) && String(next.i1) === String(ev.id)) scorerEvent = next;
+      }
+
+      scorer = scorerEvent && players[String(scorerEvent.i3)];
+      assist = scorerEvent && players[String(scorerEvent.i4)];
+      goals.push({
+        team: sportscastTeamName(teamNumber, summary || {}, reverse) || (teamNumber ? "Team " + teamNumber : ""),
+        teamNumber: teamNumber,
+        time: formatMatchClock(ev.i3),
+        minute: matchMinute(ev.i3),
+        scorer: firstText(scorer && scorer.playerName) || "Scorer unavailable",
+        assist: firstText(assist && assist.playerName),
+        score: String(homeScore) + " - " + String(awayScore)
+      });
+    });
+
+    return goals.slice(-8);
+  }
+
+  function newsQuery(summary) {
+    return [summary.homeName, summary.awayName, summary.tournament || summary.sportName || "sports"].join(" ").replace(/\s+/g, " ").trim();
+  }
+
+  function newsSearchUrl(summary) {
+    var q = newsQuery(summary);
+
+    return q ? "https://news.google.com/search?q=" + encodeURIComponent(q) + "&hl=en-US&gl=US&ceid=US:en" : "";
+  }
+
+  function newsFeedUrl(summary) {
+    var q = newsQuery(summary);
+    var rss;
+
+    if (!q) return "";
+    rss = "news.google.com/rss/search?q=" + encodeURIComponent(q) + "&hl=en-US&gl=US&ceid=US:en";
+    return "https://r.jina.ai/http://" + rss;
+  }
+
+  function parseJinaNews(text) {
+    var rows = [];
+    var re = /###\s+\[([^\]]+)\]\(([^)]+)\)/g;
+    var match;
+
+    while ((match = re.exec(String(text || ""))) && rows.length < 4) {
+      rows.push({
+        title: match[1].replace(/\s+/g, " ").trim(),
+        url: match[2],
+        source: "Google News"
+      });
+    }
+
+    return rows;
+  }
+
+  function weatherCodeText(code) {
+    var map = {
+      "0": "Clear",
+      "1": "Mainly clear",
+      "2": "Partly cloudy",
+      "3": "Overcast",
+      "45": "Fog",
+      "48": "Rime fog",
+      "51": "Light drizzle",
+      "53": "Drizzle",
+      "55": "Dense drizzle",
+      "61": "Light rain",
+      "63": "Rain",
+      "65": "Heavy rain",
+      "71": "Light snow",
+      "73": "Snow",
+      "75": "Heavy snow",
+      "80": "Rain showers",
+      "81": "Rain showers",
+      "82": "Heavy showers",
+      "95": "Thunderstorm"
+    };
+
+    return map[String(code)] || "";
+  }
+
+  function weatherFromOpenMeteo(data) {
+    var current = data && data.current;
+    var units = data && data.current_units || {};
+    var temp = current && current.temperature_2m;
+    var wind = current && current.wind_speed_10m;
+    var condition = current ? weatherCodeText(current.weather_code) : "";
+
+    return weatherText({
+      temperature: temp != null ? String(temp) + (units.temperature_2m || " C") : "",
+      wind: wind != null ? String(wind) + (units.wind_speed_10m || " km/h") : "",
+      condition: condition
+    });
+  }
+
   function registerLiveEvent(ev, tm) {
     var id = eventId(ev);
     var key;
@@ -966,13 +1229,44 @@
     }).join("") + '</div>';
   }
 
+  function infoRowsHtml(rows) {
+    if (!rows || !rows.length) return '<div class="live-empty">No extra info yet.</div>';
+
+    return '<div class="live-info-list">' + rows.map(function (row) {
+      return '<div><span>' + esc(row.label) + '</span><b>' + esc(row.value) + '</b></div>';
+    }).join("") + '</div>';
+  }
+
+  function goalRowsHtml(rows) {
+    if (!rows || !rows.length) return '<div class="live-empty">Goal details are not available for this match yet.</div>';
+
+    return '<div class="live-goals">' + rows.map(function (row) {
+      return '<div><b>' + esc(row.minute || row.time || "") + '</b><span>' + esc(row.team || "") + '</span><strong>' + esc(row.scorer || "Scorer unavailable") + '</strong><em>' + esc((row.assist ? "Assist: " + row.assist + " · " : "") + (row.score || "")) + '</em></div>';
+    }).join("") + '</div>';
+  }
+
+  function newsRowsHtml(rows, queryUrl) {
+    var html = "";
+
+    if (rows && rows.length) {
+      html = '<div class="live-news-list">' + rows.map(function (row) {
+        return '<a href="' + esc(row.url) + '" target="_blank" rel="noopener noreferrer">' + esc(row.title) + '<span>' + esc(row.source || "News") + '</span></a>';
+      }).join("") + '</div>';
+    } else {
+      html = '<div class="live-empty">Live news is loading or unavailable.</div>';
+    }
+
+    if (queryUrl) html += '<a class="live-open-news" href="' + esc(queryUrl) + '" target="_blank" rel="noopener noreferrer">Open latest news</a>';
+    return html;
+  }
+
   function liveVisualTabsHtml(sources, mode) {
     var src = normalizeLiveVisualSources(sources);
 
-    if (!src.animation || !src.video) return "";
+    if (!src.animation && !src.video) return "";
     return '<div class="live-tabs" role="tablist" aria-label="Live visual source">' +
-      '<button type="button" data-dmbo-live-visual="animation" class="' + (mode === "animation" ? "on" : "") + '">Animation</button>' +
-      '<button type="button" data-dmbo-live-visual="video" class="' + (mode === "video" ? "on" : "") + '">Video</button>' +
+      (src.animation && src.video ? '<button type="button" data-dmbo-live-visual="animation" class="' + (mode === "animation" ? "on" : "") + '">Animation</button><button type="button" data-dmbo-live-visual="video" class="' + (mode === "video" ? "on" : "") + '">Video</button>' : '') +
+      '<span></span><button type="button" data-dmbo-live-fullscreen>Full screen</button>' +
       '</div>';
   }
 
@@ -991,6 +1285,18 @@
 
         live.visualMode[item.key] = mode;
         setLiveVisualSlot(slot, item, sources);
+      };
+    });
+
+    Array.prototype.forEach.call(slot.querySelectorAll("[data-dmbo-live-fullscreen]"), function (button) {
+      button.onclick = function () {
+        var frame = slot.querySelector && slot.querySelector("iframe");
+        var request = frame && (frame.requestFullscreen || frame.webkitRequestFullscreen || frame.mozRequestFullScreen || frame.msRequestFullscreen);
+
+        if (request) {
+          try { request.call(frame); return; } catch (e) {}
+        }
+        if (frame && frame.src) window.open(frame.src, "_blank", "noopener,noreferrer");
       };
     });
   }
@@ -1047,6 +1353,7 @@
 
     if (sources.animation || sources.video) {
       setLiveVisualSlot(slot, item, sources);
+      loadLiveTimeline(item, summary, sources.animation);
       return;
     }
 
@@ -1078,10 +1385,103 @@
       if (resolved.animation || resolved.video) {
         live.animationCache[item.key] = resolved;
         setLiveVisualSlot(slot, item, resolved);
+        loadLiveTimeline(item, summary, resolved.animation);
       } else {
         live.animationMiss[item.key] = true;
         slot.innerHTML = '<div class="live-empty">Animation unavailable until the Worker allows the matchtracker resolver.</div>';
       }
+    });
+  }
+
+  function renderLiveExtras(item, summary) {
+    var goals = qs("dmbo-live-goals");
+    var info = qs("dmbo-live-info");
+    var news = qs("dmbo-live-news");
+    var timeline = live.timelineCache[item.key] || {};
+    var newsRows = live.newsCache[item.key] || [];
+    var weather = live.weatherCache[item.key];
+    var rows = (summary.infoRows || []).slice();
+
+    if (weather && !summary.weatherText) rows.push({ label: "Weather", value: weather });
+    if (goals) goals.innerHTML = goalRowsHtml(timeline.goals || []);
+    if (info) info.innerHTML = infoRowsHtml(rows);
+    if (news) news.innerHTML = newsRowsHtml(newsRows, newsSearchUrl(summary));
+  }
+
+  function loadLiveTimeline(item, summary, animationUrl) {
+    var id = sportscastIdFromAnimationUrl(animationUrl);
+
+    if (!id || live.timelineCache[item.key] || live.timelinePending[item.key]) return;
+
+    live.timelinePending[item.key] = true;
+    getJson(sportscastActransUrl(id), "omit", function (e, actrans) {
+      var best = sportscastBestItem(actrans);
+
+      if (e || !best.code) {
+        delete live.timelinePending[item.key];
+        live.timelineCache[item.key] = { goals: [] };
+        if (live.activeKey === item.key) renderLiveExtras(item, summary);
+        return;
+      }
+
+      getJson(sportscastEventsUrl(best.code), "omit", function (err2, eventsPayload) {
+        delete live.timelinePending[item.key];
+        live.timelineCache[item.key] = {
+          goals: err2 ? [] : sportscastGoalTimeline(actrans, eventsPayload, summary)
+        };
+        if (live.activeKey === item.key) renderLiveExtras(item, summary);
+      });
+    });
+  }
+
+  function loadLiveNews(item, summary) {
+    var url = newsFeedUrl(summary);
+
+    if (!url || live.newsCache[item.key] || live.newsPending[item.key]) return;
+    live.newsPending[item.key] = true;
+
+    try {
+      fetch(url, { credentials: "omit" }).then(function (r) {
+        if (!r.ok) throw new Error("news " + r.status);
+        return r.text();
+      }).then(function (text) {
+        delete live.newsPending[item.key];
+        live.newsCache[item.key] = parseJinaNews(text);
+        if (live.activeKey === item.key) renderLiveExtras(item, summary);
+      }).catch(function () {
+        delete live.newsPending[item.key];
+        live.newsCache[item.key] = [];
+        if (live.activeKey === item.key) renderLiveExtras(item, summary);
+      });
+    } catch (e) {
+      delete live.newsPending[item.key];
+      live.newsCache[item.key] = [];
+    }
+  }
+
+  function loadLiveWeather(item, summary) {
+    var city = summary.cityName;
+    var url;
+
+    if (!city || summary.weatherText || live.weatherCache[item.key] || live.weatherPending[item.key]) return;
+    live.weatherPending[item.key] = true;
+    url = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(city) + "&count=1&language=en&format=json";
+
+    getJson(url, "omit", function (e, geo) {
+      var place = geo && geo.results && geo.results[0];
+      var forecastUrl;
+
+      if (e || !place) {
+        delete live.weatherPending[item.key];
+        return;
+      }
+
+      forecastUrl = "https://api.open-meteo.com/v1/forecast?latitude=" + encodeURIComponent(place.latitude) + "&longitude=" + encodeURIComponent(place.longitude) + "&current=temperature_2m,weather_code,wind_speed_10m&timezone=auto";
+      getJson(forecastUrl, "omit", function (err2, weather) {
+        delete live.weatherPending[item.key];
+        if (!err2) live.weatherCache[item.key] = weatherFromOpenMeteo(weather);
+        if (live.activeKey === item.key) renderLiveExtras(item, summary);
+      });
     });
   }
 
@@ -1097,6 +1497,9 @@
     var sub = qs("dmbo-live-sub");
     var result = qs("dmbo-live-result");
     var stats = qs("dmbo-live-stats");
+    var goals = qs("dmbo-live-goals");
+    var info = qs("dmbo-live-info");
+    var news = qs("dmbo-live-news");
     var errorBox = qs("dmbo-live-error");
 
     if (!modal || !body) return;
@@ -1104,11 +1507,13 @@
     if (title) title.textContent = item.config.title || "Live Match Center";
     if (meta) meta.textContent = summary.tournament + (summary.status && summary.status !== "-" ? " · " + summary.status : "");
 
-    if (!home || !away || !score || !sub || !result || !stats || !qs("dmbo-live-animation")) {
+    if (!home || !away || !score || !sub || !result || !stats || !goals || !info || !news || !qs("dmbo-live-animation")) {
       body.innerHTML = '<div class="live-score"><div class="live-team" id="dmbo-live-home"></div><div class="live-score-num" id="dmbo-live-score-num"></div><div class="live-team away" id="dmbo-live-away"></div></div>' +
         '<div class="live-sub" id="dmbo-live-sub"></div>' +
         '<div class="live-error" id="dmbo-live-error" style="display:none"></div>' +
         '<div class="live-grid"><div class="live-panel"><h3>Result</h3><div id="dmbo-live-result"></div></div><div class="live-panel"><h3>Stats</h3><div id="dmbo-live-stats"></div></div></div>' +
+        '<div class="live-grid"><div class="live-panel"><h3>Goals</h3><div id="dmbo-live-goals"></div></div><div class="live-panel"><h3>Match Info</h3><div id="dmbo-live-info"></div></div></div>' +
+        '<div class="live-panel" style="margin-top:10px"><h3>Related News</h3><div id="dmbo-live-news"></div></div>' +
         '<div class="live-animation" id="dmbo-live-animation"><div class="live-empty">Loading animation...</div></div>';
       home = qs("dmbo-live-home");
       away = qs("dmbo-live-away");
@@ -1116,13 +1521,16 @@
       sub = qs("dmbo-live-sub");
       result = qs("dmbo-live-result");
       stats = qs("dmbo-live-stats");
+      goals = qs("dmbo-live-goals");
+      info = qs("dmbo-live-info");
+      news = qs("dmbo-live-news");
       errorBox = qs("dmbo-live-error");
     }
 
     if (home) home.textContent = summary.homeName;
     if (away) away.textContent = summary.awayName;
     if (score) score.textContent = summary.scoreText;
-    if (sub) sub.textContent = summary.period + (summary.serviceText ? " · " + summary.serviceText : "") + (summary.streamText ? " · " + summary.streamText : "");
+    if (sub) sub.textContent = summary.period + (summary.clockText ? " · " + summary.clockText : "") + (summary.serviceText ? " · " + summary.serviceText : "") + (summary.streamText ? " · " + summary.streamText : "");
     if (result) result.innerHTML = tableRows(summary.periodRows);
     if (stats) stats.innerHTML = tableRows(summary.statRows);
     if (errorBox) {
@@ -1130,6 +1538,9 @@
       errorBox.style.display = error ? "block" : "none";
     }
 
+    renderLiveExtras(item, summary);
+    loadLiveNews(item, summary);
+    loadLiveWeather(item, summary);
     renderLiveAnimation(c, item, summary);
   }
 
@@ -2435,6 +2846,7 @@
       accountDataEndpoints: accountDataEndpoints,
       createDefaultManifest: createDefaultManifest,
       eventHref: eventHref,
+      formatMatchClock: formatMatchClock,
       getActiveLayers: getActiveLayers,
       liveAnimationUrlFromResolver: liveAnimationUrlFromResolver,
       liveAnimationResolverUrl: liveAnimationResolverUrl,
@@ -2448,6 +2860,8 @@
       panelEnabled: panelEnabled,
       sameLiveSrc: sameLiveSrc,
       shouldFetchAccountData: shouldFetchAccountData,
+      sportscastGoalTimeline: sportscastGoalTimeline,
+      sportscastIdFromAnimationUrl: sportscastIdFromAnimationUrl,
       summarizeAccountData: summarizeAccountData
     };
     return;

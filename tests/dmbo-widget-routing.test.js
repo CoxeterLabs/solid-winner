@@ -173,6 +173,7 @@ test("live event summary maps score, periods, stats, and animation hints", () =>
       homeScore: 1,
       awayScore: 1,
       currentPeriodName: "3rd Set",
+      matchClock: "3465",
       liveExtraData: { TURN: "1", SERVE_NUMBER: "1" }
     },
     periodScoreInfo: {
@@ -197,6 +198,7 @@ test("live event summary maps score, periods, stats, and animation hints", () =>
   assert.equal(summary.awayName, "Maya Joint");
   assert.equal(summary.scoreText, "1 - 1");
   assert.equal(summary.period, "3rd Set");
+  assert.equal(summary.clockText, "57:45");
   assert.equal(summary.serviceText, "Server: Serena Williams · Serve 1");
   assert.deepEqual(plain(summary.periodRows), [
     { label: "1st Set", home: "3", away: "6" },
@@ -207,6 +209,97 @@ test("live event summary maps score, periods, stats, and animation hints", () =>
     { label: "First Serve Wins", home: "35", away: "50" }
   ]);
   assert.equal(summary.streamText, "Stream started");
+});
+
+test("live event summary includes optional venue and weather fields", () => {
+  const api = loadWidgetTestApi();
+  const summary = api.liveEventSummary({
+    eventName: "France vs Sweden",
+    sportName: "Football",
+    regionName: "World Cup",
+    tournamentName: "2026 FIFA World Cup",
+    startTime: 1782853200000,
+    participants: [
+      { qualifier: "home", translatedName: "France" },
+      { qualifier: "away", translatedName: "Sweden" }
+    ],
+    score: { homeScore: 2, awayScore: 0, currentPeriodName: "2nd Half", matchClock: "3133" },
+    venue: { name: "MetLife Stadium", city: "East Rutherford" },
+    weather: { temperature: "24 C", condition: "Clear" }
+  });
+
+  assert.equal(summary.clockText, "52:13");
+  assert.equal(summary.venueName, "MetLife Stadium");
+  assert.equal(summary.cityName, "East Rutherford");
+  assert.equal(summary.weatherText, "24 C · Clear");
+  assert.deepEqual(plain(summary.infoRows).filter((row) => ["Clock", "Venue", "City", "Weather"].includes(row.label)), [
+    { label: "Clock", value: "52:13" },
+    { label: "Venue", value: "MetLife Stadium" },
+    { label: "City", value: "East Rutherford" },
+    { label: "Weather", value: "24 C · Clear" }
+  ]);
+});
+
+test("sportscast goal timeline extracts scorers and ignores cancelled goals", () => {
+  const api = loadWidgetTestApi();
+  const summary = { homeName: "France", awayName: "Sweden" };
+  const players = [
+    { playerId: "796046", playerName: "Mbappe, Kylian", teamNumber: 1 },
+    { playerId: "361350", playerName: "Dembele, Ousmane", teamNumber: 1 },
+    { playerId: "1948356", playerName: "Barcola, Bradley", teamNumber: 1 },
+    { playerId: "1717779", playerName: "Olise, Michael", teamNumber: 1 }
+  ];
+  const goals = api.sportscastGoalTimeline({
+    items: [{ code: 115629700, players }]
+  }, {
+    extraInfo: { teamsReverse: false },
+    events: [
+      { id: 11, type: 1100, i1: 1, i2: 1, i3: 100 },
+      { id: 12, type: 1200, i1: 1, i2: 1 },
+      { id: 13, type: 1020, i2: 11 },
+      { id: 21, type: 1100, i1: 1, i2: 1, i3: 2687 },
+      { id: 22, type: 1200, i1: 1, i2: 1 },
+      { id: 23, type: 1200, i1: 2, i2: 0 },
+      { id: 24, type: 1867, i1: 21, i3: 796046, i4: 361350 },
+      { id: 31, type: 1100, i1: 1, i2: 2, i3: 3133 },
+      { id: 32, type: 1200, i1: 1, i2: 2 },
+      { id: 33, type: 1867, i1: 31, i3: 1948356, i4: 1717779 }
+    ]
+  }, summary);
+
+  assert.deepEqual(plain(goals), [
+    {
+      team: "France",
+      teamNumber: "1",
+      time: "44:47",
+      minute: "45'",
+      scorer: "Mbappe, Kylian",
+      assist: "Dembele, Ousmane",
+      score: "1 - 0"
+    },
+    {
+      team: "France",
+      teamNumber: "1",
+      time: "52:13",
+      minute: "53'",
+      scorer: "Barcola, Bradley",
+      assist: "Olise, Michael",
+      score: "2 - 0"
+    }
+  ]);
+});
+
+test("sportscast id is read from top-parser animation URLs", () => {
+  const api = loadWidgetTestApi();
+
+  assert.equal(
+    api.sportscastIdFromAnimationUrl("https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66096007?s=1&lang=en"),
+    "66096007"
+  );
+  assert.equal(
+    api.sportscastIdFromAnimationUrl("https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/view?specificApplication=matchCenter&eventId=66096007&providerId=6"),
+    "66096007"
+  );
 });
 
 test("live match resolver URL uses the Worker proxy with event teams", () => {
