@@ -224,6 +224,16 @@ test("live match resolver URL uses the Worker proxy with event teams", () => {
   assert.equal(parsed.searchParams.get("home"), "Serena Williams");
   assert.equal(parsed.searchParams.get("away"), "Maya Joint");
   assert.equal(parsed.searchParams.get("nocache"), "1");
+
+  const sanitized = new URL(api.liveAnimationResolverUrl(
+    { sportsProxyUrl: "https://sports.hypercubik.workers.dev/" },
+    { resolverPath: "/matchtracker-resolver/resolve" },
+    { eventId: "4567882" },
+    { h: "Angela Ho", a: "Smith, Kiana" }
+  ));
+
+  assert.equal(sanitized.searchParams.get("home"), "Angela Ho");
+  assert.equal(sanitized.searchParams.get("away"), "Smith Kiana");
 });
 
 test("resolves object panel settings for modular widgets", () => {

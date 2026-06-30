@@ -107,7 +107,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-live-stats-1",
+      version: "20260701-live-animation-ui-1",
       global: {
         styles: [],
         scripts: []
@@ -823,10 +823,18 @@
     return "";
   }
 
+  function liveResolverName(value) {
+    return String(value || "")
+      .replace(/[^A-Za-z0-9 ._'\/&()-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80);
+  }
+
   function liveAnimationResolverUrl(c, config, ev, tm) {
     var item = liveEventOverride(config || {}, ev || {});
-    var home = item.home || (tm && tm.h) || "";
-    var away = item.away || (tm && tm.a) || "";
+    var home = liveResolverName(item.home || (tm && tm.h) || "");
+    var away = liveResolverName(item.away || (tm && tm.a) || "");
 
     if (config && config.resolveAnimation === false) return "";
     if (!home || !away) return "";
