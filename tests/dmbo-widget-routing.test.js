@@ -199,6 +199,7 @@ test("live event summary maps score, periods, stats, and animation hints", () =>
   assert.equal(summary.scoreText, "1 - 1");
   assert.equal(summary.period, "3rd Set");
   assert.equal(summary.clockText, "57:45");
+  assert.equal(summary.clockSeconds, 3465);
   assert.equal(summary.serviceText, "Server: Serena Williams · Serve 1");
   assert.deepEqual(plain(summary.periodRows), [
     { label: "1st Set", home: "3", away: "6" },
@@ -238,6 +239,14 @@ test("live event summary includes optional venue and weather fields", () => {
     { label: "City", value: "East Rutherford" },
     { label: "Weather", value: "24 C · Clear" }
   ]);
+});
+
+test("match clock helpers parse static clocks and tick from a base second", () => {
+  const api = loadWidgetTestApi();
+
+  assert.equal(api.matchClockSeconds("68:47"), 4127);
+  assert.equal(api.matchClockSeconds("3465"), 3465);
+  assert.equal(api.tickingMatchClockText(4127, 1000, 4500), "68:50");
 });
 
 test("sportscast goal timeline extracts scorers and ignores cancelled goals", () => {
@@ -286,6 +295,33 @@ test("sportscast goal timeline extracts scorers and ignores cancelled goals", ()
       assist: "Olise, Michael",
       score: "2 - 0"
     }
+  ]);
+});
+
+test("sportscast provider rows expose safe feed metadata", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.sportscastProviderRows({
+    items: [
+      {
+        code: 115629700,
+        players: new Array(51).fill(null).map((_, index) => ({ playerId: String(index + 1) })),
+        extra: { coverage: "stadium", duration: 90 }
+      }
+    ]
+  }, {
+    extraInfo: {
+      version: "6691048591",
+      sportscastExtra: { coverage: "stadium", duration: 90 }
+    },
+    events: [{ type: 2003 }, { type: 2681 }, { type: 1100 }]
+  });
+
+  assert.deepEqual(plain(rows), [
+    { label: "Coverage", value: "Stadium" },
+    { label: "Duration", value: "90 min" },
+    { label: "Roster", value: "51 players" },
+    { label: "Timeline", value: "3 events" },
+    { label: "Provider Version", value: "6691048591" }
   ]);
 });
 
