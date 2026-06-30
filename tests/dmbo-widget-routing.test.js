@@ -255,17 +255,19 @@ test("live animation keeps an existing iframe when the resolved source is unchan
   );
 });
 
-test("live visual resolver prefers Lynon broadcast when top-parser animation can be stale", () => {
+test("live visual resolver keeps animation default and video optional", () => {
   const api = loadWidgetTestApi();
-  const src = api.liveAnimationUrlFromResolver({
-    url: "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en",
+  const animationUrl = "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en";
+  const sources = api.liveVisualSourcesFromResolver({
+    url: animationUrl,
     broadcastUrl: "/sportsbook-new/tp-stream/sm/iframe?ref=redacted&t=1782849600&lang=en"
   });
 
-  assert.equal(
-    src,
-    "https://ui-monitor.lynon.online/sportsbook-new/tp-stream/sm/iframe?ref=redacted&t=1782849600&lang=en"
-  );
+  assert.deepEqual(plain(sources), {
+    animation: animationUrl,
+    video: "https://ui-monitor.lynon.online/sportsbook-new/tp-stream/sm/iframe?ref=redacted&t=1782849600&lang=en"
+  });
+  assert.equal(api.liveVisualMode(sources), "animation");
 });
 
 test("resolves object panel settings for modular widgets", () => {

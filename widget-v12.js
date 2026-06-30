@@ -25,7 +25,7 @@
   var casino = { page: 0, query: "", loading: false, done: false, games: [] };
   var sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
   var lastAccountRender = null;
-  var live = { timer: 0, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {} };
+  var live = { timer: 0, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {} };
 
   function log() { try { console.log.apply(console, arguments); } catch (e) {} }
   function err() { try { console.error.apply(console, arguments); } catch (e) {} }
@@ -107,7 +107,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-live-animation-ui-4",
+      version: "20260701-live-animation-ui-5",
       global: {
         styles: [],
         scripts: []
@@ -607,7 +607,7 @@
       "#" + c.containerId + " .video-empty{height:176px;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:rgba(255,255,255,.7);font-size:12px}" +
       "#" + c.containerId + " .vc{position:absolute;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:6px;padding:6px;border-radius:9px;background:rgba(0,0,0,.68)}#" + c.containerId + " .vc button{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:900;padding:5px 7px;cursor:pointer}#" + c.containerId + " .vc input{padding:0;min-width:0;accent-color:#fd224e;background:transparent;border:0}#" + c.containerId + " .vc .time{font-size:10px;color:rgba(255,255,255,.78);min-width:60px;text-align:right}" +
       "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv .wide{grid-column:1/-1}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .kv .wide b{white-space:normal;line-height:1.35}#" + c.containerId + " .bal-toggle{display:flex;gap:4px;margin-top:7px}#" + c.containerId + " .bal-toggle button{border:0;border-radius:6px;background:#22304f;color:#fff;cursor:pointer;font-size:10px;font-weight:800;line-height:1;padding:5px 8px}#" + c.containerId + " .bal-toggle button.on{background:#fd224e}#" + c.containerId + " .bal-toggle button:focus-visible{outline:2px solid #fff;outline-offset:2px}" +
-      "#dmbo-live-modal{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(3,5,10,.66);font-family:Arial,sans-serif;color:#fff}#dmbo-live-modal.open{display:flex}#dmbo-live-modal .live-dialog{position:relative;width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border-radius:12px;background:#111722;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 70px rgba(0,0,0,.58)}#dmbo-live-modal .live-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.09)}#dmbo-live-modal .live-title{font-size:14px;font-weight:900;line-height:1.25}#dmbo-live-modal .live-meta{margin-top:3px;font-size:11px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-close{width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}#dmbo-live-modal .live-body{padding:12px 14px 14px}#dmbo-live-modal .live-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,.06)}#dmbo-live-modal .live-team{min-width:0;font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-team.away{text-align:right}#dmbo-live-modal .live-score-num{font-size:24px;font-weight:900;line-height:1;color:#fff}#dmbo-live-modal .live-sub{margin-top:8px;font-size:11px;color:rgba(255,255,255,.66)}#dmbo-live-modal .live-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}#dmbo-live-modal .live-panel{min-width:0;border-radius:10px;background:rgba(255,255,255,.05);padding:10px}#dmbo-live-modal .live-panel h3{margin:0 0 8px;font-size:12px;line-height:1.2}#dmbo-live-modal .live-table{display:grid;gap:5px}#dmbo-live-modal .live-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:11px}#dmbo-live-modal .live-row span:nth-child(2){color:rgba(255,255,255,.68);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-row b{text-align:center;font-size:12px}#dmbo-live-modal .live-animation{margin-top:10px;border-radius:10px;overflow:hidden;background:#070a10;border:1px solid rgba(255,255,255,.08)}#dmbo-live-modal .live-animation iframe{display:block;width:100%;height:230px;border:0;background:#070a10}#dmbo-live-modal .live-empty{padding:14px;text-align:center;font-size:12px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-error{margin-top:8px;color:#ff8aa1;font-size:11px}#dmbo-live-modal a{color:#fff}" +
+      "#dmbo-live-modal{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(3,5,10,.66);font-family:Arial,sans-serif;color:#fff}#dmbo-live-modal.open{display:flex}#dmbo-live-modal .live-dialog{position:relative;width:min(760px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border-radius:12px;background:#111722;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 70px rgba(0,0,0,.58)}#dmbo-live-modal .live-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.09)}#dmbo-live-modal .live-title{font-size:14px;font-weight:900;line-height:1.25}#dmbo-live-modal .live-meta{margin-top:3px;font-size:11px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-close{width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}#dmbo-live-modal .live-body{padding:12px 14px 14px}#dmbo-live-modal .live-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:10px;border-radius:10px;background:rgba(255,255,255,.06)}#dmbo-live-modal .live-team{min-width:0;font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-team.away{text-align:right}#dmbo-live-modal .live-score-num{font-size:24px;font-weight:900;line-height:1;color:#fff}#dmbo-live-modal .live-sub{margin-top:8px;font-size:11px;color:rgba(255,255,255,.66)}#dmbo-live-modal .live-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}#dmbo-live-modal .live-panel{min-width:0;border-radius:10px;background:rgba(255,255,255,.05);padding:10px}#dmbo-live-modal .live-panel h3{margin:0 0 8px;font-size:12px;line-height:1.2}#dmbo-live-modal .live-table{display:grid;gap:5px}#dmbo-live-modal .live-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:11px}#dmbo-live-modal .live-row span:nth-child(2){color:rgba(255,255,255,.68);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-row b{text-align:center;font-size:12px}#dmbo-live-modal .live-animation{margin-top:10px;border-radius:10px;overflow:hidden;background:#070a10;border:1px solid rgba(255,255,255,.08)}#dmbo-live-modal .live-tabs{display:flex;gap:6px;padding:8px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}#dmbo-live-modal .live-tabs button{border:0;border-radius:7px;background:#24314f;color:#fff;font-size:11px;font-weight:900;padding:6px 9px;cursor:pointer}#dmbo-live-modal .live-tabs button.on{background:#fd224e}#dmbo-live-modal .live-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#dmbo-live-modal .live-animation iframe{display:block;width:100%;height:230px;border:0;background:#070a10}#dmbo-live-modal .live-empty{padding:14px;text-align:center;font-size:12px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-error{margin-top:8px;color:#ff8aa1;font-size:11px}#dmbo-live-modal a{color:#fff}" +
       "#dmbo-v12-close{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}" +
       "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-grid{grid-template-columns:1fr}#dmbo-live-modal .live-animation iframe{height:210px}}";
 
@@ -846,15 +846,56 @@
     });
   }
 
+  function monitorAbsoluteUrl(value) {
+    var text = String(value || "");
+
+    if (!text) return "";
+    if (/^https?:\/\//i.test(text)) return text;
+    if (text.charAt(0) === "/") return "https://ui-monitor.lynon.online" + text;
+    return "";
+  }
+
   function liveAnimationUrlFromResolver(data) {
-    var broadcast = data && data.broadcastUrl;
     var src = data && (data.url || data.animationUrl || data.trackerUrl || "");
 
-    if (broadcast && /^https?:\/\//i.test(String(broadcast))) return String(broadcast);
-    if (broadcast && String(broadcast).charAt(0) === "/") return "https://ui-monitor.lynon.online" + String(broadcast);
     if (src) return String(src);
-
     return "";
+  }
+
+  function liveVideoUrlFromResolver(data) {
+    return monitorAbsoluteUrl(data && (data.broadcastUrl || data.videoUrl || data.streamUrl || ""));
+  }
+
+  function liveVisualSourcesFromResolver(data) {
+    return {
+      animation: liveAnimationUrlFromResolver(data),
+      video: liveVideoUrlFromResolver(data)
+    };
+  }
+
+  function normalizeLiveVisualSources(value) {
+    if (!value) return { animation: "", video: "" };
+    if (typeof value === "string") return { animation: value, video: "" };
+
+    return {
+      animation: value.animation || "",
+      video: value.video || ""
+    };
+  }
+
+  function liveVisualMode(sources, preferred) {
+    var src = normalizeLiveVisualSources(sources);
+
+    if (preferred && src[preferred]) return preferred;
+    if (src.animation) return "animation";
+    if (src.video) return "video";
+    return "";
+  }
+
+  function liveVisualSignature(sources) {
+    var src = normalizeLiveVisualSources(sources);
+
+    return src.animation + "||" + src.video;
   }
 
   function registerLiveEvent(ev, tm) {
@@ -925,8 +966,62 @@
     }).join("") + '</div>';
   }
 
-  function liveAnimationHtml(src) {
-    return '<iframe title="Live match animation" src="' + esc(src) + '" loading="lazy" allowfullscreen referrerpolicy="no-referrer"></iframe>';
+  function liveVisualTabsHtml(sources, mode) {
+    var src = normalizeLiveVisualSources(sources);
+
+    if (!src.animation || !src.video) return "";
+    return '<div class="live-tabs" role="tablist" aria-label="Live visual source">' +
+      '<button type="button" data-dmbo-live-visual="animation" class="' + (mode === "animation" ? "on" : "") + '">Animation</button>' +
+      '<button type="button" data-dmbo-live-visual="video" class="' + (mode === "video" ? "on" : "") + '">Video</button>' +
+      '</div>';
+  }
+
+  function liveVisualFrameHtml(src, mode) {
+    var title = mode === "video" ? "Live match video" : "Live match animation";
+
+    return '<iframe title="' + esc(title) + '" src="' + esc(src) + '" loading="lazy" allowfullscreen referrerpolicy="no-referrer"></iframe>';
+  }
+
+  function bindLiveVisualTabs(item, slot, sources) {
+    if (!slot || !slot.querySelectorAll) return;
+
+    Array.prototype.forEach.call(slot.querySelectorAll("[data-dmbo-live-visual]"), function (button) {
+      button.onclick = function () {
+        var mode = button.getAttribute("data-dmbo-live-visual");
+
+        live.visualMode[item.key] = mode;
+        setLiveVisualSlot(slot, item, sources);
+      };
+    });
+  }
+
+  function setLiveVisualSlot(slot, item, sources) {
+    var src = normalizeLiveVisualSources(sources);
+    var mode = liveVisualMode(src, live.visualMode[item.key]);
+    var frameSrc = mode ? src[mode] : "";
+    var frame = slot && slot.querySelector && slot.querySelector("iframe");
+    var signature = liveVisualSignature(src);
+
+    if (!slot) return;
+    if (!frameSrc) {
+      slot.innerHTML = '<div class="live-empty">Animation is not available for this event yet.</div>';
+      return;
+    }
+
+    if (
+      frame &&
+      slot.getAttribute("data-dmbo-live-mode") === mode &&
+      slot.getAttribute("data-dmbo-live-sources") === signature &&
+      sameLiveSrc(frame.src, frameSrc)
+    ) {
+      return;
+    }
+
+    live.visualMode[item.key] = mode;
+    slot.setAttribute("data-dmbo-live-mode", mode);
+    slot.setAttribute("data-dmbo-live-sources", signature);
+    slot.innerHTML = liveVisualTabsHtml(src, mode) + liveVisualFrameHtml(frameSrc, mode);
+    bindLiveVisualTabs(item, slot, src);
   }
 
   function sameLiveSrc(a, b) {
@@ -941,17 +1036,17 @@
   function renderLiveAnimation(c, item, summary) {
     var slot = qs("dmbo-live-animation");
     var preset = liveAnimationPresetUrl(item.config, item.event);
-    var cached = live.animationCache[item.key];
-    var src = preset || cached;
-    var frame;
+    var cached = normalizeLiveVisualSources(live.animationCache[item.key]);
+    var sources = {
+      animation: preset || cached.animation,
+      video: cached.video
+    };
     var resolverUrl;
 
     if (!slot) return;
 
-    if (src) {
-      frame = slot.querySelector && slot.querySelector("iframe");
-      if (frame && sameLiveSrc(frame.src, src)) return;
-      slot.innerHTML = liveAnimationHtml(src);
+    if (sources.animation || sources.video) {
+      setLiveVisualSlot(slot, item, sources);
       return;
     }
 
@@ -976,13 +1071,13 @@
     live.animationPending[item.key] = true;
     slot.innerHTML = '<div class="live-empty">Resolving live animation...</div>';
     getJson(resolverUrl, "omit", function (e, d) {
-      var resolved = e ? "" : liveAnimationUrlFromResolver(d);
+      var resolved = e ? { animation: "", video: "" } : liveVisualSourcesFromResolver(d);
 
       delete live.animationPending[item.key];
       if (live.activeKey !== item.key) return;
-      if (resolved) {
+      if (resolved.animation || resolved.video) {
         live.animationCache[item.key] = resolved;
-        slot.innerHTML = liveAnimationHtml(resolved);
+        setLiveVisualSlot(slot, item, resolved);
       } else {
         live.animationMiss[item.key] = true;
         slot.innerHTML = '<div class="live-empty">Animation unavailable until the Worker allows the matchtracker resolver.</div>';
@@ -2344,6 +2439,8 @@
       liveAnimationUrlFromResolver: liveAnimationUrlFromResolver,
       liveAnimationResolverUrl: liveAnimationResolverUrl,
       liveEventSummary: liveEventSummary,
+      liveVisualMode: liveVisualMode,
+      liveVisualSourcesFromResolver: liveVisualSourcesFromResolver,
       matchesPath: matchesPath,
       normalizePagePath: normalizePagePath,
       pageMatches: pageMatches,
