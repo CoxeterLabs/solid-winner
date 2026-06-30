@@ -1,5 +1,5 @@
 {
-  "version": "20260630-adv-account-4",
+  "version": "20260630-adv-account-5",
   "global": {
     "styles": [],
     "scripts": []
@@ -28,12 +28,14 @@
                 "balances": [
                   "/api/platform/api/v1.0/user/balances?currency={currency}",
                   "/api/platform/api/v1.0/user/accounts?currency={currency}",
-                  "/api/platform/api/v1.0/user/balance?currency={currency}",
                   "/api/platform/api/v1.0/user/balances",
                   "/api/platform/api/v1.0/user/accounts",
-                  "/api/platform/api/v1.0/user/balance",
                   "/api/v1/me/balances",
                   "/api/v1/balance"
+                ],
+                "baseBalance": [
+                  "/api/platform/api/v1.0/user/balance?currency={currency}",
+                  "/api/platform/api/v1.0/user/balance"
                 ],
                 "bonuses": [
                   "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/{currency}",

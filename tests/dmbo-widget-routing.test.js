@@ -179,6 +179,7 @@ test("account data endpoints can stay backward compatible with the stale worker 
   assert.deepEqual(plain(accountPanel.endpoints.balances), ["/api/v1/me/balances", "/api/v1/balance"]);
   assert.ok(accountPanel.dataEndpoints.balances.includes("/api/platform/api/v1.0/user/balances"));
   assert.ok(accountPanel.dataEndpoints.balances.includes("/api/platform/api/v1.0/user/accounts?currency={currency}"));
+  assert.ok(accountPanel.dataEndpoints.baseBalance.includes("/api/platform/api/v1.0/user/balance?currency={currency}"));
   assert.equal(
     api.accountDataEndpoints(accountPanel).balances[0],
     "/api/platform/api/v1.0/user/balances?currency={currency}"
@@ -274,6 +275,32 @@ test("account summary reads wrapped Winrai balance and account payloads", () => 
 
   assert.equal(transformed.balance, "19.5 GBP");
   assert.equal(transformed.bonus, "2 GBP");
+});
+
+test("account summary separates base balance from all currency balances", () => {
+  const api = loadWidgetTestApi();
+
+  const summary = api.summarizeAccountData({}, {
+    profile: { player: { preferredCurrency: "EUR" } },
+    balances: {
+      data: [
+        { type: "PLAYER_ACCOUNT", currencyCode: "USDT", balance: 4 },
+        { type: "PLAYER_ACCOUNT", currencyCode: "ETH", balance: "0.25" },
+        { type: "PLAYER_UNUSED_BALANCE", currencyCode: "USDT", balance: 1.5 }
+      ]
+    },
+    baseBalance: {
+      data: {
+        currencyCode: "EUR",
+        balance: 3.62,
+        bonusBalance: 0.5
+      }
+    }
+  });
+
+  assert.equal(summary.balance, "3.62 EUR");
+  assert.equal(summary.bonus, "0.5 EUR");
+  assert.equal(summary.allBalances, "EUR 3.62 · ETH 0.25 · USDT 4");
 });
 
 test("event links use the signed-in sportsbook route when login CTA is absent", () => {

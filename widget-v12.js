@@ -105,7 +105,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-account-4",
+      version: "20260630-adv-account-5",
       global: {
         styles: [],
         scripts: []
@@ -134,12 +134,14 @@
                     balances: [
                       "/api/platform/api/v1.0/user/balances?currency={currency}",
                       "/api/platform/api/v1.0/user/accounts?currency={currency}",
-                      "/api/platform/api/v1.0/user/balance?currency={currency}",
                       "/api/platform/api/v1.0/user/balances",
                       "/api/platform/api/v1.0/user/accounts",
-                      "/api/platform/api/v1.0/user/balance",
                       "/api/v1/me/balances",
                       "/api/v1/balance"
+                    ],
+                    baseBalance: [
+                      "/api/platform/api/v1.0/user/balance?currency={currency}",
+                      "/api/platform/api/v1.0/user/balance"
                     ],
                     bonuses: [
                       "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/{currency}",
@@ -579,7 +581,7 @@
       "#" + c.containerId + " .video-wrap{position:relative;height:176px;background:#05070c}#" + c.containerId + " .video-wrap video{display:block;width:100%;height:100%;object-fit:cover;background:#05070c}" +
       "#" + c.containerId + " .video-empty{height:176px;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:rgba(255,255,255,.7);font-size:12px}" +
       "#" + c.containerId + " .vc{position:absolute;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:6px;padding:6px;border-radius:9px;background:rgba(0,0,0,.68)}#" + c.containerId + " .vc button{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:900;padding:5px 7px;cursor:pointer}#" + c.containerId + " .vc input{padding:0;min-width:0;accent-color:#fd224e;background:transparent;border:0}#" + c.containerId + " .vc .time{font-size:10px;color:rgba(255,255,255,.78);min-width:60px;text-align:right}" +
-      "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv .wide{grid-column:1/-1}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .kv .wide b{white-space:normal;line-height:1.35}" +
       "#dmbo-v12-close{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}" +
       "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}";
 
@@ -1294,6 +1296,105 @@
     return String(amount) + (currency ? " " + currency : "");
   }
 
+  function cleanCurrencyCode(v) {
+    var code = String(v || "").trim().toUpperCase();
+
+    if (!code || code.length > 12 || !/^[A-Z0-9._-]+$/.test(code)) return "";
+
+    return code;
+  }
+
+  function scalarAmount(v, currency) {
+    var amount = firstScalarInMap(v, currency || "");
+
+    return amount == null ? "" : String(amount);
+  }
+
+  function addCurrencyAmount(out, currency, amount) {
+    var code = cleanCurrencyCode(currency);
+    var value = amount == null ? "" : String(amount);
+
+    if (!code || value === "" || typeof amount === "object") return;
+
+    out[code] = value;
+  }
+
+  function addCurrencyMap(out, raw) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
+
+    Object.keys(raw).forEach(function (key) {
+      if (raw[key] != null && typeof raw[key] !== "object") addCurrencyAmount(out, key, raw[key]);
+    });
+  }
+
+  function itemAmount(v, keys) {
+    var amount = "";
+
+    (keys || []).some(function (key) {
+      if (v && v[key] != null) {
+        amount = scalarAmount(v[key]);
+        return !!amount;
+      }
+      return false;
+    });
+
+    return amount;
+  }
+
+  function collectCurrencyAmounts(data, wantedType, mapKeys, itemKeys) {
+    var out = {};
+    var wanted = accountTypeKey(wantedType);
+
+    (mapKeys || []).forEach(function (key) {
+      addCurrencyMap(out, extractRawValue(data, [key]));
+    });
+
+    function walk(v) {
+      var itemType;
+      var currency;
+      var amount;
+
+      if (v == null) return;
+
+      if (Array.isArray(v)) {
+        v.forEach(walk);
+        return;
+      }
+
+      if (typeof v !== "object") return;
+
+      itemType = accountTypeKey(v.type || v.balanceType || v.accountType || v.name || v.code);
+      if (!wanted || itemType === wanted) {
+        currency = v.currency || v.currencyCode || v.currencyName || v.displayCurrency || v.id;
+        amount = itemAmount(v, itemKeys);
+        addCurrencyAmount(out, currency, amount);
+      }
+
+      Object.keys(v).forEach(function (key) {
+        walk(v[key]);
+      });
+    }
+
+    walk(data);
+    return out;
+  }
+
+  function formatCurrencyAmounts(map, preferredCurrency) {
+    var preferred = cleanCurrencyCode(preferredCurrency);
+    var keys = Object.keys(map || {}).filter(function (key) {
+      return map[key] != null && map[key] !== "";
+    }).sort();
+
+    if (preferred && keys.indexOf(preferred) > 0) {
+      keys.splice(keys.indexOf(preferred), 1);
+      keys.unshift(preferred);
+    }
+
+    return keys.length ? keys.map(function (key) {
+      return key + " " + map[key];
+    }).join(" · ") : "-";
+  }
+
   function prettyStatus(value) {
     var raw = scalarCandidate(value);
     var text;
@@ -1360,13 +1461,27 @@
   function summarizeAccountData(account, result) {
     var profile = result.profile || {};
     var balances = result.balances || {};
+    var baseBalanceData = result.baseBalance || {};
     var bonuses = result.bonuses || {};
     var level = result.level || {};
     var currency = (account && account.currency) || extractCurrency(profile) || extractCurrency(balances) || extractCurrency(bonuses);
-    var balance = balanceEntryAmount(balances, "playerAccount", currency) ||
+    var baseCurrency = extractCurrency(baseBalanceData) || currency;
+    var balanceMap = collectCurrencyAmounts(balances, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]);
+    var baseBalance = balanceEntryAmount(baseBalanceData, "playerAccount", baseCurrency) ||
+      currencyAmount(baseBalanceData, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], baseCurrency);
+    var baseBonus = balanceEntryAmount(baseBalanceData, "playerUnusedBalance", baseCurrency) ||
+      currencyAmount(baseBalanceData, ["bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance"], baseCurrency);
+    if (!baseBalance && currency && balanceMap[cleanCurrencyCode(currency)] != null) {
+      baseBalance = balanceMap[cleanCurrencyCode(currency)];
+      baseCurrency = currency;
+    }
+    if (baseBalance) addCurrencyAmount(balanceMap, baseCurrency || currency, baseBalance);
+    var balance = baseBalance ||
+      balanceEntryAmount(balances, "playerAccount", currency) ||
       currencyAmount(balances, ["used", "playerAccount", "balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], currency) ||
       currencyAmount(profile, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash"], currency);
-    var bonus = balanceEntryAmount(balances, "playerUnusedBalance", currency) ||
+    var bonus = baseBonus ||
+      balanceEntryAmount(balances, "playerUnusedBalance", currency) ||
       currencyAmount(balances, ["unUsed", "unused", "playerUnusedBalance", "bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance"], currency) ||
       currencyAmount(bonuses, ["bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance", "amount", "total", "count"], currency);
     var lvl = extractValue(level, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) ||
@@ -1379,8 +1494,9 @@
     return {
       name: extractValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in",
       uid: extractValue(profile, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-",
-      balance: amountWithCurrency(balance, currency),
-      bonus: amountWithCurrency(bonus, currency),
+      balance: amountWithCurrency(balance, baseCurrency || currency),
+      bonus: amountWithCurrency(bonus, baseCurrency || currency),
+      allBalances: formatCurrencyAmounts(balanceMap, currency),
       level: lvl || "-",
       category: category || "-",
       status: status || "-"
@@ -1457,8 +1573,9 @@
       '<div class="kv">' +
       '<div><span>User</span><b>' + esc(summary.name) + '</b></div>' +
       '<div><span>ID</span><b>' + esc(summary.uid) + '</b></div>' +
-      '<div><span>Balance</span><b>' + esc(summary.balance) + '</b></div>' +
+      '<div><span>Base Balance</span><b>' + esc(summary.balance) + '</b></div>' +
       '<div><span>Bonus</span><b>' + esc(summary.bonus) + '</b></div>' +
+      '<div class="wide"><span>All Balances</span><b>' + esc(summary.allBalances) + '</b></div>' +
       '<div><span>Level</span><b>' + esc(summary.level) + '</b></div>' +
       '<div><span>Category</span><b>' + esc(summary.category) + '</b></div>' +
       '</div>';
@@ -1484,7 +1601,7 @@
     box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">Loading</span></div><div class="m">Checking account status...</div>';
 
     function loadPart(i) {
-      var key = ["profile", "balances", "bonuses", "level"][i];
+      var key = ["profile", "balances", "baseBalance", "bonuses", "level"][i];
 
       if (!key) return renderAccountSummary(account, result);
 
