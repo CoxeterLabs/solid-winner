@@ -105,7 +105,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-modules-2",
+      version: "20260630-adv-account-3",
       global: {
         styles: [],
         scripts: []
@@ -132,9 +132,12 @@
                   dataEndpoints: {
                     profile: ["/api/v1/me"],
                     balances: [
-                      "/api/platform/api/v1.0/user/balance?currency={currency}",
                       "/api/platform/api/v1.0/user/balances?currency={currency}",
+                      "/api/platform/api/v1.0/user/accounts?currency={currency}",
+                      "/api/platform/api/v1.0/user/balance?currency={currency}",
                       "/api/platform/api/v1.0/user/balances",
+                      "/api/platform/api/v1.0/user/accounts",
+                      "/api/platform/api/v1.0/user/balance",
                       "/api/v1/me/balances",
                       "/api/v1/balance"
                     ],
@@ -1149,7 +1152,7 @@
 
     if (typeof v !== "object") return String(v);
 
-    ["name", "title", "label", "value", "amount", "balance"].some(function (key) {
+    ["name", "title", "label", "value", "amount", "balance", "availableAmount", "availableBalance", "realBalance", "bonusBalance", "totalBalance"].some(function (key) {
       if (v[key] != null && typeof v[key] !== "object") {
         picked = String(v[key]);
         return true;
@@ -1158,6 +1161,10 @@
     });
 
     return picked || "";
+  }
+
+  function accountTypeKey(v) {
+    return clean(v).replace(/[^a-z0-9]+/g, "");
   }
 
   function extractRawValue(data, keys) {
@@ -1276,7 +1283,7 @@
   }
 
   function extractCurrency(data) {
-    var currency = extractValue(data, ["preferredCurrency", "currency", "activeCurrency"]);
+    var currency = extractValue(data, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]);
 
     return currency ? currency.toUpperCase() : "";
   }
@@ -1289,9 +1296,11 @@
 
   function balanceEntryAmount(data, wantedType, currency) {
     var found = "";
-    var wanted = clean(wantedType);
+    var wanted = accountTypeKey(wantedType);
 
     function walk(v) {
+      var itemCurrency;
+
       if (found || v == null) return;
 
       if (Array.isArray(v)) {
@@ -1304,10 +1313,16 @@
 
       if (typeof v !== "object") return;
 
-      if (clean(v.type || v.balanceType || v.accountType) === wanted) {
-        if (!currency || !v.currency || String(v.currency).toUpperCase() === currency) {
-          found = firstScalarInMap(v.balance != null ? v.balance : v.amount, currency);
-          if (!found) found = firstScalarInMap(v.total, currency);
+      if (accountTypeKey(v.type || v.balanceType || v.accountType || v.name || v.code) === wanted) {
+        itemCurrency = v.currency || v.currencyCode || v.currencyName || v.displayCurrency;
+        if (!currency || !itemCurrency || String(itemCurrency).toUpperCase() === currency) {
+          found = firstScalarInMap(v.balance, currency) ||
+            firstScalarInMap(v.amount, currency) ||
+            firstScalarInMap(v.availableAmount, currency) ||
+            firstScalarInMap(v.availableBalance, currency) ||
+            firstScalarInMap(v.realBalance, currency) ||
+            firstScalarInMap(v.total, currency) ||
+            firstScalarInMap(v.totalBalance, currency);
           if (found) return;
         }
       }
@@ -1335,13 +1350,13 @@
     var level = result.level || {};
     var currency = (account && account.currency) || extractCurrency(profile) || extractCurrency(balances) || extractCurrency(bonuses);
     var balance = balanceEntryAmount(balances, "playerAccount", currency) ||
-      currencyAmount(balances, ["balance", "availableBalance", "realBalance", "amount", "total"], currency) ||
-      currencyAmount(profile, ["balance", "availableBalance", "realBalance"], currency);
+      currencyAmount(balances, ["used", "playerAccount", "balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], currency) ||
+      currencyAmount(profile, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash"], currency);
     var bonus = balanceEntryAmount(balances, "playerUnusedBalance", currency) ||
-      currencyAmount(balances, ["bonusBalance", "bonus", "activeBonus"], currency) ||
-      currencyAmount(bonuses, ["bonusBalance", "bonus", "activeBonus", "amount", "total", "count"], currency);
-    var lvl = extractValue(level, ["level", "levelName", "rank", "tier", "vipLevel"]) ||
-      extractValue(profile, ["level", "levelName", "rank", "tier", "vipLevel"]);
+      currencyAmount(balances, ["unUsed", "unused", "playerUnusedBalance", "bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance"], currency) ||
+      currencyAmount(bonuses, ["bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance", "amount", "total", "count"], currency);
+    var lvl = extractValue(level, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) ||
+      extractValue(profile, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]);
     var category = extractValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) ||
       extractValue(profile, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]);
 
@@ -1361,6 +1376,21 @@
     if (String(url).indexOf("{currency}") >= 0 && !currency) return "";
 
     return String(url).replace(/\{currency\}/g, encodeURIComponent(currency));
+  }
+
+  function accountDebug(item) {
+    try {
+      var list = window.__DMBO_ACCOUNT_DEBUG__ || [];
+      list.push(item);
+      window.__DMBO_ACCOUNT_DEBUG__ = list.slice(-25);
+    } catch (e) {}
+  }
+
+  function responseKeys(data) {
+    if (Array.isArray(data)) return ["array:" + data.length];
+    if (!data || typeof data !== "object") return [typeof data];
+
+    return Object.keys(data).slice(0, 12);
   }
 
   function firstEndpoint(urls, result, cb) {
@@ -1383,11 +1413,18 @@
         headers: { accept: "application/json" }
       })
         .then(function (r) {
+          accountDebug({ url: url, status: r.status, ok: r.ok });
           if (!r.ok) throw new Error("HTTP " + r.status);
           return r.json();
         })
-        .then(function (data) { cb(data); })
-        .catch(next);
+        .then(function (data) {
+          accountDebug({ url: url, keys: responseKeys(data) });
+          cb(data);
+        })
+        .catch(function () {
+          accountDebug({ url: url, failed: true });
+          next();
+        });
     }
 
     next();

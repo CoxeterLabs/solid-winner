@@ -115,7 +115,7 @@
     if (v == null) return "";
     if (typeof v !== "object") return String(v);
 
-    ["name", "title", "label", "value", "amount", "balance"].some(function (key) {
+    ["name", "title", "label", "value", "amount", "balance", "availableAmount", "availableBalance", "realBalance", "bonusBalance", "totalBalance"].some(function (key) {
       if (v[key] != null && typeof v[key] !== "object") {
         picked = String(v[key]);
         return true;
@@ -124,6 +124,10 @@
     });
 
     return picked;
+  }
+
+  function accountTypeKey(v) {
+    return clean(v).replace(/[^a-z0-9]+/g, "");
   }
 
   function directValue(data, keys) {
@@ -224,9 +228,11 @@
 
   function entryAmount(data, wantedType, currency) {
     var found = "";
-    var wanted = clean(wantedType);
+    var wanted = accountTypeKey(wantedType);
 
     function walk(v) {
+      var itemCurrency;
+
       if (found || v == null) return;
       if (Array.isArray(v)) {
         v.some(function (item) {
@@ -236,9 +242,16 @@
         return;
       }
       if (typeof v !== "object") return;
-      if (clean(v.type || v.balanceType || v.accountType) === wanted) {
-        if (!currency || !v.currency || clean(v.currency) === clean(currency)) {
-          found = mapAmount(v.balance != null ? v.balance : v.amount, currency) || mapAmount(v.total, currency);
+      if (accountTypeKey(v.type || v.balanceType || v.accountType || v.name || v.code) === wanted) {
+        itemCurrency = v.currency || v.currencyCode || v.currencyName || v.displayCurrency;
+        if (!currency || !itemCurrency || clean(itemCurrency) === clean(currency)) {
+          found = mapAmount(v.balance, currency) ||
+            mapAmount(v.amount, currency) ||
+            mapAmount(v.availableAmount, currency) ||
+            mapAmount(v.availableBalance, currency) ||
+            mapAmount(v.realBalance, currency) ||
+            mapAmount(v.total, currency) ||
+            mapAmount(v.totalBalance, currency);
           if (found) return;
         }
       }
@@ -256,10 +269,29 @@
     return mapAmount(rawValue(data, keys), currency);
   }
 
+  function accountDebug(item) {
+    try {
+      var list = window.__DMBO_ACCOUNT_DEBUG__ || [];
+      list.push(item);
+      window.__DMBO_ACCOUNT_DEBUG__ = list.slice(-25);
+    } catch (e) {}
+  }
+
+  function responseKeys(data) {
+    if (Array.isArray(data)) return ["array:" + data.length];
+    if (!data || typeof data !== "object") return [typeof data];
+
+    return Object.keys(data).slice(0, 12);
+  }
+
   function getJson(url) {
     return fetch(url, { credentials: "include", headers: { accept: "application/json" } }).then(function (r) {
+      accountDebug({ url: url, status: r.status, ok: r.ok });
       if (!r.ok) throw new Error("HTTP " + r.status);
       return r.json();
+    }).then(function (data) {
+      accountDebug({ url: url, keys: responseKeys(data) });
+      return data;
     });
   }
 
@@ -271,7 +303,10 @@
 
       if (!url) return Promise.resolve({});
 
-      return getJson(url).catch(next);
+      return getJson(url).catch(function () {
+        accountDebug({ url: url, failed: true });
+        return next();
+      });
     }
 
     return next();
@@ -279,12 +314,12 @@
 
   function renderAccount(profile, balances, bonuses, level) {
     var box = document.getElementById("dmbo-account");
-    var currency = directValue(profile, ["preferredCurrency", "currency", "activeCurrency"]) || directValue(balances, ["currency", "activeCurrency"]) || directValue(bonuses, ["currency", "activeCurrency"]);
-    var balance = entryAmount(balances, "playerAccount", currency) || amount(balances, ["balance", "availableBalance", "realBalance", "amount", "total"], currency) || amount(profile, ["balance", "availableBalance", "realBalance"], currency);
-    var bonus = entryAmount(balances, "playerUnusedBalance", currency) || amount(balances, ["bonusBalance", "bonus", "activeBonus"], currency) || amount(bonuses, ["bonusBalance", "bonus", "activeBonus", "amount", "total", "count"], currency);
+    var currency = directValue(profile, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(balances, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(bonuses, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]);
+    var balance = entryAmount(balances, "playerAccount", currency) || amount(balances, ["used", "playerAccount", "balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], currency) || amount(profile, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash"], currency);
+    var bonus = entryAmount(balances, "playerUnusedBalance", currency) || amount(balances, ["unUsed", "unused", "playerUnusedBalance", "bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance"], currency) || amount(bonuses, ["bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance", "amount", "total", "count"], currency);
     var name = directValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in";
     var uid = directValue(profile, ["id", "uid", "playerId", "userId"]) || "-";
-    var lvl = directValue(level, ["level", "levelName", "rank", "tier", "vipLevel"]) || directValue(profile, ["level", "levelName", "rank", "tier", "vipLevel"]) || "-";
+    var lvl = directValue(level, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || directValue(profile, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || "-";
     var category = directValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || directValue(profile, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || "-";
 
     if (!box || hasLoginCta()) return;
@@ -306,15 +341,18 @@
     accountBusy = true;
     getJson("/api/v1/me")
       .then(function (profile) {
-        var currency = directValue(profile, ["preferredCurrency", "currency", "activeCurrency"]);
+        var currency = directValue(profile, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]);
         var encoded = currency ? encodeURIComponent(currency) : "";
 
         return Promise.all([
           Promise.resolve(profile),
           getFirst([
-            encoded ? "/api/platform/api/v1.0/user/balance?currency=" + encoded : "",
             encoded ? "/api/platform/api/v1.0/user/balances?currency=" + encoded : "",
+            encoded ? "/api/platform/api/v1.0/user/accounts?currency=" + encoded : "",
+            encoded ? "/api/platform/api/v1.0/user/balance?currency=" + encoded : "",
             "/api/platform/api/v1.0/user/balances",
+            "/api/platform/api/v1.0/user/accounts",
+            "/api/platform/api/v1.0/user/balance",
             "/api/v1/me/balances",
             "/api/v1/balance"
           ]),

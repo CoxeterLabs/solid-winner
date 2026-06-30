@@ -178,9 +178,10 @@ test("account data endpoints can stay backward compatible with the stale worker 
 
   assert.deepEqual(plain(accountPanel.endpoints.balances), ["/api/v1/me/balances", "/api/v1/balance"]);
   assert.ok(accountPanel.dataEndpoints.balances.includes("/api/platform/api/v1.0/user/balances"));
+  assert.ok(accountPanel.dataEndpoints.balances.includes("/api/platform/api/v1.0/user/accounts?currency={currency}"));
   assert.equal(
     api.accountDataEndpoints(accountPanel).balances[0],
-    "/api/platform/api/v1.0/user/balance?currency={currency}"
+    "/api/platform/api/v1.0/user/balances?currency={currency}"
   );
 });
 
@@ -217,6 +218,58 @@ test("account summary reads Lynon balance and bonus response shapes", () => {
 
   assert.equal(listed.balance, "42 EUR");
   assert.equal(listed.bonus, "3 EUR");
+});
+
+test("account summary reads wrapped Winrai balance and account payloads", () => {
+  const api = loadWidgetTestApi();
+
+  const wrapped = api.summarizeAccountData({}, {
+    profile: {
+      data: {
+        player: {
+          id: 70,
+          email: "player@example.com",
+          preferredCurrency: "USD",
+          currentLevel: "Gold 3"
+        }
+      }
+    },
+    balances: {
+      data: {
+        currencyCode: "USD",
+        realBalance: 3.47,
+        bonusBalance: 1.25
+      }
+    }
+  });
+
+  assert.equal(wrapped.balance, "3.47 USD");
+  assert.equal(wrapped.bonus, "1.25 USD");
+  assert.equal(wrapped.level, "Gold 3");
+
+  const accounts = api.summarizeAccountData({}, {
+    profile: { player: { preferredCurrency: "EUR" } },
+    balances: {
+      data: [
+        { type: "PLAYER_UNUSED_BALANCE", currencyCode: "EUR", amount: 8 },
+        { type: "PLAYER_ACCOUNT", currencyCode: "EUR", availableAmount: 54 }
+      ]
+    }
+  });
+
+  assert.equal(accounts.balance, "54 EUR");
+  assert.equal(accounts.bonus, "8 EUR");
+
+  const transformed = api.summarizeAccountData({}, {
+    profile: { preferredCurrency: "GBP" },
+    balances: {
+      used: { GBP: 19.5 },
+      unUsed: { GBP: 2 }
+    }
+  });
+
+  assert.equal(transformed.balance, "19.5 GBP");
+  assert.equal(transformed.bonus, "2 GBP");
 });
 
 test("event links use the signed-in sportsbook route when login CTA is absent", () => {
