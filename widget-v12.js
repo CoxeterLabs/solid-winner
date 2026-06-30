@@ -107,7 +107,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-live-animation-ui-3",
+      version: "20260701-live-animation-ui-4",
       global: {
         styles: [],
         scripts: []
@@ -847,12 +847,12 @@
   }
 
   function liveAnimationUrlFromResolver(data) {
-    var src = data && (data.url || data.animationUrl || data.trackerUrl || "");
     var broadcast = data && data.broadcastUrl;
+    var src = data && (data.url || data.animationUrl || data.trackerUrl || "");
 
-    if (src) return String(src);
     if (broadcast && /^https?:\/\//i.test(String(broadcast))) return String(broadcast);
     if (broadcast && String(broadcast).charAt(0) === "/") return "https://ui-monitor.lynon.online" + String(broadcast);
+    if (src) return String(src);
 
     return "";
   }
@@ -2341,6 +2341,7 @@
       createDefaultManifest: createDefaultManifest,
       eventHref: eventHref,
       getActiveLayers: getActiveLayers,
+      liveAnimationUrlFromResolver: liveAnimationUrlFromResolver,
       liveAnimationResolverUrl: liveAnimationResolverUrl,
       liveEventSummary: liveEventSummary,
       matchesPath: matchesPath,

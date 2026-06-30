@@ -255,6 +255,19 @@ test("live animation keeps an existing iframe when the resolved source is unchan
   );
 });
 
+test("live visual resolver prefers Lynon broadcast when top-parser animation can be stale", () => {
+  const api = loadWidgetTestApi();
+  const src = api.liveAnimationUrlFromResolver({
+    url: "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en",
+    broadcastUrl: "/sportsbook-new/tp-stream/sm/iframe?ref=redacted&t=1782849600&lang=en"
+  });
+
+  assert.equal(
+    src,
+    "https://ui-monitor.lynon.online/sportsbook-new/tp-stream/sm/iframe?ref=redacted&t=1782849600&lang=en"
+  );
+});
+
 test("resolves object panel settings for modular widgets", () => {
   const api = loadWidgetTestApi();
   const widget = {
