@@ -19,6 +19,12 @@
               "title": "Player Status",
               "endpoints": {
                 "profile": ["/api/v1/me"],
+                "balances": ["/api/v1/me/balances", "/api/v1/balance"],
+                "bonuses": ["/api/v1/me/bonuses"],
+                "level": ["/api/v1/me/level", "/api/v1/me/category"]
+              },
+              "dataEndpoints": {
+                "profile": ["/api/v1/me"],
                 "balances": [
                   "/api/platform/api/v1.0/user/balance?currency={currency}",
                   "/api/platform/api/v1.0/user/balances?currency={currency}",

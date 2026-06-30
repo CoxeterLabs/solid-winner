@@ -125,6 +125,12 @@
                   title: "Player Status",
                   endpoints: {
                     profile: ["/api/v1/me"],
+                    balances: ["/api/v1/me/balances", "/api/v1/balance"],
+                    bonuses: ["/api/v1/me/bonuses"],
+                    level: ["/api/v1/me/level", "/api/v1/me/category"]
+                  },
+                  dataEndpoints: {
+                    profile: ["/api/v1/me"],
                     balances: [
                       "/api/platform/api/v1.0/user/balance?currency={currency}",
                       "/api/platform/api/v1.0/user/balances?currency={currency}",
@@ -1127,6 +1133,10 @@
     return account;
   }
 
+  function accountDataEndpoints(account) {
+    return (account && account.dataEndpoints) || (account && account.endpoints) || {};
+  }
+
   function scalarCandidate(v) {
     var picked;
 
@@ -1399,7 +1409,7 @@
     var box = qs("dmbo-account");
     var account = accountConfig(widget);
     var signals = accountSignals();
-    var endpoints = account.endpoints || {};
+    var endpoints = accountDataEndpoints(account);
     var result = {};
     var pending = 0;
 
@@ -1658,6 +1668,7 @@
 
   if (window.__DMBO_WIDGET_TEST_MODE__) {
     window.__DMBO_WIDGET_TESTS__ = {
+      accountDataEndpoints: accountDataEndpoints,
       createDefaultManifest: createDefaultManifest,
       eventHref: eventHref,
       getActiveLayers: getActiveLayers,

@@ -172,6 +172,18 @@ test("account data fetches are gated to likely logged-in sessions", () => {
   assert.equal(api.shouldFetchAccountData({ enabled: false }, { hasLoginCta: false }), false);
 });
 
+test("account data endpoints can stay backward compatible with the stale worker runtime", () => {
+  const api = loadWidgetTestApi();
+  const accountPanel = api.createDefaultManifest().pages[0].widgets[0].panels[0];
+
+  assert.deepEqual(plain(accountPanel.endpoints.balances), ["/api/v1/me/balances", "/api/v1/balance"]);
+  assert.ok(accountPanel.dataEndpoints.balances.includes("/api/platform/api/v1.0/user/balances"));
+  assert.equal(
+    api.accountDataEndpoints(accountPanel).balances[0],
+    "/api/platform/api/v1.0/user/balance?currency={currency}"
+  );
+});
+
 test("account summary reads Lynon balance and bonus response shapes", () => {
   const api = loadWidgetTestApi();
 
