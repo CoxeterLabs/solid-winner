@@ -350,6 +350,24 @@ test("account summary combines balance and account endpoints", () => {
   assert.equal(summary.allBalances, "EUR 3.62 · ETH 0.25 · USDT 4");
 });
 
+test("account balance display defaults to base and can toggle all balances", () => {
+  const api = loadWidgetTestApi();
+  const summary = {
+    balance: "3.62 EUR",
+    allBalances: "EUR 3.62 · ETH 0.25 · USDT 4"
+  };
+
+  const base = api.accountBalanceDisplay(summary, "base");
+  const all = api.accountBalanceDisplay(summary, "all");
+
+  assert.equal(base.label, "Base Balance");
+  assert.equal(base.value, "3.62 EUR");
+  assert.equal(base.mode, "base");
+  assert.equal(all.label, "All Balances");
+  assert.equal(all.value, "EUR 3.62 · ETH 0.25 · USDT 4");
+  assert.equal(all.mode, "all");
+});
+
 test("event links use the signed-in sportsbook route when login CTA is absent", () => {
   const api = loadWidgetTestApi();
 

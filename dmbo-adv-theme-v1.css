@@ -31,6 +31,33 @@
   background: linear-gradient(135deg, rgba(253, 34, 78, 0.16), rgba(17, 24, 39, 0.96));
 }
 
+#dmbo-media-widget-v12 .bal-toggle {
+  display: flex;
+  gap: 4px;
+  margin-top: 7px;
+}
+
+#dmbo-media-widget-v12 .bal-toggle button {
+  border: 0;
+  border-radius: 6px;
+  background: #22304f;
+  color: #fff;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 5px 8px;
+}
+
+#dmbo-media-widget-v12 .bal-toggle button.on {
+  background: #fd224e;
+}
+
+#dmbo-media-widget-v12 .bal-toggle button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 #dmbo-media-widget-v12 #dmbo-casino {
   background: rgba(12, 17, 29, 0.98);
 }

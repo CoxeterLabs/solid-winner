@@ -24,6 +24,7 @@
   var titleOwned = false;
   var casino = { page: 0, query: "", loading: false, done: false, games: [] };
   var sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
+  var lastAccountRender = null;
 
   function log() { try { console.log.apply(console, arguments); } catch (e) {} }
   function err() { try { console.error.apply(console, arguments); } catch (e) {} }
@@ -105,7 +106,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-account-6",
+      version: "20260630-adv-account-7",
       global: {
         styles: [],
         scripts: []
@@ -584,7 +585,7 @@
       "#" + c.containerId + " .video-wrap{position:relative;height:176px;background:#05070c}#" + c.containerId + " .video-wrap video{display:block;width:100%;height:100%;object-fit:cover;background:#05070c}" +
       "#" + c.containerId + " .video-empty{height:176px;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:rgba(255,255,255,.7);font-size:12px}" +
       "#" + c.containerId + " .vc{position:absolute;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:6px;padding:6px;border-radius:9px;background:rgba(0,0,0,.68)}#" + c.containerId + " .vc button{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:900;padding:5px 7px;cursor:pointer}#" + c.containerId + " .vc input{padding:0;min-width:0;accent-color:#fd224e;background:transparent;border:0}#" + c.containerId + " .vc .time{font-size:10px;color:rgba(255,255,255,.78);min-width:60px;text-align:right}" +
-      "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv .wide{grid-column:1/-1}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .kv .wide b{white-space:normal;line-height:1.35}" +
+      "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv .wide{grid-column:1/-1}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .kv .wide b{white-space:normal;line-height:1.35}#" + c.containerId + " .bal-toggle{display:flex;gap:4px;margin-top:7px}#" + c.containerId + " .bal-toggle button{border:0;border-radius:6px;background:#22304f;color:#fff;cursor:pointer;font-size:10px;font-weight:800;line-height:1;padding:5px 8px}#" + c.containerId + " .bal-toggle button.on{background:#fd224e}#" + c.containerId + " .bal-toggle button:focus-visible{outline:2px solid #fff;outline-offset:2px}" +
       "#dmbo-v12-close{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}" +
       "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}";
 
@@ -1539,6 +1540,35 @@
     };
   }
 
+  function accountBalanceMode() {
+    return window.__DMBO_ACCOUNT_BALANCE_MODE__ === "all" ? "all" : "base";
+  }
+
+  function accountBalanceDisplay(summary, mode) {
+    var activeMode = mode === "all" ? "all" : "base";
+    var baseValue = summary && summary.balance ? summary.balance : "-";
+    var allValue = summary && summary.allBalances ? summary.allBalances : "-";
+    var value = activeMode === "all" ? allValue : baseValue;
+
+    if (!value || value === "-") {
+      activeMode = "base";
+      value = baseValue || "-";
+    }
+
+    return {
+      label: activeMode === "all" ? "All Balances" : "Base Balance",
+      value: value || "-",
+      mode: activeMode
+    };
+  }
+
+  function renderBalanceToggle(mode) {
+    return '<div class="bal-toggle" role="group" aria-label="Balance display">' +
+      '<button type="button" data-dmbo-balance-mode="base" class="' + (mode === "base" ? "on" : "") + '">Base</button>' +
+      '<button type="button" data-dmbo-balance-mode="all" class="' + (mode === "all" ? "on" : "") + '">All</button>' +
+      '</div>';
+  }
+
   function resolveEndpoint(url, result) {
     var currency = extractCurrency(result && result.profile) || extractCurrency(result && result.userInfo) || extractCurrency(result && result.balances) || extractCurrency(result && result.accounts) || "";
 
@@ -1602,19 +1632,45 @@
   function renderAccountSummary(account, result) {
     var box = qs("dmbo-account");
     var summary = summarizeAccountData(account, result || {});
+    var balance = accountBalanceDisplay(summary, accountBalanceMode());
 
     if (!box) return;
+    lastAccountRender = { account: account, result: result || {} };
 
     box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">' + esc(summary.status !== "-" ? summary.status : "Live") + '</span></div>' +
       '<div class="kv">' +
       '<div><span>User</span><b>' + esc(summary.name) + '</b></div>' +
       '<div><span>ID</span><b>' + esc(summary.uid) + '</b></div>' +
-      '<div><span>Base Balance</span><b>' + esc(summary.balance) + '</b></div>' +
+      '<div class="wide"><span>' + esc(balance.label) + '</span><b>' + esc(balance.value) + '</b>' + renderBalanceToggle(balance.mode) + '</div>' +
       '<div><span>Bonus</span><b>' + esc(summary.bonus) + '</b></div>' +
-      '<div class="wide"><span>All Balances</span><b>' + esc(summary.allBalances) + '</b></div>' +
       '<div><span>Level</span><b>' + esc(summary.level) + '</b></div>' +
       '<div><span>Category</span><b>' + esc(summary.category) + '</b></div>' +
       '</div>';
+  }
+
+  function installAccountBalanceToggle() {
+    if (window.__DMBO_ACCOUNT_BALANCE_TOGGLE__) return;
+    window.__DMBO_ACCOUNT_BALANCE_TOGGLE__ = true;
+
+    document.addEventListener("click", function (ev) {
+      var target = ev && ev.target;
+      var btn = null;
+      var mode;
+      var root;
+
+      try {
+        btn = target && target.closest ? target.closest("[data-dmbo-balance-mode]") : null;
+        root = qs(cfg().containerId);
+      } catch (e) {
+        btn = null;
+      }
+
+      if (!btn || !root || !root.contains(btn) || !lastAccountRender) return;
+
+      mode = btn.getAttribute("data-dmbo-balance-mode") === "all" ? "all" : "base";
+      window.__DMBO_ACCOUNT_BALANCE_MODE__ = mode;
+      renderAccountSummary(lastAccountRender.account, lastAccountRender.result);
+    }, true);
   }
 
   function accountPanel(widget) {
@@ -1857,6 +1913,7 @@
 
   function boot() {
     cfg();
+    installAccountBalanceToggle();
     installRouteHooks();
     syncRoute();
 
@@ -1880,6 +1937,7 @@
 
   if (window.__DMBO_WIDGET_TEST_MODE__) {
     window.__DMBO_WIDGET_TESTS__ = {
+      accountBalanceDisplay: accountBalanceDisplay,
       accountDataEndpoints: accountDataEndpoints,
       createDefaultManifest: createDefaultManifest,
       eventHref: eventHref,

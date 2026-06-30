@@ -4,6 +4,7 @@
 
   var accountBusy = false;
   var accountDone = false;
+  var lastAccountParts = null;
   var timer = 0;
 
   function clean(v) {
@@ -14,6 +15,35 @@
     return String(v == null ? "" : v).replace(/[&<>"']/g, function (c) {
       return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
     });
+  }
+
+  function accountBalanceMode() {
+    return window.__DMBO_ACCOUNT_BALANCE_MODE__ === "all" ? "all" : "base";
+  }
+
+  function accountBalanceDisplay(summary, mode) {
+    var activeMode = mode === "all" ? "all" : "base";
+    var baseValue = summary && summary.balance ? summary.balance : "-";
+    var allValue = summary && summary.allBalances ? summary.allBalances : "-";
+    var value = activeMode === "all" ? allValue : baseValue;
+
+    if (!value || value === "-") {
+      activeMode = "base";
+      value = baseValue || "-";
+    }
+
+    return {
+      label: activeMode === "all" ? "All Balances" : "Base Balance",
+      value: value || "-",
+      mode: activeMode
+    };
+  }
+
+  function renderBalanceToggle(mode) {
+    return '<div class="bal-toggle" role="group" aria-label="Balance display">' +
+      '<button type="button" data-dmbo-balance-mode="base" class="' + (mode === "base" ? "on" : "") + '">Base</button>' +
+      '<button type="button" data-dmbo-balance-mode="all" class="' + (mode === "all" ? "on" : "") + '">All</button>' +
+      '</div>';
   }
 
   function visible(el) {
@@ -467,19 +497,47 @@
     var lvl = directValue(level, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || directValue(profileData, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || "-";
     var category = directValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || directValue(profileData, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || "-";
     var status = prettyStatus(preferredRawValue(profileData, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "isVerified", "verified", "status"])) || prettyStatus(preferredRawValue(level, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "isVerified", "verified", "status"])) || "Live";
+    var balanceValue = balance ? balance + (baseCurrency ? " " + baseCurrency : "") : "-";
+    var bonusValue = bonus ? bonus + (baseCurrency ? " " + baseCurrency : "") : "-";
+    var balanceDisplay = accountBalanceDisplay({
+      balance: balanceValue,
+      allBalances: allBalances
+    }, accountBalanceMode());
 
     if (!box || hasLoginCta()) return;
+    lastAccountParts = [profile, userInfo, balances, accounts, baseBalanceData, bonuses, level];
 
     box.innerHTML = '<div class="t"><span>Player Status</span><span class="m">' + esc(status) + '</span></div>' +
       '<div class="kv">' +
       '<div><span>User</span><b>' + esc(name) + '</b></div>' +
       '<div><span>ID</span><b>' + esc(uid) + '</b></div>' +
-      '<div><span>Base Balance</span><b>' + esc(balance ? balance + (baseCurrency ? " " + baseCurrency : "") : "-") + '</b></div>' +
-      '<div><span>Bonus</span><b>' + esc(bonus ? bonus + (baseCurrency ? " " + baseCurrency : "") : "-") + '</b></div>' +
-      '<div class="wide"><span>All Balances</span><b>' + esc(allBalances) + '</b></div>' +
+      '<div class="wide"><span>' + esc(balanceDisplay.label) + '</span><b>' + esc(balanceDisplay.value) + '</b>' + renderBalanceToggle(balanceDisplay.mode) + '</div>' +
+      '<div><span>Bonus</span><b>' + esc(bonusValue) + '</b></div>' +
       '<div><span>Level</span><b>' + esc(lvl) + '</b></div>' +
       '<div><span>Category</span><b>' + esc(category) + '</b></div>' +
       '</div>';
+  }
+
+  function installBalanceToggle() {
+    if (window.__DMBO_ACCOUNT_BALANCE_TOGGLE__) return;
+    window.__DMBO_ACCOUNT_BALANCE_TOGGLE__ = true;
+
+    document.addEventListener("click", function (ev) {
+      var target = ev && ev.target;
+      var btn = null;
+      var mode;
+
+      try {
+        btn = target && target.closest ? target.closest("[data-dmbo-balance-mode]") : null;
+      } catch (e) {
+        btn = null;
+      }
+
+      if (!btn || !lastAccountParts) return;
+      mode = btn.getAttribute("data-dmbo-balance-mode") === "all" ? "all" : "base";
+      window.__DMBO_ACCOUNT_BALANCE_MODE__ = mode;
+      renderAccount(lastAccountParts[0], lastAccountParts[1], lastAccountParts[2], lastAccountParts[3], lastAccountParts[4], lastAccountParts[5], lastAccountParts[6]);
+    }, true);
   }
 
   function refreshAccount() {
@@ -542,6 +600,7 @@
     new MutationObserver(schedule).observe(document.documentElement, { childList: true, subtree: true });
   } catch (e) {}
 
+  installBalanceToggle();
   document.addEventListener("click", rewriteSportsLinks, true);
   setInterval(tick, 2000);
   schedule();
