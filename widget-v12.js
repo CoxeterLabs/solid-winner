@@ -106,7 +106,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-account-7",
+      version: "20260630-adv-account-8",
       global: {
         styles: [],
         scripts: []
@@ -124,6 +124,7 @@
                 {
                   name: "account",
                   title: "Player Status",
+                  baseCurrency: "EUR",
                   endpoints: {
                     profile: ["/api/v1/me"],
                     balances: ["/api/v1/me/balances", "/api/v1/balance"],
@@ -144,8 +145,9 @@
                       "/api/platform/api/v1.0/user/accounts"
                     ],
                     baseBalance: [
-                      "/api/platform/api/v1.0/user/balance?currency={currency}",
-                      "/api/platform/api/v1.0/user/balance"
+                      "/api/platform/api/v1.0/user/balance?currency={baseCurrency}",
+                      "/api/platform/api/v1.0/user/balance",
+                      "/api/platform/api/v1.0/user/balance?currency={currency}"
                     ],
                     bonuses: [
                       "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/{currency}",
@@ -1143,6 +1145,7 @@
 
     account.endpoints = account.endpoints || {};
     account.title = account.title || "Player Status";
+    account.baseCurrency = account.baseCurrency || "EUR";
 
     return account;
   }
@@ -1501,7 +1504,7 @@
     var bonuses = result.bonuses || {};
     var level = result.level || {};
     var currency = (account && account.currency) || extractCurrency(profile) || extractCurrency(balances) || extractCurrency(accounts) || extractCurrency(bonuses);
-    var baseCurrency = extractCurrency(baseBalanceData) || currency;
+    var baseCurrency = extractCurrency(baseBalanceData) || (account && account.baseCurrency) || currency;
     var balanceMap = collectCurrencyAmounts(balances, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]);
     mergeCurrencyAmounts(balanceMap, collectCurrencyAmounts(accounts, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]));
     var baseBalance = balanceEntryAmount(baseBalanceData, "playerAccount", baseCurrency) ||
@@ -1533,7 +1536,7 @@
       uid: extractPreferredValue(profile, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-",
       balance: amountWithCurrency(balance, baseCurrency || currency),
       bonus: amountWithCurrency(bonus, baseCurrency || currency),
-      allBalances: formatCurrencyAmounts(balanceMap, currency),
+      allBalances: formatCurrencyAmounts(balanceMap, baseCurrency || currency),
       level: lvl || "-",
       category: category || "-",
       status: status || "-"
@@ -1571,10 +1574,14 @@
 
   function resolveEndpoint(url, result) {
     var currency = extractCurrency(result && result.profile) || extractCurrency(result && result.userInfo) || extractCurrency(result && result.balances) || extractCurrency(result && result.accounts) || "";
+    var baseCurrency = (result && result.__baseCurrency) || "";
 
     if (String(url).indexOf("{currency}") >= 0 && !currency) return "";
+    if (String(url).indexOf("{baseCurrency}") >= 0 && !baseCurrency) return "";
 
-    return String(url).replace(/\{currency\}/g, encodeURIComponent(currency));
+    return String(url)
+      .replace(/\{baseCurrency\}/g, encodeURIComponent(baseCurrency))
+      .replace(/\{currency\}/g, encodeURIComponent(currency));
   }
 
   function accountDebug(item) {
@@ -1678,7 +1685,7 @@
     var account = accountConfig(widget);
     var signals = accountSignals();
     var endpoints = accountDataEndpoints(account);
-    var result = {};
+    var result = { __baseCurrency: account.baseCurrency || "" };
     var pending = 0;
 
     if (!box) return;

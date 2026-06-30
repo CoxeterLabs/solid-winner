@@ -1,5 +1,5 @@
 {
-  "version": "20260630-adv-account-7",
+  "version": "20260630-adv-account-8",
   "global": {
     "styles": [],
     "scripts": []
@@ -17,6 +17,7 @@
             {
               "name": "account",
               "title": "Player Status",
+              "baseCurrency": "EUR",
               "endpoints": {
                 "profile": ["/api/v1/me"],
                 "balances": ["/api/v1/me/balances", "/api/v1/balance"],
@@ -37,8 +38,9 @@
                   "/api/platform/api/v1.0/user/accounts"
                 ],
                 "baseBalance": [
-                  "/api/platform/api/v1.0/user/balance?currency={currency}",
-                  "/api/platform/api/v1.0/user/balance"
+                  "/api/platform/api/v1.0/user/balance?currency={baseCurrency}",
+                  "/api/platform/api/v1.0/user/balance",
+                  "/api/platform/api/v1.0/user/balance?currency={currency}"
                 ],
                 "bonuses": [
                   "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/{currency}",

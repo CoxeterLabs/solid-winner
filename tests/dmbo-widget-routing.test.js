@@ -181,9 +181,14 @@ test("account data endpoints can stay backward compatible with the stale worker 
   assert.ok(accountPanel.dataEndpoints.balances.includes("/api/platform/api/v1.0/user/balances"));
   assert.ok(accountPanel.dataEndpoints.accounts.includes("/api/platform/api/v1.0/user/accounts?currency={currency}"));
   assert.ok(accountPanel.dataEndpoints.baseBalance.includes("/api/platform/api/v1.0/user/balance?currency={currency}"));
+  assert.equal(accountPanel.baseCurrency, "EUR");
   assert.equal(
     api.accountDataEndpoints(accountPanel).balances[0],
     "/api/platform/api/v1.0/user/balances?currency={currency}"
+  );
+  assert.equal(
+    api.accountDataEndpoints(accountPanel).baseBalance[0],
+    "/api/platform/api/v1.0/user/balance?currency={baseCurrency}"
   );
 });
 
@@ -326,6 +331,27 @@ test("account summary separates base balance from all currency balances", () => 
   assert.equal(summary.balance, "3.62 EUR");
   assert.equal(summary.bonus, "0.5 EUR");
   assert.equal(summary.allBalances, "EUR 3.62 · ETH 0.25 · USDT 4");
+});
+
+test("account summary labels base balance with configured currency when payload omits currency", () => {
+  const api = loadWidgetTestApi();
+
+  const summary = api.summarizeAccountData({ baseCurrency: "EUR" }, {
+    profile: { player: { preferredCurrency: "USDT" } },
+    balances: {
+      data: [
+        { type: "PLAYER_ACCOUNT", currencyCode: "USDT", balance: 4 }
+      ]
+    },
+    baseBalance: {
+      data: {
+        balance: 3.62
+      }
+    }
+  });
+
+  assert.equal(summary.balance, "3.62 EUR");
+  assert.equal(summary.allBalances, "EUR 3.62 · USDT 4");
 });
 
 test("account summary combines balance and account endpoints", () => {

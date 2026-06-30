@@ -5,6 +5,7 @@
   var accountBusy = false;
   var accountDone = false;
   var lastAccountParts = null;
+  var BASE_CURRENCY = "EUR";
   var timer = 0;
 
   function clean(v) {
@@ -479,7 +480,7 @@
     var box = document.getElementById("dmbo-account");
     var profileData = { userInfo: userInfo || {}, profile: profile || {} };
     var currency = preferredValue(profileData, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(balances, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(accounts, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(bonuses, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]);
-    var baseCurrency = directValue(baseBalanceData, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]) || currency;
+    var baseCurrency = directValue(baseBalanceData, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]) || BASE_CURRENCY || currency;
     var balanceMap = collectCurrencyAmounts(balances, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]);
     mergeCurrencyAmounts(balanceMap, collectCurrencyAmounts(accounts, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]));
     var baseBalance = entryAmount(baseBalanceData, "playerAccount", baseCurrency) || amount(baseBalanceData, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], baseCurrency);
@@ -491,7 +492,7 @@
     if (baseBalance) addCurrencyAmount(balanceMap, baseCurrency || currency, baseBalance);
     var balance = baseBalance || entryAmount(balances, "playerAccount", currency) || amount(balances, ["used", "playerAccount", "balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], currency) || amount(profileData, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash"], currency);
     var bonus = baseBonus || entryAmount(balances, "playerUnusedBalance", currency) || amount(balances, ["unUsed", "unused", "playerUnusedBalance", "bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance"], currency) || amount(bonuses, ["bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance", "amount", "total", "count"], currency);
-    var allBalances = formatCurrencyAmounts(balanceMap, currency);
+    var allBalances = formatCurrencyAmounts(balanceMap, baseCurrency || currency);
     var name = preferredValue(profileData, ["userName", "username", "email", "phone", "firstName", "name"]) || "Signed in";
     var uid = preferredValue(profileData, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-";
     var lvl = directValue(level, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || directValue(profileData, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || "-";
@@ -565,8 +566,9 @@
               "/api/platform/api/v1.0/user/accounts"
             ]),
             getFirst([
-              encoded ? "/api/platform/api/v1.0/user/balance?currency=" + encoded : "",
-              "/api/platform/api/v1.0/user/balance"
+              "/api/platform/api/v1.0/user/balance?currency=" + encodeURIComponent(BASE_CURRENCY),
+              "/api/platform/api/v1.0/user/balance",
+              encoded ? "/api/platform/api/v1.0/user/balance?currency=" + encoded : ""
             ]),
             getFirst([
               encoded ? "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/" + encoded : "",
