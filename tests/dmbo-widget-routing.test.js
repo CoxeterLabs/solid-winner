@@ -177,8 +177,9 @@ test("account data endpoints can stay backward compatible with the stale worker 
   const accountPanel = api.createDefaultManifest().pages[0].widgets[0].panels[0];
 
   assert.deepEqual(plain(accountPanel.endpoints.balances), ["/api/v1/me/balances", "/api/v1/balance"]);
+  assert.ok(accountPanel.dataEndpoints.userInfo.includes("/api/user/api/v1.0/users/userinfo"));
   assert.ok(accountPanel.dataEndpoints.balances.includes("/api/platform/api/v1.0/user/balances"));
-  assert.ok(accountPanel.dataEndpoints.balances.includes("/api/platform/api/v1.0/user/accounts?currency={currency}"));
+  assert.ok(accountPanel.dataEndpoints.accounts.includes("/api/platform/api/v1.0/user/accounts?currency={currency}"));
   assert.ok(accountPanel.dataEndpoints.baseBalance.includes("/api/platform/api/v1.0/user/balance?currency={currency}"));
   assert.equal(
     api.accountDataEndpoints(accountPanel).balances[0],
@@ -277,6 +278,30 @@ test("account summary reads wrapped Winrai balance and account payloads", () => 
   assert.equal(transformed.bonus, "2 GBP");
 });
 
+test("account summary prefers rich user info over shallow internal ids", () => {
+  const api = loadWidgetTestApi();
+
+  const summary = api.summarizeAccountData({}, {
+    profile: {
+      id: 70,
+      player: {
+        email: "player@example.com",
+        preferredCurrency: "EUR",
+        verificationStatus: "notVerified"
+      }
+    },
+    userInfo: {
+      walletNumber: "00007622",
+      userName: "cryptoreio",
+      verificationStatus: "verified"
+    }
+  });
+
+  assert.equal(summary.uid, "00007622");
+  assert.equal(summary.name, "cryptoreio");
+  assert.equal(summary.status, "Verified");
+});
+
 test("account summary separates base balance from all currency balances", () => {
   const api = loadWidgetTestApi();
 
@@ -295,6 +320,28 @@ test("account summary separates base balance from all currency balances", () => 
         balance: 3.62,
         bonusBalance: 0.5
       }
+    }
+  });
+
+  assert.equal(summary.balance, "3.62 EUR");
+  assert.equal(summary.bonus, "0.5 EUR");
+  assert.equal(summary.allBalances, "EUR 3.62 · ETH 0.25 · USDT 4");
+});
+
+test("account summary combines balance and account endpoints", () => {
+  const api = loadWidgetTestApi();
+
+  const summary = api.summarizeAccountData({}, {
+    profile: { player: { preferredCurrency: "EUR" } },
+    balances: {
+      balance: { EUR: 3.62 },
+      bonusBalance: { EUR: 0.5 }
+    },
+    accounts: {
+      data: [
+        { type: "PLAYER_ACCOUNT", currencyCode: "USDT", balance: 4 },
+        { type: "PLAYER_ACCOUNT", currencyCode: "ETH", balance: "0.25" }
+      ]
     }
   });
 

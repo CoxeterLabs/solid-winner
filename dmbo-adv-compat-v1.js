@@ -168,6 +168,17 @@
     return found;
   }
 
+  function preferredValue(data, keys) {
+    var value = "";
+
+    (keys || []).some(function (key) {
+      value = directValue(data, [key]);
+      return !!value;
+    });
+
+    return value;
+  }
+
   function rawValue(data, keys) {
     var found;
     var wanted = {};
@@ -202,6 +213,17 @@
 
     walk(data);
     return found;
+  }
+
+  function preferredRawValue(data, keys) {
+    var value;
+
+    (keys || []).some(function (key) {
+      value = rawValue(data, [key]);
+      return value !== undefined && value !== null && scalar(value) !== "";
+    });
+
+    return value;
   }
 
   function mapAmount(v, currency) {
@@ -248,6 +270,12 @@
 
     Object.keys(raw).forEach(function (key) {
       if (raw[key] != null && typeof raw[key] !== "object") addCurrencyAmount(out, key, raw[key]);
+    });
+  }
+
+  function mergeCurrencyAmounts(out, source) {
+    Object.keys(source || {}).forEach(function (key) {
+      addCurrencyAmount(out, key, source[key]);
     });
   }
 
@@ -417,11 +445,13 @@
     return next();
   }
 
-  function renderAccount(profile, balances, baseBalanceData, bonuses, level) {
+  function renderAccount(profile, userInfo, balances, accounts, baseBalanceData, bonuses, level) {
     var box = document.getElementById("dmbo-account");
-    var currency = directValue(profile, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(balances, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(bonuses, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]);
+    var profileData = { userInfo: userInfo || {}, profile: profile || {} };
+    var currency = preferredValue(profileData, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(balances, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(accounts, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]) || directValue(bonuses, ["currency", "currencyCode", "activeCurrency", "displayCurrency"]);
     var baseCurrency = directValue(baseBalanceData, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]) || currency;
     var balanceMap = collectCurrencyAmounts(balances, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]);
+    mergeCurrencyAmounts(balanceMap, collectCurrencyAmounts(accounts, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]));
     var baseBalance = entryAmount(baseBalanceData, "playerAccount", baseCurrency) || amount(baseBalanceData, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], baseCurrency);
     var baseBonus = entryAmount(baseBalanceData, "playerUnusedBalance", baseCurrency) || amount(baseBalanceData, ["bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance"], baseCurrency);
     if (!baseBalance && currency && balanceMap[cleanCurrencyCode(currency)] != null) {
@@ -429,14 +459,14 @@
       baseCurrency = currency;
     }
     if (baseBalance) addCurrencyAmount(balanceMap, baseCurrency || currency, baseBalance);
-    var balance = baseBalance || entryAmount(balances, "playerAccount", currency) || amount(balances, ["used", "playerAccount", "balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], currency) || amount(profile, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash"], currency);
+    var balance = baseBalance || entryAmount(balances, "playerAccount", currency) || amount(balances, ["used", "playerAccount", "balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], currency) || amount(profileData, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash"], currency);
     var bonus = baseBonus || entryAmount(balances, "playerUnusedBalance", currency) || amount(balances, ["unUsed", "unused", "playerUnusedBalance", "bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance"], currency) || amount(bonuses, ["bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance", "amount", "total", "count"], currency);
     var allBalances = formatCurrencyAmounts(balanceMap, currency);
-    var name = directValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in";
-    var uid = directValue(profile, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-";
-    var lvl = directValue(level, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || directValue(profile, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || "-";
-    var category = directValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || directValue(profile, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || "-";
-    var status = prettyStatus(rawValue(profile, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "status", "isVerified", "verified"])) || prettyStatus(rawValue(level, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "status", "isVerified", "verified"])) || "Live";
+    var name = preferredValue(profileData, ["userName", "username", "email", "phone", "firstName", "name"]) || "Signed in";
+    var uid = preferredValue(profileData, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-";
+    var lvl = directValue(level, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || directValue(profileData, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || "-";
+    var category = directValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || directValue(profileData, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || "-";
+    var status = prettyStatus(preferredRawValue(profileData, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "isVerified", "verified", "status"])) || prettyStatus(preferredRawValue(level, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "isVerified", "verified", "status"])) || "Live";
 
     if (!box || hasLoginCta()) return;
 
@@ -458,33 +488,39 @@
     accountBusy = true;
     getJson("/api/v1/me")
       .then(function (profile) {
-        var currency = directValue(profile, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]);
-        var encoded = currency ? encodeURIComponent(currency) : "";
+        return getFirst(["/api/user/api/v1.0/users/userinfo"]).then(function (userInfo) {
+          var profileData = { userInfo: userInfo || {}, profile: profile || {} };
+          var currency = preferredValue(profileData, ["preferredCurrency", "preferredCurrencyCode", "currency", "currencyCode", "activeCurrency", "displayCurrency"]);
+          var encoded = currency ? encodeURIComponent(currency) : "";
 
-        return Promise.all([
-          Promise.resolve(profile),
-          getFirst([
-            encoded ? "/api/platform/api/v1.0/user/balances?currency=" + encoded : "",
-            encoded ? "/api/platform/api/v1.0/user/accounts?currency=" + encoded : "",
-            "/api/platform/api/v1.0/user/balances",
-            "/api/platform/api/v1.0/user/accounts",
-            "/api/v1/me/balances",
-            "/api/v1/balance"
-          ]),
-          getFirst([
-            encoded ? "/api/platform/api/v1.0/user/balance?currency=" + encoded : "",
-            "/api/platform/api/v1.0/user/balance"
-          ]),
-          getFirst([
-            encoded ? "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/" + encoded : "",
-            "/api/v1/me/bonuses"
-          ]),
-          getFirst(["/api/v1/me/level", "/api/v1/me/category"])
-        ]);
+          return Promise.all([
+            Promise.resolve(profile),
+            Promise.resolve(userInfo),
+            getFirst([
+              encoded ? "/api/platform/api/v1.0/user/balances?currency=" + encoded : "",
+              "/api/platform/api/v1.0/user/balances",
+              "/api/v1/me/balances",
+              "/api/v1/balance"
+            ]),
+            getFirst([
+              encoded ? "/api/platform/api/v1.0/user/accounts?currency=" + encoded : "",
+              "/api/platform/api/v1.0/user/accounts"
+            ]),
+            getFirst([
+              encoded ? "/api/platform/api/v1.0/user/balance?currency=" + encoded : "",
+              "/api/platform/api/v1.0/user/balance"
+            ]),
+            getFirst([
+              encoded ? "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/" + encoded : "",
+              "/api/v1/me/bonuses"
+            ]),
+            getFirst(["/api/v1/me/level", "/api/v1/me/category"])
+          ]);
+        });
       })
       .then(function (parts) {
         accountDone = true;
-        renderAccount(parts[0], parts[1], parts[2], parts[3], parts[4]);
+        renderAccount(parts[0], parts[1], parts[2], parts[3], parts[4], parts[5], parts[6]);
       })
       .catch(function () {})
       .then(function () {

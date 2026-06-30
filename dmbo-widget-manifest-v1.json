@@ -1,5 +1,5 @@
 {
-  "version": "20260630-adv-account-5",
+  "version": "20260630-adv-account-6",
   "global": {
     "styles": [],
     "scripts": []
@@ -25,13 +25,16 @@
               },
               "dataEndpoints": {
                 "profile": ["/api/v1/me"],
+                "userInfo": ["/api/user/api/v1.0/users/userinfo"],
                 "balances": [
                   "/api/platform/api/v1.0/user/balances?currency={currency}",
-                  "/api/platform/api/v1.0/user/accounts?currency={currency}",
                   "/api/platform/api/v1.0/user/balances",
-                  "/api/platform/api/v1.0/user/accounts",
                   "/api/v1/me/balances",
                   "/api/v1/balance"
+                ],
+                "accounts": [
+                  "/api/platform/api/v1.0/user/accounts?currency={currency}",
+                  "/api/platform/api/v1.0/user/accounts"
                 ],
                 "baseBalance": [
                   "/api/platform/api/v1.0/user/balance?currency={currency}",

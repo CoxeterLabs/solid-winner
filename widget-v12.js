@@ -105,7 +105,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-account-5",
+      version: "20260630-adv-account-6",
       global: {
         styles: [],
         scripts: []
@@ -131,13 +131,16 @@
                   },
                   dataEndpoints: {
                     profile: ["/api/v1/me"],
+                    userInfo: ["/api/user/api/v1.0/users/userinfo"],
                     balances: [
                       "/api/platform/api/v1.0/user/balances?currency={currency}",
-                      "/api/platform/api/v1.0/user/accounts?currency={currency}",
                       "/api/platform/api/v1.0/user/balances",
-                      "/api/platform/api/v1.0/user/accounts",
                       "/api/v1/me/balances",
                       "/api/v1/balance"
+                    ],
+                    accounts: [
+                      "/api/platform/api/v1.0/user/accounts?currency={currency}",
+                      "/api/platform/api/v1.0/user/accounts"
                     ],
                     baseBalance: [
                       "/api/platform/api/v1.0/user/balance?currency={currency}",
@@ -1256,6 +1259,28 @@
     return found;
   }
 
+  function extractPreferredValue(data, keys) {
+    var value = "";
+
+    (keys || []).some(function (key) {
+      value = extractValue(data, [key]);
+      return !!value;
+    });
+
+    return value;
+  }
+
+  function extractPreferredRawValue(data, keys) {
+    var value;
+
+    (keys || []).some(function (key) {
+      value = extractRawValue(data, [key]);
+      return value !== undefined && value !== null && scalarCandidate(value) !== "";
+    });
+
+    return value;
+  }
+
   function firstScalarInMap(v, currency) {
     var keys;
     var preferred;
@@ -1324,6 +1349,12 @@
 
     Object.keys(raw).forEach(function (key) {
       if (raw[key] != null && typeof raw[key] !== "object") addCurrencyAmount(out, key, raw[key]);
+    });
+  }
+
+  function mergeCurrencyAmounts(out, source) {
+    Object.keys(source || {}).forEach(function (key) {
+      addCurrencyAmount(out, key, source[key]);
     });
   }
 
@@ -1459,14 +1490,19 @@
   }
 
   function summarizeAccountData(account, result) {
-    var profile = result.profile || {};
+    var profile = {
+      userInfo: result.userInfo || {},
+      profile: result.profile || {}
+    };
     var balances = result.balances || {};
+    var accounts = result.accounts || {};
     var baseBalanceData = result.baseBalance || {};
     var bonuses = result.bonuses || {};
     var level = result.level || {};
-    var currency = (account && account.currency) || extractCurrency(profile) || extractCurrency(balances) || extractCurrency(bonuses);
+    var currency = (account && account.currency) || extractCurrency(profile) || extractCurrency(balances) || extractCurrency(accounts) || extractCurrency(bonuses);
     var baseCurrency = extractCurrency(baseBalanceData) || currency;
     var balanceMap = collectCurrencyAmounts(balances, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]);
+    mergeCurrencyAmounts(balanceMap, collectCurrencyAmounts(accounts, "playerAccount", ["used", "playerAccount", "balance"], ["balance", "amount", "availableAmount", "availableBalance", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "total", "totalBalance"]));
     var baseBalance = balanceEntryAmount(baseBalanceData, "playerAccount", baseCurrency) ||
       currencyAmount(baseBalanceData, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], baseCurrency);
     var baseBonus = balanceEntryAmount(baseBalanceData, "playerUnusedBalance", baseCurrency) ||
@@ -1488,12 +1524,12 @@
       extractValue(profile, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]);
     var category = extractValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) ||
       extractValue(profile, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]);
-    var status = prettyStatus(extractRawValue(profile, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "status", "isVerified", "verified"])) ||
-      prettyStatus(extractRawValue(level, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "status", "isVerified", "verified"]));
+    var status = prettyStatus(extractPreferredRawValue(profile, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "isVerified", "verified", "status"])) ||
+      prettyStatus(extractPreferredRawValue(level, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "isVerified", "verified", "status"]));
 
     return {
-      name: extractValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in",
-      uid: extractValue(profile, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-",
+      name: extractPreferredValue(profile, ["userName", "username", "email", "phone", "firstName", "name"]) || "Signed in",
+      uid: extractPreferredValue(profile, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-",
       balance: amountWithCurrency(balance, baseCurrency || currency),
       bonus: amountWithCurrency(bonus, baseCurrency || currency),
       allBalances: formatCurrencyAmounts(balanceMap, currency),
@@ -1504,7 +1540,7 @@
   }
 
   function resolveEndpoint(url, result) {
-    var currency = extractCurrency(result && result.profile) || extractCurrency(result && result.balances) || "";
+    var currency = extractCurrency(result && result.profile) || extractCurrency(result && result.userInfo) || extractCurrency(result && result.balances) || extractCurrency(result && result.accounts) || "";
 
     if (String(url).indexOf("{currency}") >= 0 && !currency) return "";
 
@@ -1601,7 +1637,7 @@
     box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">Loading</span></div><div class="m">Checking account status...</div>';
 
     function loadPart(i) {
-      var key = ["profile", "balances", "baseBalance", "bonuses", "level"][i];
+      var key = ["profile", "userInfo", "balances", "accounts", "baseBalance", "bonuses", "level"][i];
 
       if (!key) return renderAccountSummary(account, result);
 
