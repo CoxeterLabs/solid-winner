@@ -7,13 +7,30 @@
   "pages": [
     {
       "id": "advanced-features",
+      "title": "Advanced Features | Winrai",
       "paths": ["/home/adv"],
       "widgets": [
         {
           "id": "dmbo-media-widget-v12",
           "type": "dmbo-v12",
           "panels": [
+            {
+              "name": "account",
+              "title": "Player Status",
+              "endpoints": {
+                "profile": ["/api/v1/me"],
+                "balances": ["/api/v1/me/balances", "/api/v1/balance"],
+                "bonuses": ["/api/v1/me/bonuses"],
+                "level": ["/api/v1/me/level", "/api/v1/me/category"]
+              }
+            },
             "lottie",
+            {
+              "name": "video",
+              "title": "Advanced Feature Player",
+              "source": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+              "poster": ""
+            },
             "youtube",
             "iframe",
             "top",
@@ -23,7 +40,12 @@
           ]
         }
       ],
-      "styles": [],
+      "styles": [
+        {
+          "id": "dmbo-adv-theme-v1",
+          "cssUrl": "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/dmbo-adv-theme-v1.css"
+        }
+      ],
       "scripts": []
     }
   ]

@@ -9,7 +9,7 @@
   var CONFIG_URL = WORKER + "config.js?v=" + Date.now();
   var LOTTIE_URL = "https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie.min.js";
   var MANIFEST_URL = "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/dmbo-widget-manifest-v1.json";
-  var DEFAULT_PANELS = ["lottie", "youtube", "iframe", "top", "worldcup", "sports", "casino"];
+  var DEFAULT_PANELS = ["account", "lottie", "video", "youtube", "iframe", "top", "worldcup", "sports", "casino"];
 
   var logoIndex = null;
   var logoWaiters = [];
@@ -20,6 +20,8 @@
   var lottieReady = false;
   var routeHooked = false;
   var loadedScriptIds = {};
+  var originalTitle = "";
+  var titleOwned = false;
   var casino = { page: 0, query: "", loading: false, done: false, games: [] };
   var sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
 
@@ -80,6 +82,9 @@
     c.youtubeEmbedUrl = c.youtubeEmbedUrl || "https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0";
     c.iframeUrl = c.iframeUrl || "https://react-view-transitions-demo.labs.vercel.dev";
     c.iframeTitle = c.iframeTitle || "Vercel";
+    c.videoTitle = c.videoTitle || "Featured Video";
+    c.videoPoster = c.videoPoster || "";
+    c.videoSource = c.videoSource || "";
     c.sportsProxyUrl = c.sportsProxyUrl || WORKER;
     c.casinoGamesUrl = c.casinoGamesUrl || "/api/integration/api/v1.0/webSites/pages/casino/lobby-games";
     c.casinoMaxPages = c.casinoMaxPages || 20;
@@ -108,15 +113,45 @@
       pages: [
         {
           id: "advanced-features",
+          title: "Advanced Features | Winrai",
           paths: ["/home/adv"],
           widgets: [
             {
               id: "dmbo-media-widget-v12",
               type: "dmbo-v12",
-              panels: DEFAULT_PANELS.slice(0)
+              panels: [
+                {
+                  name: "account",
+                  title: "Player Status",
+                  endpoints: {
+                    profile: ["/api/v1/me"],
+                    balances: ["/api/v1/me/balances", "/api/v1/balance"],
+                    bonuses: ["/api/v1/me/bonuses"],
+                    level: ["/api/v1/me/level", "/api/v1/me/category"]
+                  }
+                },
+                "lottie",
+                {
+                  name: "video",
+                  title: "Advanced Feature Player",
+                  source: "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4",
+                  poster: ""
+                },
+                "youtube",
+                "iframe",
+                "top",
+                "worldcup",
+                "sports",
+                "casino"
+              ]
             }
           ],
-          styles: [],
+          styles: [
+            {
+              id: "dmbo-adv-theme-v1",
+              cssUrl: "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/dmbo-adv-theme-v1.css"
+            }
+          ],
           scripts: []
         }
       ]
@@ -210,6 +245,7 @@
     var result = {
       path: normalizePagePath(path),
       pageIds: [],
+      title: null,
       styles: [],
       scripts: [],
       widgets: [],
@@ -223,6 +259,7 @@
       if (!pageMatches(page, path)) return;
 
       result.pageIds.push(page.id || "");
+      if (page.title || page.documentTitle) result.title = page.title || page.documentTitle;
       addLayers(result.styles, page.styles, "page");
       addLayers(result.scripts, page.scripts, "page");
       addLayers(result.widgets, page.widgets, "page");
@@ -248,12 +285,60 @@
 
   function panelEnabled(widget, name) {
     var panels = widget && widget.panels;
+    var enabled = false;
+
     if (!Array.isArray(panels) || !panels.length) return true;
-    return panels.indexOf(name) !== -1;
+
+    panels.forEach(function (panel) {
+      var panelName;
+
+      if (typeof panel === "string") {
+        if (panel === name) enabled = true;
+        return;
+      }
+
+      if (!panel || typeof panel !== "object") return;
+
+      panelName = panel.name || panel.type || panel.id;
+      if (panelName === name && panel.enabled !== false) enabled = true;
+    });
+
+    return enabled;
+  }
+
+  function panelConfig(widget, name) {
+    var panels = widget && widget.panels;
+    var config = {};
+
+    if (!Array.isArray(panels)) return config;
+
+    panels.forEach(function (panel) {
+      var panelName;
+
+      if (!panel || typeof panel !== "object") return;
+
+      panelName = panel.name || panel.type || panel.id;
+      if (panelName === name) config = copyObject(panel);
+    });
+
+    if (widget && widget[name] && typeof widget[name] === "object") {
+      Object.keys(widget[name]).forEach(function (k) {
+        config[k] = widget[name][k];
+      });
+    }
+
+    return config;
   }
 
   function needsLottie(widget) {
     return panelEnabled(widget, "lottie");
+  }
+
+  function shouldFetchAccountData(accountConfig, signals) {
+    if (!accountConfig || accountConfig.enabled === false) return false;
+    if (accountConfig.fetchWhen === "always") return true;
+    if (signals && signals.hasLoginCta) return false;
+    return true;
   }
 
   function proxy(c, path, params) {
@@ -337,11 +422,39 @@
   function injectStyleAsset(item) {
     var id;
     var el;
+    var url;
 
     if (!item || item.enabled === false) return;
 
     id = assetDomId(item, "style");
     if (qs(id)) return;
+
+    if (item.cssUrl) {
+      url = item.cssUrl + (item.cssUrl.indexOf("?") === -1 ? "?" : "&") + "v=" + Date.now();
+      el = document.createElement("style");
+      el.id = id;
+      el.textContent = "";
+      setAssetScope(el, item);
+      (document.head || document.documentElement).appendChild(el);
+
+      fetch(url, {
+        cache: "no-store",
+        credentials: "omit",
+        headers: { accept: "text/css,*/*" }
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.text();
+        })
+        .then(function (cssText) {
+          el.textContent = cssText;
+        })
+        .catch(function (e) {
+          err("[DMBO] style asset failed", item.id || item.cssUrl, e && e.message ? e.message : e);
+          if (el && el.parentNode) el.parentNode.removeChild(el);
+        });
+      return;
+    }
 
     if (item.href) {
       el = document.createElement("link");
@@ -401,6 +514,22 @@
     sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
   }
 
+  function applyDocumentTitle(layers) {
+    var title = layers && layers.title;
+
+    try {
+      if (!originalTitle) originalTitle = document.title || "";
+
+      if (title) {
+        document.title = title;
+        titleOwned = true;
+      } else if (titleOwned) {
+        document.title = originalTitle;
+        titleOwned = false;
+      }
+    } catch (e) {}
+  }
+
   function styles(c) {
     if (qs(c.styleId)) return;
 
@@ -419,10 +548,15 @@
       "#" + c.containerId + " .logo,#" + c.containerId + " .flag{width:22px;height:22px;object-fit:cover;border-radius:50%;background:rgba(255,255,255,.12)}#" + c.containerId + " .flag{height:16px;border-radius:3px}" +
       "#" + c.containerId + " .init{display:inline-flex;width:22px;height:22px;border-radius:50%;align-items:center;justify-content:center;background:#24314f;font-size:10px;font-weight:900}" +
       "#" + c.containerId + " .od{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}#" + c.containerId + " .pill{display:inline-flex;gap:5px;align-items:center;padding:5px 7px;border-radius:7px;background:#1f2a44;color:#fff;font-size:11px;border:0}" +
+      "#" + c.containerId + " a.pill{text-decoration:none}#" + c.containerId + " a.pill:hover{background:#2f4068}" +
       "#" + c.containerId + " .btn{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:800;padding:6px 8px;cursor:pointer}#" + c.containerId + " .btn2{background:#24314f}" +
       "#" + c.containerId + " .search{display:flex;gap:6px;margin-bottom:8px}#" + c.containerId + " input{min-width:0;flex:1;border:1px solid rgba(255,255,255,.15);background:#101827;color:#fff;border-radius:7px;padding:7px;font-size:12px}" +
       "#" + c.containerId + " .grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}#" + c.containerId + " .game{border:1px solid rgba(255,255,255,.1);border-radius:10px;background:#111827;overflow:hidden}" +
       "#" + c.containerId + " .gimg{display:block;width:100%;aspect-ratio:1.33;object-fit:cover;background:#1f2937}#" + c.containerId + " .gb{padding:8px}#" + c.containerId + " .gn{font-size:12px;font-weight:800;line-height:1.25;min-height:30px}" +
+      "#" + c.containerId + " .video-wrap{position:relative;height:176px;background:#05070c}#" + c.containerId + " .video-wrap video{display:block;width:100%;height:100%;object-fit:cover;background:#05070c}" +
+      "#" + c.containerId + " .video-empty{height:176px;display:flex;align-items:center;justify-content:center;padding:16px;text-align:center;color:rgba(255,255,255,.7);font-size:12px}" +
+      "#" + c.containerId + " .vc{position:absolute;left:8px;right:8px;bottom:8px;display:flex;align-items:center;gap:6px;padding:6px;border-radius:9px;background:rgba(0,0,0,.68)}#" + c.containerId + " .vc button{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:900;padding:5px 7px;cursor:pointer}#" + c.containerId + " .vc input{padding:0;min-width:0;accent-color:#fd224e;background:transparent;border:0}#" + c.containerId + " .vc .time{font-size:10px;color:rgba(255,255,255,.78);min-width:60px;text-align:right}" +
+      "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
       "#dmbo-v12-close{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}" +
       "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}}";
 
@@ -468,6 +602,30 @@
     };
 
     return map[clean(region)] ? "https://flagcdn.com/w40/" + map[clean(region)] + ".png" : "";
+  }
+
+  function localePrefix() {
+    var parts = [];
+
+    try {
+      parts = String(window.location && window.location.pathname || "").split("/").filter(Boolean);
+    } catch (e) {}
+
+    return parts.length && /^[a-z]{2}(?:-[a-z]{2})?$/i.test(parts[0]) ? "/" + parts[0] : "";
+  }
+
+  function eventHref(ev, tm) {
+    var prefix = localePrefix();
+    var sportName = ev.sportName || "Football";
+    var tournament = ev.tournamentName || ev.regionName || "Event";
+    var eventName = (tm.h || "Home") + " vs " + (tm.a || "Away") + (ev.eventId ? "-" + ev.eventId : "");
+    var payload = {
+      argument: {
+        path: "sport/" + sportName + "/" + tournament + "/" + eventName
+      }
+    };
+
+    return prefix + "/home/game/demo/170142?additionalParams=" + encodeURIComponent(JSON.stringify(payload));
   }
 
   function logoIndexLoad(c, cb) {
@@ -566,12 +724,13 @@
       var fl = flag(ev.regionName);
       var odds = (ev.market && ev.market.outcomes) || [];
       var p = id + "-" + i;
+      var href = eventHref(ev, tm);
 
-      html += '<div class="ev"><div class="m">' + (fl ? '<img class="flag" src="' + fl + '"> ' : '') + esc(ev.tournamentName || ev.regionName || "") + ' · ' + esc(dateText(ev.startTime)) + '</div>';
+      html += '<div class="ev"><div class="m">' + (fl ? '<img class="flag" src="' + fl + '"> ' : '') + esc(ev.tournamentName || ev.regionName || "") + ' · ' + esc(dateText(ev.startTime)) + ' · <a class="m" href="' + esc(href) + '">Open match</a></div>';
       html += '<div class="match"><div class="team"><span id="' + p + '-hi" class="init">' + esc(initials(tm.h)) + '</span><img id="' + p + '-hl" class="logo" style="display:none"><span>' + esc(tm.h) + '</span></div><span class="m">vs</span><div class="team"><span id="' + p + '-ai" class="init">' + esc(initials(tm.a)) + '</span><img id="' + p + '-al" class="logo" style="display:none"><span>' + esc(tm.a) + '</span></div></div><div class="od">';
 
       odds.slice(0, 4).forEach(function (o) {
-        html += '<span class="pill"><b>' + esc(o.shortName || o.name) + '</b> ' + esc(o.odds) + '</span>';
+        html += '<a class="pill" href="' + esc(href) + '"><b>' + esc(o.shortName || o.name) + '</b> ' + esc(o.odds) + '</a>';
       });
 
       if (!odds.length) html += '<span class="m">Odds loading or unavailable</span>';
@@ -804,6 +963,234 @@
     next();
   }
 
+  function timeLabel(seconds) {
+    var n = Number(seconds);
+    var m;
+    var s;
+
+    if (!isFinite(n) || n < 0) return "0:00";
+
+    m = Math.floor(n / 60);
+    s = Math.floor(n % 60);
+
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function setupVideoPlayer(videoConfig) {
+    var video = qs("dmbo-video");
+    var play = qs("dmbo-video-play");
+    var mute = qs("dmbo-video-mute");
+    var seek = qs("dmbo-video-seek");
+    var time = qs("dmbo-video-time");
+
+    if (!video || !play || !mute || !seek || !time) return;
+
+    play.onclick = function () {
+      if (video.paused) {
+        video.play().catch(function () {});
+      } else {
+        video.pause();
+      }
+    };
+
+    mute.onclick = function () {
+      video.muted = !video.muted;
+      mute.textContent = video.muted ? "Sound" : "Mute";
+    };
+
+    seek.oninput = function () {
+      if (!isFinite(video.duration) || !video.duration) return;
+      video.currentTime = (Number(seek.value) / 100) * video.duration;
+    };
+
+    video.onplay = function () { play.textContent = "Pause"; };
+    video.onpause = function () { play.textContent = "Play"; };
+    video.ontimeupdate = function () {
+      if (isFinite(video.duration) && video.duration) seek.value = String((video.currentTime / video.duration) * 100);
+      time.textContent = timeLabel(video.currentTime) + " / " + timeLabel(video.duration);
+    };
+
+    if (videoConfig && videoConfig.autoplay) {
+      video.muted = videoConfig.muted !== false;
+      video.play().catch(function () {});
+    }
+  }
+
+  function videoPanelHtml(c, widget) {
+    var video = panelConfig(widget, "video");
+    var source = video.source || video.src || c.videoSource;
+    var poster = video.poster || c.videoPoster;
+    var title = video.title || c.videoTitle;
+    var type = video.type || "";
+
+    if (!source) {
+      return '<div class="b"><div class="video-empty">' + esc(title) + '</div></div>';
+    }
+
+    return '<div class="b"><div class="video-wrap"><video id="dmbo-video" preload="metadata" playsinline ' + (poster ? 'poster="' + esc(poster) + '" ' : "") + '>' +
+      '<source src="' + esc(source) + '"' + (type ? ' type="' + esc(type) + '"' : "") + '>' +
+      '</video><div class="vc"><button id="dmbo-video-play" type="button">Play</button><button id="dmbo-video-mute" type="button">Mute</button><input id="dmbo-video-seek" type="range" min="0" max="100" value="0" step="1"><span class="time" id="dmbo-video-time">0:00</span></div></div></div>';
+  }
+
+  function elementVisible(el) {
+    var r;
+
+    if (!el) return false;
+
+    try {
+      r = el.getBoundingClientRect();
+      return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden" && getComputedStyle(el).display !== "none";
+    } catch (e) {
+      return true;
+    }
+  }
+
+  function accountSignals() {
+    var loginCtas = [];
+
+    try {
+      loginCtas = Array.prototype.slice.call(document.querySelectorAll('a[href*="m=login"],a[href*="login"],button,[role="button"]')).filter(function (el) {
+        var text = clean(el.innerText || el.textContent || el.getAttribute("aria-label") || el.getAttribute("href") || "");
+        return elementVisible(el) && (text.indexOf("login") !== -1 || text.indexOf("log in") !== -1 || text.indexOf("register") !== -1);
+      });
+    } catch (e) {}
+
+    return {
+      hasLoginCta: loginCtas.length > 0
+    };
+  }
+
+  function accountLoginHref(kind) {
+    var prefix = localePrefix();
+    var returnUrl = String(window.location && window.location.pathname || prefix + "/home/adv");
+    var mode = kind === "register" ? "registration&t=email" : "login&t=phone";
+
+    return prefix + "/home/adv?m=" + mode + "&returnUrl=" + encodeURIComponent(returnUrl);
+  }
+
+  function accountConfig(widget) {
+    var account = panelConfig(widget, "account");
+
+    account.endpoints = account.endpoints || {};
+    account.title = account.title || "Player Status";
+
+    return account;
+  }
+
+  function extractValue(data, keys) {
+    var found = "";
+
+    function walk(v) {
+      if (found || v == null) return;
+
+      if (Array.isArray(v)) {
+        v.some(function (item) {
+          walk(item);
+          return !!found;
+        });
+        return;
+      }
+
+      if (typeof v !== "object") return;
+
+      keys.some(function (key) {
+        if (v[key] != null && typeof v[key] !== "object") {
+          found = String(v[key]);
+          return true;
+        }
+        return false;
+      });
+
+      if (found) return;
+
+      Object.keys(v).some(function (key) {
+        walk(v[key]);
+        return !!found;
+      });
+    }
+
+    walk(data);
+    return found;
+  }
+
+  function firstEndpoint(urls, cb) {
+    var list = Array.isArray(urls) ? urls.slice(0) : [];
+
+    function next() {
+      var url = list.shift();
+
+      if (!url) return cb(null);
+
+      fetch(url, {
+        credentials: "include",
+        headers: { accept: "application/json" }
+      })
+        .then(function (r) {
+          if (!r.ok) throw new Error("HTTP " + r.status);
+          return r.json();
+        })
+        .then(function (data) { cb(data); })
+        .catch(next);
+    }
+
+    next();
+  }
+
+  function renderAccountSummary(account, result) {
+    var box = qs("dmbo-account");
+    var profile = result.profile || {};
+    var balances = result.balances || {};
+    var bonuses = result.bonuses || {};
+    var level = result.level || {};
+    var name = extractValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in";
+    var uid = extractValue(profile, ["id", "uid", "playerId", "userId"]) || "-";
+    var balance = extractValue(balances, ["balance", "availableBalance", "realBalance", "amount", "total"]) || "-";
+    var bonus = extractValue(bonuses, ["bonus", "bonusBalance", "activeBonus", "amount", "total"]) || "-";
+    var lvl = extractValue(level, ["level", "levelName", "rank", "tier"]) || extractValue(profile, ["level", "levelName", "rank", "tier"]) || "-";
+    var category = extractValue(level, ["category", "categoryName", "segment"]) || extractValue(profile, ["category", "categoryName", "segment"]) || "-";
+
+    if (!box) return;
+
+    box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">Live</span></div>' +
+      '<div class="kv">' +
+      '<div><span>User</span><b>' + esc(name) + '</b></div>' +
+      '<div><span>ID</span><b>' + esc(uid) + '</b></div>' +
+      '<div><span>Balance</span><b>' + esc(balance) + '</b></div>' +
+      '<div><span>Bonus</span><b>' + esc(bonus) + '</b></div>' +
+      '<div><span>Level</span><b>' + esc(lvl) + '</b></div>' +
+      '<div><span>Category</span><b>' + esc(category) + '</b></div>' +
+      '</div>';
+  }
+
+  function accountPanel(widget) {
+    var box = qs("dmbo-account");
+    var account = accountConfig(widget);
+    var signals = accountSignals();
+    var endpoints = account.endpoints || {};
+    var result = {};
+    var pending = 0;
+
+    if (!box) return;
+
+    if (!shouldFetchAccountData(account, signals)) {
+      box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">Guest</span></div>' +
+        '<div class="m">Sign in to view profile, balances, bonuses, level, and category.</div>' +
+        '<div class="od"><a class="pill" href="' + esc(accountLoginHref("login")) + '">Login</a><a class="pill" href="' + esc(accountLoginHref("register")) + '">Register</a></div>';
+      return;
+    }
+
+    box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">Loading</span></div><div class="m">Checking account status...</div>';
+
+    ["profile", "balances", "bonuses", "level"].forEach(function (key) {
+      pending += 1;
+      firstEndpoint(endpoints[key], function (data) {
+        result[key] = data || {};
+        pending -= 1;
+        if (!pending) renderAccountSummary(account, result);
+      });
+    });
+  }
+
   function mount(widget) {
     var c = cfg();
     var html = '<button id="dmbo-v12-close" type="button">x</button>';
@@ -822,8 +1209,16 @@
     var root = document.createElement("div");
     root.id = c.containerId;
 
+    if (panelEnabled(widget, "account")) {
+      html += '<div class="b d" id="dmbo-account"><div class="t">Player Status</div><div class="m">Checking...</div></div>';
+    }
+
     if (panelEnabled(widget, "lottie")) {
       html += '<div class="b"><div id="dmbo-lottie" style="width:100%;height:176px"></div></div>';
+    }
+
+    if (panelEnabled(widget, "video")) {
+      html += videoPanelHtml(c, widget);
     }
 
     if (panelEnabled(widget, "youtube")) {
@@ -871,6 +1266,8 @@
 
     resetWidgetData();
 
+    if (panelEnabled(widget, "video")) setupVideoPlayer(panelConfig(widget, "video"));
+    if (panelEnabled(widget, "account")) accountPanel(widget);
     if (panelEnabled(widget, "top")) topEvents(c);
     if (panelEnabled(widget, "worldcup")) worldCup(c);
     if (panelEnabled(widget, "sports")) sports(c);
@@ -893,6 +1290,8 @@
     var c = cfg();
     var layers = getActiveLayers(manifest || createDefaultManifest(), window.location && window.location.href);
     var key = layerRouteKey(layers);
+
+    applyDocumentTitle(layers);
 
     if (key !== currentRouteKey) {
       cleanup(c);
@@ -1025,7 +1424,9 @@
       matchesPath: matchesPath,
       normalizePagePath: normalizePagePath,
       pageMatches: pageMatches,
-      panelEnabled: panelEnabled
+      panelConfig: panelConfig,
+      panelEnabled: panelEnabled,
+      shouldFetchAccountData: shouldFetchAccountData
     };
     return;
   }

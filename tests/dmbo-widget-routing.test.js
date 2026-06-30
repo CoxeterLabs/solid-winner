@@ -124,9 +124,12 @@ test("default manifest mounts the DMBO widget only on the Advanced Features page
   assert.equal(home.widgets.length, 0);
 
   const adv = api.getActiveLayers(manifest, "/en/home/adv");
+  assert.equal(adv.title, "Advanced Features | Winrai");
   assert.equal(adv.dmboWidget.type, "dmbo-v12");
-  assert.deepEqual(plain(adv.dmboWidget.panels), [
+  assert.deepEqual(plain(adv.dmboWidget.panels.map((panel) => typeof panel === "string" ? panel : panel.name || panel.type)), [
+    "account",
     "lottie",
+    "video",
     "youtube",
     "iframe",
     "top",
@@ -134,4 +137,33 @@ test("default manifest mounts the DMBO widget only on the Advanced Features page
     "sports",
     "casino"
   ]);
+});
+
+test("resolves object panel settings for modular widgets", () => {
+  const api = loadWidgetTestApi();
+  const widget = {
+    type: "dmbo-v12",
+    panels: [
+      "top",
+      { name: "video", title: "Feature film", source: "https://cdn.example/video.mp4" },
+      { type: "account", enabled: false }
+    ]
+  };
+
+  assert.equal(api.panelEnabled(widget, "top"), true);
+  assert.equal(api.panelEnabled(widget, "video"), true);
+  assert.equal(api.panelEnabled(widget, "account"), false);
+  assert.deepEqual(plain(api.panelConfig(widget, "video")), {
+    name: "video",
+    title: "Feature film",
+    source: "https://cdn.example/video.mp4"
+  });
+});
+
+test("account data fetches are gated to likely logged-in sessions", () => {
+  const api = loadWidgetTestApi();
+
+  assert.equal(api.shouldFetchAccountData({ enabled: true }, { hasLoginCta: true }), false);
+  assert.equal(api.shouldFetchAccountData({ enabled: true }, { hasLoginCta: false }), true);
+  assert.equal(api.shouldFetchAccountData({ enabled: false }, { hasLoginCta: false }), false);
 });
