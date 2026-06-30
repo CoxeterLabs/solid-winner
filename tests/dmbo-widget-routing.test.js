@@ -236,6 +236,25 @@ test("live match resolver URL uses the Worker proxy with event teams", () => {
   assert.equal(sanitized.searchParams.get("away"), "Smith Kiana");
 });
 
+test("live animation keeps an existing iframe when the resolved source is unchanged", () => {
+  const api = loadWidgetTestApi();
+
+  assert.equal(
+    api.sameLiveSrc(
+      "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en",
+      "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en"
+    ),
+    true
+  );
+  assert.equal(
+    api.sameLiveSrc(
+      "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en",
+      "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127217?s=3&lang=en"
+    ),
+    false
+  );
+});
+
 test("resolves object panel settings for modular widgets", () => {
   const api = loadWidgetTestApi();
   const widget = {

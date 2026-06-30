@@ -107,7 +107,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-live-animation-ui-1",
+      version: "20260701-live-animation-ui-2",
       global: {
         styles: [],
         scripts: []
@@ -929,16 +929,28 @@
     return '<iframe title="Live match animation" src="' + esc(src) + '" loading="lazy" allowfullscreen referrerpolicy="no-referrer"></iframe>';
   }
 
+  function sameLiveSrc(a, b) {
+    if (!a || !b) return false;
+    try {
+      return new URL(a, window.location && window.location.href).toString() === new URL(b, window.location && window.location.href).toString();
+    } catch (e) {
+      return String(a) === String(b);
+    }
+  }
+
   function renderLiveAnimation(c, item, summary) {
     var slot = qs("dmbo-live-animation");
     var preset = liveAnimationPresetUrl(item.config, item.event);
     var cached = live.animationCache[item.key];
     var src = preset || cached;
+    var frame;
     var resolverUrl;
 
     if (!slot) return;
 
     if (src) {
+      frame = slot.querySelector && slot.querySelector("iframe");
+      if (frame && sameLiveSrc(frame.src, src)) return;
       slot.innerHTML = liveAnimationHtml(src);
       return;
     }
@@ -980,17 +992,44 @@
     var meta = qs("dmbo-live-meta");
     var body = qs("dmbo-live-body");
     var summary = liveEventSummary(data || item.event, item.teams);
+    var home = qs("dmbo-live-home");
+    var away = qs("dmbo-live-away");
+    var score = qs("dmbo-live-score-num");
+    var sub = qs("dmbo-live-sub");
+    var result = qs("dmbo-live-result");
+    var stats = qs("dmbo-live-stats");
+    var errorBox = qs("dmbo-live-error");
 
     if (!modal || !body) return;
 
     if (title) title.textContent = item.config.title || "Live Match Center";
     if (meta) meta.textContent = summary.tournament + (summary.status && summary.status !== "-" ? " · " + summary.status : "");
 
-    body.innerHTML = '<div class="live-score"><div class="live-team">' + esc(summary.homeName) + '</div><div class="live-score-num">' + esc(summary.scoreText) + '</div><div class="live-team away">' + esc(summary.awayName) + '</div></div>' +
-      '<div class="live-sub">' + esc(summary.period) + (summary.serviceText ? " · " + esc(summary.serviceText) : "") + (summary.streamText ? " · " + esc(summary.streamText) : "") + '</div>' +
-      (error ? '<div class="live-error">Live update failed. Showing latest known event data.</div>' : "") +
-      '<div class="live-grid"><div class="live-panel"><h3>Result</h3>' + tableRows(summary.periodRows) + '</div><div class="live-panel"><h3>Stats</h3>' + tableRows(summary.statRows) + '</div></div>' +
-      '<div class="live-animation" id="dmbo-live-animation"><div class="live-empty">Loading animation...</div></div>';
+    if (!home || !away || !score || !sub || !result || !stats || !qs("dmbo-live-animation")) {
+      body.innerHTML = '<div class="live-score"><div class="live-team" id="dmbo-live-home"></div><div class="live-score-num" id="dmbo-live-score-num"></div><div class="live-team away" id="dmbo-live-away"></div></div>' +
+        '<div class="live-sub" id="dmbo-live-sub"></div>' +
+        '<div class="live-error" id="dmbo-live-error" style="display:none"></div>' +
+        '<div class="live-grid"><div class="live-panel"><h3>Result</h3><div id="dmbo-live-result"></div></div><div class="live-panel"><h3>Stats</h3><div id="dmbo-live-stats"></div></div></div>' +
+        '<div class="live-animation" id="dmbo-live-animation"><div class="live-empty">Loading animation...</div></div>';
+      home = qs("dmbo-live-home");
+      away = qs("dmbo-live-away");
+      score = qs("dmbo-live-score-num");
+      sub = qs("dmbo-live-sub");
+      result = qs("dmbo-live-result");
+      stats = qs("dmbo-live-stats");
+      errorBox = qs("dmbo-live-error");
+    }
+
+    if (home) home.textContent = summary.homeName;
+    if (away) away.textContent = summary.awayName;
+    if (score) score.textContent = summary.scoreText;
+    if (sub) sub.textContent = summary.period + (summary.serviceText ? " · " + summary.serviceText : "") + (summary.streamText ? " · " + summary.streamText : "");
+    if (result) result.innerHTML = tableRows(summary.periodRows);
+    if (stats) stats.innerHTML = tableRows(summary.statRows);
+    if (errorBox) {
+      errorBox.textContent = error ? "Live update failed. Showing latest known event data." : "";
+      errorBox.style.display = error ? "block" : "none";
+    }
 
     renderLiveAnimation(c, item, summary);
   }
@@ -2305,6 +2344,7 @@
       pageMatches: pageMatches,
       panelConfig: panelConfig,
       panelEnabled: panelEnabled,
+      sameLiveSrc: sameLiveSrc,
       shouldFetchAccountData: shouldFetchAccountData,
       summarizeAccountData: summarizeAccountData
     };
