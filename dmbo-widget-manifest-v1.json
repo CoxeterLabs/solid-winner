@@ -1,5 +1,5 @@
 {
-  "version": "20260630-adv-modules-1",
+  "version": "20260630-adv-modules-2",
   "global": {
     "styles": [],
     "scripts": []
@@ -19,8 +19,17 @@
               "title": "Player Status",
               "endpoints": {
                 "profile": ["/api/v1/me"],
-                "balances": ["/api/v1/me/balances", "/api/v1/balance"],
-                "bonuses": ["/api/v1/me/bonuses"],
+                "balances": [
+                  "/api/platform/api/v1.0/user/balance?currency={currency}",
+                  "/api/platform/api/v1.0/user/balances?currency={currency}",
+                  "/api/platform/api/v1.0/user/balances",
+                  "/api/v1/me/balances",
+                  "/api/v1/balance"
+                ],
+                "bonuses": [
+                  "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/{currency}",
+                  "/api/v1/me/bonuses"
+                ],
                 "level": ["/api/v1/me/level", "/api/v1/me/category"]
               }
             },

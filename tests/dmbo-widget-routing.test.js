@@ -16,6 +16,10 @@ function loadWidgetTestApi() {
     setTimeout,
     window: {
       __DMBO_WIDGET_TEST_MODE__: true,
+      location: {
+        href: "https://winrai1.com/en/home/adv",
+        pathname: "/en/home/adv"
+      },
       addEventListener() {},
       dispatchEvent() {}
     },
@@ -166,4 +170,75 @@ test("account data fetches are gated to likely logged-in sessions", () => {
   assert.equal(api.shouldFetchAccountData({ enabled: true }, { hasLoginCta: true }), false);
   assert.equal(api.shouldFetchAccountData({ enabled: true }, { hasLoginCta: false }), true);
   assert.equal(api.shouldFetchAccountData({ enabled: false }, { hasLoginCta: false }), false);
+});
+
+test("account summary reads Lynon balance and bonus response shapes", () => {
+  const api = loadWidgetTestApi();
+
+  const mapped = api.summarizeAccountData({}, {
+    profile: {
+      id: 70,
+      email: "player@example.com",
+      preferredCurrency: "USD",
+      playerCategory: { name: "VIP GOLD" }
+    },
+    balances: {
+      currency: "USD",
+      balance: { USD: 125.5 },
+      bonusBalance: { USD: 14 }
+    }
+  });
+
+  assert.equal(mapped.name, "player@example.com");
+  assert.equal(mapped.uid, "70");
+  assert.equal(mapped.balance, "125.5 USD");
+  assert.equal(mapped.bonus, "14 USD");
+  assert.equal(mapped.category, "VIP GOLD");
+
+  const listed = api.summarizeAccountData({}, {
+    profile: { preferredCurrency: "EUR" },
+    balances: [
+      { type: "playerUnusedBalance", currency: "EUR", balance: 3 },
+      { type: "playerAccount", currency: "EUR", balance: 42 }
+    ]
+  });
+
+  assert.equal(listed.balance, "42 EUR");
+  assert.equal(listed.bonus, "3 EUR");
+});
+
+test("event links use the signed-in sportsbook route when login CTA is absent", () => {
+  const api = loadWidgetTestApi();
+
+  const href = api.eventHref(
+    {
+      sportName: "Football",
+      tournamentName: "2026 FIFA World Cup",
+      regionName: "World",
+      eventId: 4545444
+    },
+    { h: "Ivory Coast", a: "Norway" },
+    { hasLoginCta: false }
+  );
+
+  const url = new URL(href, "https://winrai1.com");
+  const params = JSON.parse(url.searchParams.get("additionalParams"));
+
+  assert.equal(url.pathname, "/en/g-sport/sport");
+  assert.equal(params.argument.path, "/sportsbook-newsport/football/world-cup?projectId=1006");
+
+  const guestHref = api.eventHref(
+    {
+      sportName: "Football",
+      tournamentName: "2026 FIFA World Cup",
+      eventId: 4545444
+    },
+    { h: "Ivory Coast", a: "Norway" },
+    { hasLoginCta: true }
+  );
+  const guestUrl = new URL(guestHref, "https://winrai1.com");
+  const guestParams = JSON.parse(guestUrl.searchParams.get("additionalParams"));
+
+  assert.equal(guestUrl.pathname, "/en/home/game/demo/170142");
+  assert.equal(guestParams.argument.path, "sport/Football/2026 FIFA World Cup/Ivory Coast vs Norway-4545444");
 });

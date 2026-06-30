@@ -105,7 +105,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-modules-1",
+      version: "20260630-adv-modules-2",
       global: {
         styles: [],
         scripts: []
@@ -125,8 +125,17 @@
                   title: "Player Status",
                   endpoints: {
                     profile: ["/api/v1/me"],
-                    balances: ["/api/v1/me/balances", "/api/v1/balance"],
-                    bonuses: ["/api/v1/me/bonuses"],
+                    balances: [
+                      "/api/platform/api/v1.0/user/balance?currency={currency}",
+                      "/api/platform/api/v1.0/user/balances?currency={currency}",
+                      "/api/platform/api/v1.0/user/balances",
+                      "/api/v1/me/balances",
+                      "/api/v1/balance"
+                    ],
+                    bonuses: [
+                      "/api/bonusengine/api/v1/BonusSite/campaignAssignments/currency/{currency}",
+                      "/api/v1/me/bonuses"
+                    ],
                     level: ["/api/v1/me/level", "/api/v1/me/category"]
                   }
                 },
@@ -614,7 +623,41 @@
     return parts.length && /^[a-z]{2}(?:-[a-z]{2})?$/i.test(parts[0]) ? "/" + parts[0] : "";
   }
 
-  function eventHref(ev, tm) {
+  function sportsbookSlug(value, kind) {
+    var s = clean(value || "");
+
+    if (kind === "tournament") {
+      s = s.replace(/\b20\d{2}\b/g, " ").replace(/\bfifa\b/g, " ");
+    }
+
+    s = s.replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+    return s || (kind === "sport" ? "football" : "");
+  }
+
+  function sportsbookPath(ev) {
+    var sportName = ev.sportName || "Football";
+    var sportSlug = sportsbookSlug(sportName, "sport");
+    var tournamentSlug = sportsbookSlug(ev.tournamentName || ev.regionName || "", "tournament");
+    var path = "/sportsbook-newsport/" + sportSlug;
+
+    if (tournamentSlug) path += "/" + tournamentSlug;
+
+    return path + "?projectId=1006";
+  }
+
+  function signedInEventHref(ev) {
+    var prefix = localePrefix();
+    var payload = {
+      argument: {
+        path: sportsbookPath(ev || {})
+      }
+    };
+
+    return prefix + "/g-sport/sport?additionalParams=" + encodeURIComponent(JSON.stringify(payload));
+  }
+
+  function guestEventHref(ev, tm) {
     var prefix = localePrefix();
     var sportName = ev.sportName || "Football";
     var tournament = ev.tournamentName || ev.regionName || "Event";
@@ -626,6 +669,12 @@
     };
 
     return prefix + "/home/game/demo/170142?additionalParams=" + encodeURIComponent(JSON.stringify(payload));
+  }
+
+  function eventHref(ev, tm, signals) {
+    var s = signals || accountSignals();
+
+    return s && !s.hasLoginCta ? signedInEventHref(ev) : guestEventHref(ev, tm);
   }
 
   function logoIndexLoad(c, cb) {
@@ -716,6 +765,7 @@
     max = max || 8;
 
     var html = '<div class="t"><span>' + esc(title) + '</span><span class="m">' + events.length + '</span></div>';
+    var signals = accountSignals();
 
     if (!events.length) html += '<div class="m">No events found.</div>';
 
@@ -724,7 +774,7 @@
       var fl = flag(ev.regionName);
       var odds = (ev.market && ev.market.outcomes) || [];
       var p = id + "-" + i;
-      var href = eventHref(ev, tm);
+      var href = eventHref(ev, tm, signals);
 
       html += '<div class="ev"><div class="m">' + (fl ? '<img class="flag" src="' + fl + '"> ' : '') + esc(ev.tournamentName || ev.regionName || "") + ' · ' + esc(dateText(ev.startTime)) + ' · <a class="m" href="' + esc(href) + '">Open match</a></div>';
       html += '<div class="match"><div class="team"><span id="' + p + '-hi" class="init">' + esc(initials(tm.h)) + '</span><img id="' + p + '-hl" class="logo" style="display:none"><span>' + esc(tm.h) + '</span></div><span class="m">vs</span><div class="team"><span id="' + p + '-ai" class="init">' + esc(initials(tm.a)) + '</span><img id="' + p + '-al" class="logo" style="display:none"><span>' + esc(tm.a) + '</span></div></div><div class="od">';
@@ -1077,8 +1127,154 @@
     return account;
   }
 
+  function scalarCandidate(v) {
+    var picked;
+
+    if (v == null) return "";
+
+    if (typeof v !== "object") return String(v);
+
+    ["name", "title", "label", "value", "amount", "balance"].some(function (key) {
+      if (v[key] != null && typeof v[key] !== "object") {
+        picked = String(v[key]);
+        return true;
+      }
+      return false;
+    });
+
+    return picked || "";
+  }
+
+  function extractRawValue(data, keys) {
+    var found;
+    var wanted = {};
+
+    (keys || []).forEach(function (key) {
+      wanted[String(key).toLowerCase()] = true;
+    });
+
+    function walk(v) {
+      if (found !== undefined || v == null) return;
+
+      if (Array.isArray(v)) {
+        v.some(function (item) {
+          walk(item);
+          return found !== undefined;
+        });
+        return;
+      }
+
+      if (typeof v !== "object") return;
+
+      Object.keys(v).some(function (key) {
+        if (wanted[String(key).toLowerCase()]) {
+          found = v[key];
+          return true;
+        }
+        return false;
+      });
+
+      if (found !== undefined) return;
+
+      Object.keys(v).some(function (key) {
+        walk(v[key]);
+        return found !== undefined;
+      });
+    }
+
+    walk(data);
+    return found;
+  }
+
   function extractValue(data, keys) {
     var found = "";
+
+    function walk(v) {
+      var objectKeys;
+
+      if (found || v == null) return;
+
+      if (Array.isArray(v)) {
+        v.some(function (item) {
+          walk(item);
+          return !!found;
+        });
+        return;
+      }
+
+      if (typeof v !== "object") return;
+
+      objectKeys = Object.keys(v);
+
+      keys.some(function (wantedKey) {
+        return objectKeys.some(function (key) {
+          var scalar;
+
+          if (String(key).toLowerCase() !== String(wantedKey).toLowerCase()) return false;
+
+          scalar = scalarCandidate(v[key]);
+          if (!scalar) return false;
+
+          found = scalar;
+          return true;
+        });
+      });
+
+      if (found) return;
+
+      objectKeys.some(function (key) {
+        walk(v[key]);
+        return !!found;
+      });
+    }
+
+    walk(data);
+    return found;
+  }
+
+  function firstScalarInMap(v, currency) {
+    var keys;
+    var preferred;
+
+    if (v == null) return "";
+
+    if (typeof v !== "object") return String(v);
+
+    if (currency && v[currency] != null && typeof v[currency] !== "object") return String(v[currency]);
+
+    preferred = String(currency || "").toLowerCase();
+    keys = Object.keys(v);
+
+    if (preferred) {
+      for (var i = 0; i < keys.length; i += 1) {
+        if (String(keys[i]).toLowerCase() === preferred && v[keys[i]] != null && typeof v[keys[i]] !== "object") {
+          return String(v[keys[i]]);
+        }
+      }
+    }
+
+    for (var j = 0; j < keys.length; j += 1) {
+      if (v[keys[j]] != null && typeof v[keys[j]] !== "object") return String(v[keys[j]]);
+    }
+
+    return scalarCandidate(v);
+  }
+
+  function extractCurrency(data) {
+    var currency = extractValue(data, ["preferredCurrency", "currency", "activeCurrency"]);
+
+    return currency ? currency.toUpperCase() : "";
+  }
+
+  function amountWithCurrency(amount, currency) {
+    if (amount == null || amount === "") return "-";
+
+    return String(amount) + (currency ? " " + currency : "");
+  }
+
+  function balanceEntryAmount(data, wantedType, currency) {
+    var found = "";
+    var wanted = clean(wantedType);
 
     function walk(v) {
       if (found || v == null) return;
@@ -1093,15 +1289,13 @@
 
       if (typeof v !== "object") return;
 
-      keys.some(function (key) {
-        if (v[key] != null && typeof v[key] !== "object") {
-          found = String(v[key]);
-          return true;
+      if (clean(v.type || v.balanceType || v.accountType) === wanted) {
+        if (!currency || !v.currency || String(v.currency).toUpperCase() === currency) {
+          found = firstScalarInMap(v.balance != null ? v.balance : v.amount, currency);
+          if (!found) found = firstScalarInMap(v.total, currency);
+          if (found) return;
         }
-        return false;
-      });
-
-      if (found) return;
+      }
 
       Object.keys(v).some(function (key) {
         walk(v[key]);
@@ -1113,13 +1307,61 @@
     return found;
   }
 
-  function firstEndpoint(urls, cb) {
+  function currencyAmount(data, keys, currency) {
+    var raw = extractRawValue(data, keys);
+
+    return firstScalarInMap(raw, currency);
+  }
+
+  function summarizeAccountData(account, result) {
+    var profile = result.profile || {};
+    var balances = result.balances || {};
+    var bonuses = result.bonuses || {};
+    var level = result.level || {};
+    var currency = (account && account.currency) || extractCurrency(profile) || extractCurrency(balances) || extractCurrency(bonuses);
+    var balance = balanceEntryAmount(balances, "playerAccount", currency) ||
+      currencyAmount(balances, ["balance", "availableBalance", "realBalance", "amount", "total"], currency) ||
+      currencyAmount(profile, ["balance", "availableBalance", "realBalance"], currency);
+    var bonus = balanceEntryAmount(balances, "playerUnusedBalance", currency) ||
+      currencyAmount(balances, ["bonusBalance", "bonus", "activeBonus"], currency) ||
+      currencyAmount(bonuses, ["bonusBalance", "bonus", "activeBonus", "amount", "total", "count"], currency);
+    var lvl = extractValue(level, ["level", "levelName", "rank", "tier", "vipLevel"]) ||
+      extractValue(profile, ["level", "levelName", "rank", "tier", "vipLevel"]);
+    var category = extractValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) ||
+      extractValue(profile, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]);
+
+    return {
+      name: extractValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in",
+      uid: extractValue(profile, ["id", "uid", "playerId", "userId"]) || "-",
+      balance: amountWithCurrency(balance, currency),
+      bonus: amountWithCurrency(bonus, currency),
+      level: lvl || "-",
+      category: category || "-"
+    };
+  }
+
+  function resolveEndpoint(url, result) {
+    var currency = extractCurrency(result && result.profile) || extractCurrency(result && result.balances) || "";
+
+    if (String(url).indexOf("{currency}") >= 0 && !currency) return "";
+
+    return String(url).replace(/\{currency\}/g, encodeURIComponent(currency));
+  }
+
+  function firstEndpoint(urls, result, cb) {
     var list = Array.isArray(urls) ? urls.slice(0) : [];
 
-    function next() {
-      var url = list.shift();
+    if (typeof result === "function") {
+      cb = result;
+      result = {};
+    }
 
-      if (!url) return cb(null);
+    function next() {
+      var raw = list.shift();
+      var url = raw ? resolveEndpoint(raw, result || {}) : "";
+
+      if (!raw) return cb(null);
+      if (!url) return next();
 
       fetch(url, {
         credentials: "include",
@@ -1138,27 +1380,18 @@
 
   function renderAccountSummary(account, result) {
     var box = qs("dmbo-account");
-    var profile = result.profile || {};
-    var balances = result.balances || {};
-    var bonuses = result.bonuses || {};
-    var level = result.level || {};
-    var name = extractValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in";
-    var uid = extractValue(profile, ["id", "uid", "playerId", "userId"]) || "-";
-    var balance = extractValue(balances, ["balance", "availableBalance", "realBalance", "amount", "total"]) || "-";
-    var bonus = extractValue(bonuses, ["bonus", "bonusBalance", "activeBonus", "amount", "total"]) || "-";
-    var lvl = extractValue(level, ["level", "levelName", "rank", "tier"]) || extractValue(profile, ["level", "levelName", "rank", "tier"]) || "-";
-    var category = extractValue(level, ["category", "categoryName", "segment"]) || extractValue(profile, ["category", "categoryName", "segment"]) || "-";
+    var summary = summarizeAccountData(account, result || {});
 
     if (!box) return;
 
     box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">Live</span></div>' +
       '<div class="kv">' +
-      '<div><span>User</span><b>' + esc(name) + '</b></div>' +
-      '<div><span>ID</span><b>' + esc(uid) + '</b></div>' +
-      '<div><span>Balance</span><b>' + esc(balance) + '</b></div>' +
-      '<div><span>Bonus</span><b>' + esc(bonus) + '</b></div>' +
-      '<div><span>Level</span><b>' + esc(lvl) + '</b></div>' +
-      '<div><span>Category</span><b>' + esc(category) + '</b></div>' +
+      '<div><span>User</span><b>' + esc(summary.name) + '</b></div>' +
+      '<div><span>ID</span><b>' + esc(summary.uid) + '</b></div>' +
+      '<div><span>Balance</span><b>' + esc(summary.balance) + '</b></div>' +
+      '<div><span>Bonus</span><b>' + esc(summary.bonus) + '</b></div>' +
+      '<div><span>Level</span><b>' + esc(summary.level) + '</b></div>' +
+      '<div><span>Category</span><b>' + esc(summary.category) + '</b></div>' +
       '</div>';
   }
 
@@ -1181,14 +1414,20 @@
 
     box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">Loading</span></div><div class="m">Checking account status...</div>';
 
-    ["profile", "balances", "bonuses", "level"].forEach(function (key) {
+    function loadPart(i) {
+      var key = ["profile", "balances", "bonuses", "level"][i];
+
+      if (!key) return renderAccountSummary(account, result);
+
       pending += 1;
-      firstEndpoint(endpoints[key], function (data) {
+      firstEndpoint(endpoints[key], result, function (data) {
         result[key] = data || {};
         pending -= 1;
-        if (!pending) renderAccountSummary(account, result);
+        loadPart(i + 1);
       });
-    });
+    }
+
+    loadPart(0);
   }
 
   function mount(widget) {
@@ -1420,13 +1659,15 @@
   if (window.__DMBO_WIDGET_TEST_MODE__) {
     window.__DMBO_WIDGET_TESTS__ = {
       createDefaultManifest: createDefaultManifest,
+      eventHref: eventHref,
       getActiveLayers: getActiveLayers,
       matchesPath: matchesPath,
       normalizePagePath: normalizePagePath,
       pageMatches: pageMatches,
       panelConfig: panelConfig,
       panelEnabled: panelEnabled,
-      shouldFetchAccountData: shouldFetchAccountData
+      shouldFetchAccountData: shouldFetchAccountData,
+      summarizeAccountData: summarizeAccountData
     };
     return;
   }
