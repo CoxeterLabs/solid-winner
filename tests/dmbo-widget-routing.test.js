@@ -228,9 +228,11 @@ test("account summary reads wrapped Winrai balance and account payloads", () => 
       data: {
         player: {
           id: 70,
+          walletNumber: "00007622",
           email: "player@example.com",
           preferredCurrency: "USD",
-          currentLevel: "Gold 3"
+          currentLevel: "Gold 3",
+          verificationStatus: "verified"
         }
       }
     },
@@ -243,9 +245,11 @@ test("account summary reads wrapped Winrai balance and account payloads", () => 
     }
   });
 
+  assert.equal(wrapped.uid, "00007622");
   assert.equal(wrapped.balance, "3.47 USD");
   assert.equal(wrapped.bonus, "1.25 USD");
   assert.equal(wrapped.level, "Gold 3");
+  assert.equal(wrapped.status, "Verified");
 
   const accounts = api.summarizeAccountData({}, {
     profile: { player: { preferredCurrency: "EUR" } },

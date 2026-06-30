@@ -105,7 +105,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-account-3",
+      version: "20260630-adv-account-4",
       global: {
         styles: [],
         scripts: []
@@ -1294,6 +1294,20 @@
     return String(amount) + (currency ? " " + currency : "");
   }
 
+  function prettyStatus(value) {
+    var raw = scalarCandidate(value);
+    var text;
+
+    if (raw === "true") return "Verified";
+    if (raw === "false") return "Unverified";
+    if (!raw) return "";
+
+    text = raw.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+    if (!text) return "";
+
+    return text.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+
   function balanceEntryAmount(data, wantedType, currency) {
     var found = "";
     var wanted = accountTypeKey(wantedType);
@@ -1359,14 +1373,17 @@
       extractValue(profile, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]);
     var category = extractValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) ||
       extractValue(profile, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]);
+    var status = prettyStatus(extractRawValue(profile, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "status", "isVerified", "verified"])) ||
+      prettyStatus(extractRawValue(level, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "status", "isVerified", "verified"]));
 
     return {
       name: extractValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in",
-      uid: extractValue(profile, ["id", "uid", "playerId", "userId"]) || "-",
+      uid: extractValue(profile, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-",
       balance: amountWithCurrency(balance, currency),
       bonus: amountWithCurrency(bonus, currency),
       level: lvl || "-",
-      category: category || "-"
+      category: category || "-",
+      status: status || "-"
     };
   }
 
@@ -1436,7 +1453,7 @@
 
     if (!box) return;
 
-    box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">Live</span></div>' +
+    box.innerHTML = '<div class="t"><span>' + esc(account.title || "Player Status") + '</span><span class="m">' + esc(summary.status !== "-" ? summary.status : "Live") + '</span></div>' +
       '<div class="kv">' +
       '<div><span>User</span><b>' + esc(summary.name) + '</b></div>' +
       '<div><span>ID</span><b>' + esc(summary.uid) + '</b></div>' +

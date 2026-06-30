@@ -226,6 +226,20 @@
     return scalar(v);
   }
 
+  function prettyStatus(value) {
+    var raw = scalar(value);
+    var text;
+
+    if (raw === "true") return "Verified";
+    if (raw === "false") return "Unverified";
+    if (!raw) return "";
+
+    text = raw.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+    if (!text) return "";
+
+    return text.replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+  }
+
   function entryAmount(data, wantedType, currency) {
     var found = "";
     var wanted = accountTypeKey(wantedType);
@@ -318,13 +332,14 @@
     var balance = entryAmount(balances, "playerAccount", currency) || amount(balances, ["used", "playerAccount", "balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash", "amount", "total", "totalBalance"], currency) || amount(profile, ["balance", "availableBalance", "availableAmount", "realBalance", "realAmount", "currentBalance", "mainBalance", "cash"], currency);
     var bonus = entryAmount(balances, "playerUnusedBalance", currency) || amount(balances, ["unUsed", "unused", "playerUnusedBalance", "bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance"], currency) || amount(bonuses, ["bonusBalance", "bonus", "bonusAmount", "activeBonus", "activeBonusBalance", "wageringBalance", "freeBetBalance", "freeSpinBalance", "amount", "total", "count"], currency);
     var name = directValue(profile, ["username", "userName", "name", "firstName", "email", "phone"]) || "Signed in";
-    var uid = directValue(profile, ["id", "uid", "playerId", "userId"]) || "-";
+    var uid = directValue(profile, ["walletNumber", "walletNo", "accountNumber", "accountNo", "customerNumber", "clientNumber", "playerNumber", "publicId", "publicID", "id", "uid", "playerId", "userId"]) || "-";
     var lvl = directValue(level, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || directValue(profile, ["level", "levelName", "currentLevel", "currentLevelName", "playerLevel", "loyaltyLevel", "loyaltyLevelName", "levelTitle", "rank", "tier", "vipLevel"]) || "-";
     var category = directValue(level, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || directValue(profile, ["category", "categoryName", "segment", "playerCategory", "vipCategory"]) || "-";
+    var status = prettyStatus(rawValue(profile, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "status", "isVerified", "verified"])) || prettyStatus(rawValue(level, ["verificationStatus", "kycStatus", "kycVerificationStatus", "accountStatus", "playerStatus", "status", "isVerified", "verified"])) || "Live";
 
     if (!box || hasLoginCta()) return;
 
-    box.innerHTML = '<div class="t"><span>Player Status</span><span class="m">Live</span></div>' +
+    box.innerHTML = '<div class="t"><span>Player Status</span><span class="m">' + esc(status) + '</span></div>' +
       '<div class="kv">' +
       '<div><span>User</span><b>' + esc(name) + '</b></div>' +
       '<div><span>ID</span><b>' + esc(uid) + '</b></div>' +
