@@ -105,7 +105,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260630-adv-router-1",
+      version: "20260630-adv-modules-1",
       global: {
         styles: [],
         scripts: []
