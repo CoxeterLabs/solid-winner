@@ -194,9 +194,9 @@ test("default BetBoom match panel uses the Worker catalog and statshub proxies",
   assert.equal(betboomMatch.catalogDefaultMode, "all");
   assert.deepEqual(plain(betboomMatch.catalogModes), ["all", "live", "prematch", "history"]);
   assert.deepEqual(plain(betboomMatch.catalogSportIds), [2, 4, 5, 1, 11, 10]);
-  assert.equal(betboomMatch.catalogLimit, 42);
-  assert.equal(betboomMatch.catalogMaxTournaments, 12);
-  assert.equal(betboomMatch.catalogMaxMatchesPerTournament, 8);
+  assert.equal(betboomMatch.catalogLimit, 72);
+  assert.equal(betboomMatch.catalogMaxTournaments, 18);
+  assert.equal(betboomMatch.catalogMaxMatchesPerTournament, 12);
   assert.equal(betboomMatch.maxStats, 12);
   assert.equal(betboomMatch.maxImages, 14);
   assert.equal(betboomMatch.matches.length, 1);
@@ -212,8 +212,8 @@ test("default BetBoom match panel uses the Worker catalog and statshub proxies",
   assert.equal(catalogParsed.searchParams.get("path"), "/betboom/catalog");
   assert.equal(catalogParsed.searchParams.get("mode"), "all");
   assert.equal(catalogParsed.searchParams.get("sportIds"), "2,4,5,1,11,10");
-  assert.equal(catalogParsed.searchParams.get("limit"), "42");
-  assert.equal(catalogParsed.searchParams.get("maxTournaments"), "12");
+  assert.equal(catalogParsed.searchParams.get("limit"), "72");
+  assert.equal(catalogParsed.searchParams.get("maxTournaments"), "18");
 
   const url = api.betboomMatchUrl(
     { sportsProxyUrl: "https://sports.hypercubik.workers.dev/" },
@@ -971,6 +971,7 @@ test("live match resolver URL uses the Worker proxy with event teams", () => {
   const parsed = new URL(url);
   assert.equal(parsed.origin + parsed.pathname, "https://sports.hypercubik.workers.dev/");
   assert.equal(parsed.searchParams.get("path"), "/matchtracker-resolver/resolve");
+  assert.equal(parsed.searchParams.get("eventId"), "4542851");
   assert.equal(parsed.searchParams.get("home"), "Serena Williams");
   assert.equal(parsed.searchParams.get("away"), "Maya Joint");
   assert.equal(parsed.searchParams.get("nocache"), "1");

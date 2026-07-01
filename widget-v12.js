@@ -34,6 +34,7 @@
     limit: 20,
     events: [],
     sports: [],
+    seq: 0,
     loading: false,
     done: false,
     window: "all"
@@ -55,6 +56,7 @@
   };
   var betboom = {
     timer: 0,
+    searchTimer: 0,
     loading: false,
     detailLoading: false,
     error: "",
@@ -155,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-expanded-catalog-1",
+      version: "20260701-animation-search-1",
       global: {
         styles: [],
         scripts: []
@@ -263,12 +265,12 @@
                   workerPath: "/betboom/statshub",
                   lang: "en",
                   pollMs: 600000,
-                  catalogLimit: 42,
+                  catalogLimit: 72,
                   catalogDefaultMode: "all",
                   catalogModes: ["all", "live", "prematch", "history"],
                   catalogSportIds: [2, 4, 5, 1, 11, 10],
-                  catalogMaxTournaments: 12,
-                  catalogMaxMatchesPerTournament: 8,
+                  catalogMaxTournaments: 18,
+                  catalogMaxMatchesPerTournament: 12,
                   maxStats: 12,
                   maxImages: 14,
                   tabs: ["overview", "players", "stats", "timeline", "images", "sources"],
@@ -688,6 +690,10 @@
       clearInterval(betboom.timer);
       betboom.timer = 0;
     }
+    if (betboom.searchTimer) {
+      clearTimeout(betboom.searchTimer);
+      betboom.searchTimer = 0;
+    }
     casino = { page: 0, query: "", loading: false, done: false, games: [] };
     sport = {
       service: "PREMATCH",
@@ -697,6 +703,7 @@
       limit: 20,
       events: [],
       sports: [],
+      seq: 0,
       loading: false,
       done: false,
       window: "all"
@@ -718,6 +725,7 @@
     };
     betboom = {
       timer: 0,
+      searchTimer: 0,
       loading: false,
       detailLoading: false,
       error: "",
@@ -2134,6 +2142,7 @@
 
   function liveAnimationResolverUrl(c, config, ev, tm) {
     var item = liveEventOverride(config || {}, ev || {});
+    var id = eventId(ev);
     var home = liveResolverName(item.home || (tm && tm.h) || "");
     var away = liveResolverName(item.away || (tm && tm.a) || "");
 
@@ -2141,6 +2150,7 @@
     if (!home || !away) return "";
 
     return proxy(c || cfg(), (config && config.resolverPath) || "/matchtracker-resolver/resolve", {
+      eventId: id || "",
       home: home,
       away: away,
       nocache: "1"
@@ -2783,7 +2793,7 @@
   function liveVisualFrameHtml(src, mode) {
     var title = mode === "video" ? "Live match video" : "Live match animation";
 
-    return '<iframe title="' + esc(title) + '" src="' + esc(src) + '" loading="lazy" allowfullscreen referrerpolicy="no-referrer"></iframe>';
+    return '<iframe title="' + esc(title) + '" src="' + esc(src) + '" loading="eager" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>';
   }
 
   function bindLiveVisualTabs(item, slot, sources) {
@@ -2858,6 +2868,8 @@
       video: cached.video
     };
     var resolverUrl;
+    var token;
+    var timer;
 
     if (!slot) return;
 
@@ -2885,11 +2897,22 @@
       return;
     }
 
-    live.animationPending[item.key] = true;
+    token = String(Date.now()) + ":" + Math.random();
+    live.animationPending[item.key] = token;
     slot.innerHTML = '<div class="live-empty">Resolving live animation...</div>';
+    timer = setTimeout(function () {
+      if (live.animationPending[item.key] !== token) return;
+      delete live.animationPending[item.key];
+      live.animationMiss[item.key] = true;
+      if (live.activeKey === item.key) {
+        slot.innerHTML = '<div class="live-empty">Animation did not respond for this event yet.</div>';
+      }
+    }, 12000);
     getJson(resolverUrl, "omit", function (e, d) {
       var resolved = e ? { animation: "", video: "" } : liveVisualSourcesFromResolver(d);
 
+      if (live.animationPending[item.key] !== token) return;
+      clearTimeout(timer);
       delete live.animationPending[item.key];
       if (live.activeKey !== item.key) return;
       if (resolved.animation || resolved.video) {
@@ -2898,7 +2921,7 @@
         loadLiveTimeline(item, summary, resolved.animation);
       } else {
         live.animationMiss[item.key] = true;
-        slot.innerHTML = '<div class="live-empty">Animation unavailable until the Worker allows the matchtracker resolver.</div>';
+        slot.innerHTML = '<div class="live-empty">Animation is not available for this event yet.</div>';
       }
     });
   }
@@ -3454,6 +3477,7 @@
   function renderSportsbookEvents(c) {
     var box = qs("dmbo-sport-events");
     var rows = sportFilterEvents(sport.events || []);
+    var visibleRows = rows.slice(0, 220);
     var grouped = [];
     var byKey = {};
     var html = "";
@@ -3469,7 +3493,7 @@
       return;
     }
 
-    rows.slice(0, 24).forEach(function (ev) {
+    visibleRows.forEach(function (ev) {
       var key = ev.tournamentName || ev.regionName || "Other";
       if (!byKey[key]) {
         byKey[key] = { title: key, events: [] };
@@ -3491,7 +3515,7 @@
 
     box.innerHTML = html;
     bindLiveButtons(c, box);
-    rows.slice(0, 24).forEach(function (ev, index) {
+    visibleRows.forEach(function (ev, index) {
       var tm = teams(ev);
       var p = "dmbo-sports-event-" + index;
       setLogo(c, ev.sportId || sport.sportId, tm.h, p + "-hl", p + "-hi");
@@ -3545,6 +3569,7 @@
 
   function sports(c, keepSport) {
     var params = { sportService: sport.service };
+    var service = sport.service;
 
     if (sport.service === "LIVE") {
       params.onlyHotOrBestOdds = "false";
@@ -3555,6 +3580,7 @@
       var list = e ? [] : d.sports || [];
       var current;
 
+      if (service !== sport.service) return;
       sport.sports = list;
       current = list.filter(function (item) {
         return String(item.id) === String(sport.sportId);
@@ -3573,31 +3599,45 @@
 
   function loadSportEvents(c, reset) {
     var box = qs("dmbo-sport-events");
-    if (!box || sport.loading) return;
+    var requestSeq;
+    var requestSportId;
+    var requestService;
+    var requestOffset;
+
+    if (!box) return;
+    if (sport.loading && !reset) return;
 
     if (reset) {
+      sport.seq += 1;
+      sport.loading = false;
       sport.offset = 0;
       sport.events = [];
       sport.done = false;
     }
 
+    requestSeq = ++sport.seq;
+    requestSportId = sport.sportId;
+    requestService = sport.service;
+    requestOffset = sport.offset;
     sport.loading = true;
     sportsRender(c);
 
     getJson(proxy(c, "/partner-api/sportsbook/public/v2/listing/tournaments-with-events", {
-      sportId: sport.sportId,
-      sportService: sport.service,
-      offset: String(sport.offset),
+      sportId: requestSportId,
+      sportService: requestService,
+      offset: String(requestOffset),
       limit: String(sport.limit)
     }), "omit", function (e, d) {
       var fresh = e ? [] : flat(d);
 
+      if (requestSeq !== sport.seq || requestSportId !== sport.sportId || requestService !== sport.service) return;
       sport.offset += sport.limit;
       if (!fresh.length) sport.done = true;
 
       sport.events = sport.events.concat(fresh);
 
       enrich(c, sport.events, function (events) {
+        if (requestSeq !== sport.seq || requestSportId !== sport.sportId || requestService !== sport.service) return;
         sport.events = events;
         sport.loading = false;
         sportsRender(c);
@@ -4345,13 +4385,35 @@
       input.oninput = function () {
         betboom.query = input.value || "";
         betboomMatchRender(c, widget, true);
+        if (betboom.searchTimer) clearTimeout(betboom.searchTimer);
+        betboom.searchTimer = setTimeout(function () {
+          betboom.searchTimer = 0;
+          betboom.selectedId = "";
+          betboom.matches = [];
+          betboom.detailsById = {};
+          betboomMatchLoad(c, widget, true);
+        }, 450);
       };
       input.onkeydown = function (event) {
         var rows = betboomFilteredCatalog();
         if (event.key === "Enter" && rows[0]) {
           event.preventDefault();
+          if (betboom.searchTimer) {
+            clearTimeout(betboom.searchTimer);
+            betboom.searchTimer = 0;
+          }
           betboom.selectedId = rows[0].matchId || rows[0].id;
           betboomLoadSelectedDetail(c, widget, rows[0]);
+        } else if (event.key === "Enter") {
+          event.preventDefault();
+          if (betboom.searchTimer) {
+            clearTimeout(betboom.searchTimer);
+            betboom.searchTimer = 0;
+          }
+          betboom.selectedId = "";
+          betboom.matches = [];
+          betboom.detailsById = {};
+          betboomMatchLoad(c, widget, true);
         }
       };
       if (focusSearch) {
