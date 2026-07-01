@@ -916,6 +916,103 @@ test("sportscast timeline rows expose latest provider events without guessing un
   ]);
 });
 
+test("sportscast timeline rows keep native tracker coordinates and tennis points", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.sportscastTimelineRows({
+    items: [{ code: 115627600 }]
+  }, {
+    extraInfo: { teamsReverse: false },
+    events: [
+      { id: 1, type: 2681, i1: 64, i2: 75, i3: 0, i4: 2, i5: 5383 },
+      { id: 2, type: 1125, i1: 2, i2: 1, i3: 1, i4: 0, i5: 1, i6: 0, i7: 0, i8: 40, i9: 30, i10: 0 },
+      { id: 3, type: 1126, i1: 2, i2: 1, i3: 31, i4: 1, i5: 0 }
+    ]
+  }, { homeName: "Stefanos Tsitsipas", awayName: "Novak Djokovic" }, 3);
+
+  assert.deepEqual(plain(rows), [
+    {
+      id: "3",
+      label: "Point result",
+      time: "",
+      team: "Stefanos Tsitsipas",
+      detail: "Set 2 · Game 1 · Point 31",
+      type: "1126",
+      teamNumber: "1",
+      point: { set: "2", game: "1", server: "", home: "", away: "", winner: "Stefanos Tsitsipas" }
+    },
+    {
+      id: "2",
+      label: "Point score",
+      time: "",
+      team: "Stefanos Tsitsipas",
+      detail: "Set 2 · Game 1 · 40-30",
+      type: "1125",
+      teamNumber: "1",
+      point: { set: "2", game: "1", server: "Stefanos Tsitsipas", home: "40", away: "30", winner: "" }
+    },
+    {
+      id: "1",
+      label: "Field position",
+      time: "89:43",
+      team: "Novak Djokovic",
+      detail: "X 64 · Y 75",
+      type: "2681",
+      teamNumber: "2",
+      x: 64,
+      y: 75
+    }
+  ]);
+});
+
+test("native live visual model prefers provider coordinates and tennis points", () => {
+  const api = loadWidgetTestApi();
+  const summary = {
+    homeName: "Stefanos Tsitsipas",
+    awayName: "Novak Djokovic",
+    sportName: "Tennis",
+    tournament: "Wimbledon",
+    scoreText: "2 - 2",
+    period: "5th Set",
+    serviceText: "Serve 1"
+  };
+  const rows = [
+    {
+      id: "3",
+      label: "Point score",
+      detail: "Set 2 · Game 1 · 40-30",
+      team: "Stefanos Tsitsipas",
+      point: { set: "2", game: "1", server: "Stefanos Tsitsipas", home: "40", away: "30", winner: "" }
+    },
+    { id: "2", label: "Field position", detail: "X 64 · Y 75", team: "Novak Djokovic", x: 64, y: 75 }
+  ];
+
+  assert.deepEqual(plain(api.liveNativeVisualModel(summary, rows)), {
+    type: "tennis",
+    scoreParts: ["2", "2"],
+    headline: "Serve 1",
+    position: { x: 64, y: 75, label: "Field position", team: "Novak Djokovic", detail: "X 64 · Y 75" },
+    point: { set: "2", game: "1", server: "Stefanos Tsitsipas", home: "40", away: "30", winner: "" },
+    rows: [
+      { label: "Point score", value: "Stefanos Tsitsipas · Set 2 · Game 1 · 40-30" },
+      { label: "Field position", value: "Novak Djokovic · X 64 · Y 75" }
+    ]
+  });
+});
+
+test("native live visual does not treat text-only timeline rows as provider animation", () => {
+  const api = loadWidgetTestApi();
+  const model = api.liveNativeVisualModel({
+    homeName: "England",
+    awayName: "Congo DR",
+    sportName: "Football",
+    scoreText: "0 - 1"
+  }, [
+    { id: "4", label: "Possession update", team: "Congo DR", detail: "No coordinates supplied" }
+  ]);
+
+  assert.equal(api.liveNativeHasProviderVisual(model), false);
+});
+
 test("sportscast team rows group starters, substitutes, and optional coaches", () => {
   const api = loadWidgetTestApi();
   const rows = api.sportscastTeamRows({

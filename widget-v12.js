@@ -157,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-stable-live-visuals-1",
+      version: "20260701-native-tracker-data-1",
       global: {
         styles: [],
         scripts: []
@@ -801,6 +801,19 @@
       "@media(hover:hover) and (pointer:fine){#" + c.containerId + " .bet-board-tabs button:hover,#" + c.containerId + " .bet-odds a:hover,#" + c.containerId + " .bet-tracker-actions .pill:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}#" + c.containerId + " .bet-lrow:hover,#" + c.containerId + " .bet-stat:hover{background:rgba(255,255,255,.07)}}" +
       "@media(prefers-reduced-motion:reduce){#" + c.containerId + " .bet-row,#" + c.containerId + " .bet-event,#" + c.containerId + " .bet-combo,#" + c.containerId + " .bet-lrow,#" + c.containerId + " .bet-stat,#" + c.containerId + " .bet-score.pulse,#" + c.containerId + " .bb-card,#" + c.containerId + " .bb-tabs button{animation:none;transition:none}#" + c.containerId + " .bet-player i,#dmbo-live-modal .live-dot,#dmbo-live-modal .live-native-ball,#dmbo-live-modal .live-native-visual{animation:none}}" +
       "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .sports-summary{width:100%;margin-left:0}#" + c.containerId + " .sports-event{grid-template-columns:1fr;gap:7px}#" + c.containerId + " .sports-clock{text-align:left;grid-template-columns:auto 1fr;align-items:center}#" + c.containerId + " .sports-odds{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .bb-layout{grid-template-columns:1fr}#" + c.containerId + " .bb-catalog{grid-template-columns:1fr;max-height:310px}#" + c.containerId + " .bb-tools{grid-template-columns:1fr}#" + c.containerId + " .bb-ac{right:0}#" + c.containerId + ".dmbo-expanded-root>.b.dmbo-panel-expanded .bb-layout{grid-template-columns:1fr}#" + c.containerId + ".dmbo-expanded-root>.b.dmbo-panel-expanded .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .bet-board-tabs{grid-template-columns:1fr}#" + c.containerId + " .bet-lrow{grid-template-columns:36px minmax(0,1fr) 58px}#" + c.containerId + " .bet-prize{grid-column:2/4;text-align:left}#" + c.containerId + " .bet-stat-grid,#" + c.containerId + " .bb-players,#" + c.containerId + " .bb-stats{grid-template-columns:1fr}#" + c.containerId + " .bb-images{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .bb-time-row{grid-template-columns:42px minmax(0,1fr)}#" + c.containerId + " .bb-time-row strong,#" + c.containerId + " .bb-time-row em{grid-column:2}#" + c.containerId + " .bb-source{grid-template-columns:42px minmax(0,1fr) 64px}#" + c.containerId + " .bb-source a{grid-column:2/4}#" + c.containerId + " .bb-source small{grid-column:2/4}#" + c.containerId + " .bet-tracker-frame{height:260px}#dmbo-live-modal .live-grid{grid-template-columns:1fr}#dmbo-live-modal .live-ticker{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-team-list{grid-template-columns:1fr}#dmbo-live-modal .live-timeline-list div{grid-template-columns:42px minmax(0,1fr)}#dmbo-live-modal .live-timeline-list strong,#dmbo-live-modal .live-timeline-list em{grid-column:2}#dmbo-live-modal .live-animation iframe,#dmbo-live-modal .live-native-visual{height:210px;min-height:210px}#dmbo-live-modal .live-native-bottom{grid-template-columns:1fr}#dmbo-live-modal .live-native-center b{font-size:32px}}";
+
+    s.textContent +=
+      "#dmbo-live-modal .live-native-visual{background:#071016;grid-template-rows:auto minmax(132px,1fr) auto;gap:9px}" +
+      "#dmbo-live-modal .live-native-court{background:linear-gradient(90deg,rgba(255,255,255,.045) 0 1px,transparent 1px 25%,rgba(255,255,255,.045) 25% calc(25% + 1px),transparent calc(25% + 1px) 50%,rgba(255,255,255,.045) 50% calc(50% + 1px),transparent calc(50% + 1px) 75%,rgba(255,255,255,.045) 75% calc(75% + 1px),transparent calc(75% + 1px)),linear-gradient(180deg,rgba(255,255,255,.035) 0 1px,transparent 1px 33%,rgba(255,255,255,.035) 33% calc(33% + 1px),transparent calc(33% + 1px) 66%,rgba(255,255,255,.035) 66% calc(66% + 1px),transparent calc(66% + 1px)),#14532d}" +
+      "#dmbo-live-modal .live-native-visual.tennis .live-native-court{background:linear-gradient(90deg,transparent 49.6%,rgba(255,255,255,.38) 49.6% 50.4%,transparent 50.4%),linear-gradient(180deg,transparent 13%,rgba(255,255,255,.3) 13% 14%,transparent 14% 49.5%,rgba(255,255,255,.36) 49.5% 50.5%,transparent 50.5% 86%,rgba(255,255,255,.3) 86% 87%,transparent 87%),#1e6f45}" +
+      "#dmbo-live-modal .live-native-ball{left:var(--dmbo-ball-x,50%);top:var(--dmbo-ball-y,50%);transform:translate(-50%,-50%);animation:dmboLiveEventPulse 1.35s cubic-bezier(.23,1,.32,1) infinite;transition:left .32s cubic-bezier(.23,1,.32,1),top .32s cubic-bezier(.23,1,.32,1);z-index:3}" +
+      "#dmbo-live-modal .live-native-pos-card{position:absolute;left:10px;bottom:10px;max-width:min(64%,360px);border-radius:9px;background:rgba(7,10,16,.78);border:1px solid rgba(255,255,255,.12);padding:8px 9px;backdrop-filter:blur(6px);z-index:4}" +
+      "#dmbo-live-modal .live-native-pos-card b,#dmbo-live-modal .live-native-pos-card span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-native-pos-card b{font-size:11px}#dmbo-live-modal .live-native-pos-card span{margin-top:2px;font-size:10px;color:rgba(255,255,255,.65)}" +
+      "#dmbo-live-modal .live-native-center{background:radial-gradient(circle at center,rgba(7,10,16,.18),transparent 44%)}#dmbo-live-modal .live-native-center b{font-size:32px}#dmbo-live-modal .live-native-center span{font-size:11px}" +
+      "#dmbo-live-modal .live-native-point{position:absolute;right:10px;top:10px;display:grid;grid-template-columns:auto 42px 42px;gap:6px;align-items:center;border-radius:9px;background:rgba(7,10,16,.78);border:1px solid rgba(255,255,255,.12);padding:8px;z-index:4}#dmbo-live-modal .live-native-point span{grid-column:1/-1;color:rgba(255,255,255,.6);font-size:10px}#dmbo-live-modal .live-native-point b{text-align:center;font-size:17px;font-variant-numeric:tabular-nums}#dmbo-live-modal .live-native-point em{font-style:normal;font-size:10px;color:rgba(255,255,255,.62)}" +
+      "#dmbo-live-modal .live-native-visual .live-native-court.no-provider{display:grid;place-content:center;background:radial-gradient(circle at 50% 35%,rgba(36,49,79,.32),transparent 42%),#0b1220;border-color:rgba(255,255,255,.1)}#dmbo-live-modal .live-native-visual .live-native-court.no-provider i{display:none}#dmbo-live-modal .live-native-no-data{text-align:center;padding:18px;max-width:360px}#dmbo-live-modal .live-native-no-data b,#dmbo-live-modal .live-native-no-data span{display:block}#dmbo-live-modal .live-native-no-data b{font-size:13px}#dmbo-live-modal .live-native-no-data span{margin-top:5px;font-size:11px;color:rgba(255,255,255,.62);line-height:1.35}" +
+      "#dmbo-live-modal .live-native-feed p:first-child{border:1px solid rgba(35,209,139,.22);background:rgba(35,209,139,.08)}" +
+      "@keyframes dmboLiveEventPulse{0%,100%{box-shadow:0 0 0 0 rgba(234,255,112,.34),0 0 18px rgba(234,255,112,.5)}50%{box-shadow:0 0 0 8px rgba(234,255,112,0),0 0 24px rgba(234,255,112,.62)}}";
 
     (document.head || document.documentElement).appendChild(s);
   }
@@ -2371,6 +2384,12 @@
     var labels = {
       "1020": "Cancelled event",
       "1100": "Goal",
+      "1124": "Rally",
+      "1125": "Point score",
+      "1126": "Point result",
+      "1127": "Game score",
+      "1129": "Set score",
+      "1146": "Match state",
       "1200": "Score update",
       "1866": "Player detail",
       "1867": "Goal detail",
@@ -2380,14 +2399,47 @@
     return labels[String(type)] || ("Action " + String(type || ""));
   }
 
-  function sportscastEventTeam(ev, summary, reverse) {
+  function sportscastEventTeamNumber(ev) {
     var type = ev && ev.type;
-    var teamNumber = "";
 
-    if (type === 2681) teamNumber = ev.i4;
-    else teamNumber = ev && ev.i1;
+    if (!ev) return "";
+    if (type === 2681) return ev.i4;
+    if (type === 1125) return ev.i3;
+    if (type === 1126) return ev.i4;
+    return ev.i1;
+  }
+
+  function sportscastEventTeam(ev, summary, reverse) {
+    var teamNumber = sportscastEventTeamNumber(ev);
 
     return sportscastTeamName(teamNumber, summary || {}, reverse);
+  }
+
+  function sportscastCoordinate(value) {
+    var n = Number(value);
+
+    if (!isFinite(n)) return null;
+    return Math.max(0, Math.min(100, n));
+  }
+
+  function sportscastTennisPoint(ev, summary, reverse) {
+    var type = ev && ev.type;
+    var serverNumber;
+    var winnerNumber;
+
+    if (type !== 1125 && type !== 1126) return null;
+
+    serverNumber = type === 1125 ? ev.i3 : "";
+    winnerNumber = type === 1126 ? ev.i4 : "";
+
+    return {
+      set: scoreValue(ev.i1),
+      game: scoreValue(ev.i2),
+      server: sportscastTeamName(serverNumber, summary || {}, reverse),
+      home: type === 1125 ? scoreValue(ev.i8) : "",
+      away: type === 1125 ? scoreValue(ev.i9) : "",
+      winner: sportscastTeamName(winnerNumber, summary || {}, reverse)
+    };
   }
 
   function sportscastCompactFields(ev, skip) {
@@ -2405,10 +2457,19 @@
   function sportscastTimelineDetail(ev, players) {
     var scorer;
     var assist;
+    var point;
 
     if (!ev) return "";
     if (ev.type === 2681) return "X " + ev.i1 + " · Y " + ev.i2;
     if (ev.type === 1200) return "Score " + scoreValue(ev.i2);
+    if (ev.type === 1125) {
+      point = sportscastTennisPoint(ev, null, false);
+      return "Set " + point.set + " · Game " + point.game + " · " + point.home + "-" + point.away;
+    }
+    if (ev.type === 1126) {
+      point = sportscastTennisPoint(ev, null, false);
+      return "Set " + point.set + " · Game " + point.game + " · Point " + scoreValue(ev.i3);
+    }
     if (ev.type === 1867 || ev.type === 1866) {
       scorer = players[String(ev.i3)];
       assist = players[String(ev.i4)];
@@ -2426,14 +2487,24 @@
     var max = Math.max(1, Math.min(Number(limit) || 20, 50));
 
     return events.slice(-max).reverse().map(function (ev) {
-      return {
+      var row = {
         id: String(ev && ev.id || ""),
         label: sportscastEventLabel(ev),
         time: sportscastEventTime(ev),
         team: sportscastEventTeam(ev, summary || {}, reverse),
         detail: sportscastTimelineDetail(ev, players),
-        type: String(ev && ev.type || "")
+        type: String(ev && ev.type || ""),
+        teamNumber: String(sportscastEventTeamNumber(ev) || "")
       };
+      var point = sportscastTennisPoint(ev, summary || {}, reverse);
+      var x = ev && ev.type === 2681 ? sportscastCoordinate(ev.i1) : null;
+      var y = ev && ev.type === 2681 ? sportscastCoordinate(ev.i2) : null;
+
+      if (point) row.point = point;
+      if (x != null) row.x = x;
+      if (y != null) row.y = y;
+      if (!/^(2681|1125|1126)$/.test(row.type) || !/^(1|2)$/.test(row.teamNumber)) delete row.teamNumber;
+      return row;
     });
   }
 
@@ -2840,17 +2911,64 @@
     }).join("");
   }
 
-  function liveNativeVisualHtml(item, summary) {
+  function liveNativeVisualModel(summary, timelineRows) {
+    var rows = timelineRows || [];
     var sport = firstText(summary && summary.sportName, summary && summary.tournament);
-    var tennis = /tennis/i.test(sport);
-    var rows = liveNativeMiniRows(item, summary);
-    var service = firstText(summary && summary.serviceText, summary && summary.streamText, "Live data");
+    var type = /tennis/i.test(sport) ? "tennis" : "field";
+    var score = String(summary && summary.scoreText || "-");
+    var scoreParts = score.split(/\s+-\s+/);
+    var position = null;
+    var point = null;
+
+    if (scoreParts.length < 2) scoreParts = [scoreParts[0] || "-", "-"];
+    rows.forEach(function (row) {
+      if (!position && row && row.x != null && row.y != null) {
+        position = {
+          x: row.x,
+          y: row.y,
+          label: row.label || "Field position",
+          team: row.team || "",
+          detail: row.detail || ""
+        };
+      }
+      if (!point && row && row.point) point = row.point;
+    });
+
+    return {
+      type: type,
+      scoreParts: [scoreParts[0] || "-", scoreParts[1] || "-"],
+      headline: firstText(summary && summary.serviceText, summary && summary.streamText, point && point.server ? "Server: " + point.server : "", "Live data"),
+      position: position,
+      point: point,
+      rows: rows.slice(0, 4).map(function (row) {
+        return {
+          label: row.label || row.time || "Live",
+          value: [row.team, row.detail || row.label].filter(Boolean).join(" · ") || "Provider update"
+        };
+      })
+    };
+  }
+
+  function liveNativeHasProviderVisual(model) {
+    return !!(model && (model.position || model.point));
+  }
+
+  function liveNativeVisualHtml(item, summary) {
+    var timelineRows = liveNativeTimelineRows(item);
+    var model = liveNativeVisualModel(summary, timelineRows);
+    var rows = model.rows.length ? model.rows : liveNativeMiniRows(item, summary);
     var score = summary && summary.scoreText || "-";
     var period = firstText(summary && summary.period, "Live");
+    var positionStyle = model.position ? ' style="--dmbo-ball-x:' + esc(model.position.x) + '%;--dmbo-ball-y:' + esc(model.position.y) + '%"' : "";
+    var positionCard = model.position ? '<div class="live-native-pos-card"><b>' + esc(model.position.label) + '</b><span>' + esc([model.position.team, model.position.detail].filter(Boolean).join(" · ")) + '</span></div>' : "";
+    var pointCard = model.point ? '<div class="live-native-point"><span>' + esc("Set " + model.point.set + " · Game " + model.point.game + (model.point.server ? " · Server " + model.point.server : "")) + '</span><em>' + esc(summary && summary.homeName || "Home") + '</em><b>' + esc(model.point.home || "-") + '</b><b>' + esc(model.point.away || "-") + '</b><em>' + esc(summary && summary.awayName || "Away") + '</em></div>' : "";
+    var hasProviderVisual = liveNativeHasProviderVisual(model);
+    var courtClass = "live-native-court" + (hasProviderVisual ? "" : " no-provider");
+    var emptyStage = hasProviderVisual ? "" : '<div class="live-native-no-data"><b>Waiting for provider event data</b><span>Score, stats, video, and timeline remain live. The field marker appears only when the provider sends real coordinates.</span></div>';
 
-    return '<div class="live-native-visual ' + (tennis ? "tennis" : "field") + '">' +
-      '<div class="live-native-scoreline"><div><span>' + esc(summary && summary.homeName || "Home") + '</span><b>' + esc(score.split(" - ")[0] || "-") + '</b></div><strong>' + esc(period) + '</strong><div><span>' + esc(summary && summary.awayName || "Away") + '</span><b>' + esc(score.split(" - ")[1] || "-") + '</b></div></div>' +
-      '<div class="live-native-stage"><div class="live-native-court"><i></i><i></i><i></i><i></i><em class="live-native-ball"></em><div class="live-native-center"><b>' + esc(score) + '</b><span>' + esc(service) + '</span></div></div></div>' +
+    return '<div class="live-native-visual ' + esc(model.type) + '">' +
+      '<div class="live-native-scoreline"><div><span>' + esc(summary && summary.homeName || "Home") + '</span><b>' + esc(model.scoreParts[0] || "-") + '</b></div><strong>' + esc(period) + '</strong><div><span>' + esc(summary && summary.awayName || "Away") + '</span><b>' + esc(model.scoreParts[1] || "-") + '</b></div></div>' +
+      '<div class="live-native-stage"><div class="' + courtClass + '"' + positionStyle + '><i></i><i></i><i></i><i></i>' + (model.position ? '<em class="live-native-ball"></em>' : '') + pointCard + positionCard + (hasProviderVisual ? '<div class="live-native-center"><b>' + esc(score) + '</b><span>' + esc(model.headline) + '</span></div>' : emptyStage) + '</div></div>' +
       '<div class="live-native-bottom"><div class="live-native-stats">' + liveNativeStatHtml(summary) + '</div><div class="live-native-feed">' + rows.map(function (row) { return '<p><b>' + esc(row.label || "Live") + '</b><span>' + esc(row.value || "") + '</span></p>'; }).join("") + '</div></div>' +
       '</div>';
   }
@@ -5795,6 +5913,8 @@
       liveAnimationUrlFromResolver: liveAnimationUrlFromResolver,
       liveAnimationResolverUrl: liveAnimationResolverUrl,
       liveEventSummary: liveEventSummary,
+      liveNativeHasProviderVisual: liveNativeHasProviderVisual,
+      liveNativeVisualModel: liveNativeVisualModel,
       liveProviderInlineAllowed: liveProviderInlineAllowed,
       liveVisualSlotSignature: liveVisualSlotSignature,
       liveVisualMode: liveVisualMode,

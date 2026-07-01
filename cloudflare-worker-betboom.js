@@ -5,7 +5,7 @@ const WORKER_URL = "https://sports.hypercubik.workers.dev/";
 const WIDGET_SOURCE_URL =
   "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/widget-v12.js";
 
-const WIDGET_VERSION = "20260701-stable-live-visuals-1";
+const WIDGET_VERSION = "20260701-native-tracker-data-1";
 
 const MATCHTRACKER_RESOLVER_PATH = "/matchtracker-resolver/resolve";
 const MATCHTRACKER_QUERY_KEYS = new Set([
