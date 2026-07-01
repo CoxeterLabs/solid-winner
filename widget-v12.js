@@ -157,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-inline-provider-option-1",
+      version: "20260701-direct-provider-url-1",
       global: {
         styles: [],
         scripts: []
@@ -2184,8 +2184,36 @@
   function liveAnimationUrlFromResolver(data) {
     var src = data && (data.url || data.animationUrl || data.trackerUrl || "");
 
-    if (src) return String(src);
+    if (src) return directProviderAnimationUrl(src);
     return "";
+  }
+
+  function directProviderAnimationUrl(value) {
+    var text = String(value || "");
+    var parsed;
+    var direct;
+
+    if (!text) return "";
+    try {
+      parsed = new URL(text, window.location && window.location.href);
+    } catch (e) {
+      return text;
+    }
+
+    if (!/\.?top-parser\.com$/i.test(parsed.hostname) || parsed.pathname.indexOf("/p/") !== 0) {
+      return text;
+    }
+
+    try {
+      direct = decodeURIComponent(parsed.pathname.slice(3));
+    } catch (e2) {
+      direct = parsed.pathname.slice(3);
+    }
+
+    if (!/^https:\/\/bet-broadcast\.com\/tracker\//i.test(direct)) return text;
+    if (parsed.search) direct += (direct.indexOf("?") === -1 ? parsed.search : "&" + parsed.search.slice(1));
+    if (parsed.hash) direct += parsed.hash;
+    return direct;
   }
 
   function liveVideoUrlFromResolver(data) {
@@ -5913,6 +5941,7 @@
       liveAnimationUrlFromResolver: liveAnimationUrlFromResolver,
       liveAnimationResolverUrl: liveAnimationResolverUrl,
       liveEventSummary: liveEventSummary,
+      directProviderAnimationUrl: directProviderAnimationUrl,
       liveNativeHasProviderVisual: liveNativeHasProviderVisual,
       liveNativeVisualModel: liveNativeVisualModel,
       liveProviderInlineAllowed: liveProviderInlineAllowed,

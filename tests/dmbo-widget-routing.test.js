@@ -1103,6 +1103,17 @@ test("live animation keeps an existing iframe when the resolved source is unchan
   );
 });
 
+test("live animation resolver unwraps top-parser provider links to direct bet-broadcast URLs", () => {
+  const api = loadWidgetTestApi();
+
+  assert.equal(
+    api.liveAnimationUrlFromResolver({
+      url: "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66119671?s=1&lang=en"
+    }),
+    "https://bet-broadcast.com/tracker/get/66119671?s=1&lang=en"
+  );
+});
+
 test("live provider iframe is available as a selectable inline visual source", () => {
   const api = loadWidgetTestApi();
 
@@ -1118,7 +1129,7 @@ test("live visual resolver keeps animation default and video optional", () => {
   });
 
   assert.deepEqual(plain(sources), {
-    animation: animationUrl,
+    animation: "https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en",
     video: "https://ui-monitor.lynon.online/sportsbook-new/tp-stream/sm/iframe?ref=redacted&t=1782849600&lang=en"
   });
   assert.equal(api.liveVisualMode(sources, "", true), "native");
