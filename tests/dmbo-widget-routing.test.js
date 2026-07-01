@@ -1018,7 +1018,9 @@ test("live visual resolver keeps animation default and video optional", () => {
     animation: animationUrl,
     video: "https://ui-monitor.lynon.online/sportsbook-new/tp-stream/sm/iframe?ref=redacted&t=1782849600&lang=en"
   });
-  assert.equal(api.liveVisualMode(sources), "animation");
+  assert.equal(api.liveVisualMode(sources, "", true), "native");
+  assert.equal(api.liveVisualMode(sources, "animation", true), "animation");
+  assert.equal(api.liveVisualMode(sources, "video", true), "video");
 });
 
 test("resolves object panel settings for modular widgets", () => {
