@@ -24,7 +24,21 @@
   var titleOwned = false;
   var casino = { page: 0, query: "", loading: false, done: false, games: [] };
   var sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
-  var betby = { timer: 0, loading: false, error: "", tab: "players", rows: [], liveRows: [], prematchRows: [], comboRows: [], updatedAt: 0 };
+  var betby = {
+    timer: 0,
+    loading: false,
+    error: "",
+    tab: "players",
+    rows: [],
+    liveRows: [],
+    prematchRows: [],
+    comboRows: [],
+    leaderboardTournaments: [],
+    leaderboardId: "",
+    statsRows: [],
+    trackerRows: [],
+    updatedAt: 0
+  };
   var lastAccountRender = null;
   var live = { timer: 0, clockTimer: 0, clock: {}, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {}, updateTab: {}, goalCounts: {}, timelineCache: {}, timelinePending: {}, newsCache: {}, newsPending: {}, weatherCache: {}, weatherPending: {} };
 
@@ -111,7 +125,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-betby-tabs-1",
+      version: "20260701-betby-live-suite-1",
       global: {
         styles: [],
         scripts: []
@@ -188,12 +202,29 @@
                   title: "Live Bets Feed",
                   brandId: "1653815133341880320",
                   baseUrl: "https://demoapi.betby.com",
+                  lang: "en",
                   openUrl: "https://demo.betby.com/sportsbook/tile/bets-feed",
                   pollMs: 12000,
                   maxItems: 8,
                   maxEvents: 6,
                   maxCombos: 4,
-                  tabs: ["players", "live", "prematch", "combo"]
+                  maxLeaderboardRows: 500,
+                  maxStats: 8,
+                  trackerBuild: "5d5e9d98",
+                  trackers: [
+                    {
+                      id: "brooksby-buse-wimbledon",
+                      title: "Brooksby, Jenson vs Buse, Ignacio",
+                      subtitle: "Grand Slam - Wimbledon",
+                      provider: "statscore",
+                      sportId: "5",
+                      lang: "en",
+                      eventId: 6575292,
+                      betbyEventId: "2683375830813515798",
+                      openUrl: "https://demo.betby.com/sportsbook/tile/tennis/grand-slam/wimbledon/brooksby-jenson-buse-ignacio-2683375830813515798"
+                    }
+                  ],
+                  tabs: ["players", "live", "prematch", "combo", "leaderboard", "stats", "tracker"]
                 },
                 "top",
                 "worldcup",
@@ -583,7 +614,21 @@
     }
     casino = { page: 0, query: "", loading: false, done: false, games: [] };
     sport = { service: "PREMATCH", sportId: "1", sportName: "Football", offset: 0, limit: 20, events: [], loading: false, done: false };
-    betby = { timer: 0, loading: false, error: "", tab: "players", rows: [], liveRows: [], prematchRows: [], comboRows: [], updatedAt: 0 };
+    betby = {
+      timer: 0,
+      loading: false,
+      error: "",
+      tab: "players",
+      rows: [],
+      liveRows: [],
+      prematchRows: [],
+      comboRows: [],
+      leaderboardTournaments: [],
+      leaderboardId: "",
+      statsRows: [],
+      trackerRows: [],
+      updatedAt: 0
+    };
     live.store = {};
   }
 
@@ -623,7 +668,8 @@
       "#" + c.containerId + " .od{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}#" + c.containerId + " .pill{display:inline-flex;gap:5px;align-items:center;padding:5px 7px;border-radius:7px;background:#1f2a44;color:#fff;font-size:11px;border:0}" +
       "#" + c.containerId + " a.pill{text-decoration:none}#" + c.containerId + " a.pill:hover{background:#2f4068}" +
       "#" + c.containerId + " .bet-feed-list{display:grid;gap:8px}#" + c.containerId + " .bet-row{display:grid;gap:7px;padding:9px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1);transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-row:hover{background:rgba(255,255,255,.075);transform:translateY(-1px)}#" + c.containerId + " .bet-row:first-child{border-color:rgba(253,34,78,.32);box-shadow:0 0 0 1px rgba(253,34,78,.08) inset}#" + c.containerId + " .bet-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}#" + c.containerId + " .bet-player{min-width:0;display:flex;align-items:center;gap:6px;font-weight:900}#" + c.containerId + " .bet-player i{width:7px;height:7px;border-radius:50%;background:#23d18b;box-shadow:0 0 0 0 rgba(35,209,139,.45);animation:dmboLiveDot 1.4s ease-out infinite}#" + c.containerId + " .bet-type{flex:0 0 auto;color:rgba(255,255,255,.62);text-transform:uppercase;font-size:10px;font-weight:900}#" + c.containerId + " .bet-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}#" + c.containerId + " .bet-metric{min-width:0;border-radius:7px;background:rgba(255,255,255,.055);padding:6px}#" + c.containerId + " .bet-metric span{display:block;font-size:9px;color:rgba(255,255,255,.52)}#" + c.containerId + " .bet-metric b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-odd{background:rgba(253,34,78,.13)}#" + c.containerId + " .bet-selection{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:rgba(255,255,255,.72)}#" + c.containerId + " .bet-selection span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-selection a{flex:0 0 auto;text-decoration:none;color:#fff}" +
-      "#" + c.containerId + " .bet-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 9px;padding:3px;border-radius:9px;background:rgba(255,255,255,.055)}#" + c.containerId + " .bet-tabs button{border:0;border-radius:7px;background:transparent;color:rgba(255,255,255,.7);font-size:10px;font-weight:900;padding:6px 8px;cursor:pointer;transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-tabs button:hover{background:rgba(255,255,255,.08);transform:translateY(-1px)}#" + c.containerId + " .bet-tabs button.on{background:#fd224e;color:#fff}#" + c.containerId + " .bet-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#" + c.containerId + " .bet-event-list,#" + c.containerId + " .bet-combo-list{display:grid;gap:8px}#" + c.containerId + " .bet-event,.bet-combo{display:grid;gap:7px;padding:9px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-event-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}#" + c.containerId + " .bet-event-title{min-width:0;font-size:12px;font-weight:900;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-score{flex:0 0 auto;border-radius:7px;background:rgba(253,34,78,.15);padding:5px 7px;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}#" + c.containerId + " .bet-event-meta{font-size:10px;color:rgba(255,255,255,.56);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-odds{display:flex;flex-wrap:wrap;gap:5px}#" + c.containerId + " .bet-odds span{display:inline-flex;gap:5px;align-items:center;max-width:100%;border-radius:7px;background:#1f2a44;color:#fff;padding:5px 7px;font-size:11px}#" + c.containerId + " .bet-odds b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-combo-head{display:flex;align-items:center;justify-content:space-between;gap:8px}#" + c.containerId + " .bet-combo-title{font-size:12px;font-weight:900}#" + c.containerId + " .bet-combo-mult{border-radius:999px;background:rgba(35,209,139,.14);color:#b7ffd8;padding:4px 7px;font-size:11px;font-weight:900}#" + c.containerId + " .bet-legs{display:grid;gap:5px}#" + c.containerId + " .bet-leg{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:rgba(255,255,255,.7)}#" + c.containerId + " .bet-leg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      "#" + c.containerId + " .bet-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 9px;padding:3px;border-radius:9px;background:rgba(255,255,255,.055)}#" + c.containerId + " .bet-tabs button{border:0;border-radius:7px;background:transparent;color:rgba(255,255,255,.7);font-size:10px;font-weight:900;padding:6px 8px;cursor:pointer;transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-tabs button:hover{background:rgba(255,255,255,.08);transform:translateY(-1px)}#" + c.containerId + " .bet-tabs button.on{background:#fd224e;color:#fff}#" + c.containerId + " .bet-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#" + c.containerId + " .bet-event-list,#" + c.containerId + " .bet-combo-list{display:grid;gap:8px}#" + c.containerId + " .bet-event,.bet-combo{display:grid;gap:7px;padding:9px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-event-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}#" + c.containerId + " .bet-event-title{min-width:0;font-size:12px;font-weight:900;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-score{flex:0 0 auto;border-radius:7px;background:rgba(253,34,78,.15);padding:5px 7px;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}#" + c.containerId + " .bet-score.pulse{animation:dmboBetScorePulse 1.8s ease-in-out infinite}#" + c.containerId + " .bet-event-meta{font-size:10px;color:rgba(255,255,255,.56);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-odds{display:flex;flex-wrap:wrap;gap:5px}#" + c.containerId + " .bet-odds span,#" + c.containerId + " .bet-odds a{display:inline-flex;gap:5px;align-items:center;max-width:100%;border-radius:7px;background:#1f2a44;color:#fff;padding:5px 7px;font-size:11px;text-decoration:none}#" + c.containerId + " .bet-odds b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-combo-head{display:flex;align-items:center;justify-content:space-between;gap:8px}#" + c.containerId + " .bet-combo-title{font-size:12px;font-weight:900}#" + c.containerId + " .bet-combo-mult{border-radius:999px;background:rgba(35,209,139,.14);color:#b7ffd8;padding:4px 7px;font-size:11px;font-weight:900}#" + c.containerId + " .bet-legs{display:grid;gap:5px}#" + c.containerId + " .bet-leg{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:rgba(255,255,255,.7)}#" + c.containerId + " .bet-leg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+      "#" + c.containerId + " .bet-board-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px}#" + c.containerId + " .bet-board-tabs button{min-width:0;text-align:left;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.045);color:#fff;padding:7px;cursor:pointer;transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-board-tabs button.on{border-color:rgba(253,34,78,.45);background:rgba(253,34,78,.14)}#" + c.containerId + " .bet-board-tabs span,#" + c.containerId + " .bet-board-tabs b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-board-tabs span{font-size:11px;font-weight:900}#" + c.containerId + " .bet-board-tabs b{margin-top:2px;font-size:10px;color:rgba(255,255,255,.6)}#" + c.containerId + " .bet-board-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px}#" + c.containerId + " .bet-board-meta span{border-radius:999px;background:rgba(255,255,255,.07);padding:4px 7px;font-size:10px;color:rgba(255,255,255,.72)}#" + c.containerId + " .bet-leaderboard{display:grid;gap:4px;max-height:310px;overflow:auto;scrollbar-width:thin}#" + c.containerId + " .bet-lrow{display:grid;grid-template-columns:42px minmax(0,1fr) 74px 90px;gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.045);padding:6px;font-size:11px;animation:dmboBetRowIn .18s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-lrow.current{background:rgba(35,209,139,.12);border:1px solid rgba(35,209,139,.28)}#" + c.containerId + " .bet-lrow:nth-child(1),#" + c.containerId + " .bet-lrow:nth-child(2),#" + c.containerId + " .bet-lrow:nth-child(3){background:rgba(253,186,116,.11)}#" + c.containerId + " .bet-rank{font-weight:900;color:#ffd38a}#" + c.containerId + " .bet-player-id,#" + c.containerId + " .bet-prize{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-score-points{font-weight:900;text-align:right;font-variant-numeric:tabular-nums}#" + c.containerId + " .bet-prize{text-align:right;color:rgba(255,255,255,.72)}#" + c.containerId + " .bet-stat-list{display:grid;gap:8px}#" + c.containerId + " .bet-stat{display:grid;gap:7px;padding:9px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-stat-head,#" + c.containerId + " .bet-tracker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}#" + c.containerId + " .bet-stat-strip,#" + c.containerId + " .bet-periods{display:flex;flex-wrap:wrap;gap:5px}#" + c.containerId + " .bet-stat-strip span,#" + c.containerId + " .bet-periods span{display:inline-grid;grid-template-columns:auto auto;gap:4px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:5px 7px;font-size:11px}#" + c.containerId + " .bet-stat-strip b,#" + c.containerId + " .bet-periods b{color:rgba(255,255,255,.58)}#" + c.containerId + " .bet-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}#" + c.containerId + " .bet-stat-grid div{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:6px;font-size:11px}#" + c.containerId + " .bet-stat-grid span{text-align:center;font-weight:900;font-variant-numeric:tabular-nums}#" + c.containerId + " .bet-stat-grid b{text-align:center;color:rgba(255,255,255,.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-tracker{display:grid;gap:8px}#" + c.containerId + " .bet-tracker-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}#" + c.containerId + " .bet-tracker-actions button.pill{cursor:pointer}#" + c.containerId + " .bet-tracker-frame{height:320px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#05070c}#" + c.containerId + " .bet-tracker-frame iframe{display:block;width:100%;height:100%;border:0;border-radius:0;background:#05070c}" +
       "#" + c.containerId + " .stat-btn{display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;width:24px;height:24px;margin-left:6px;border:0;border-radius:7px;background:#fd224e;color:#fff;cursor:pointer}#" + c.containerId + " .stat-btn:hover{background:#ff4569}#" + c.containerId + " .stat-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}" +
       "#" + c.containerId + " .stat-bars{display:inline-grid;grid-template-columns:repeat(3,3px);align-items:end;gap:2px;height:12px}#" + c.containerId + " .stat-bars i{display:block;width:3px;border-radius:2px;background:#fff}#" + c.containerId + " .stat-bars i:nth-child(1){height:6px}#" + c.containerId + " .stat-bars i:nth-child(2){height:10px}#" + c.containerId + " .stat-bars i:nth-child(3){height:8px}" +
       "#" + c.containerId + " .btn{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:800;padding:6px 8px;cursor:pointer}#" + c.containerId + " .btn2{background:#24314f}" +
@@ -636,8 +682,10 @@
       "#" + c.containerId + " .kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin-top:8px}#" + c.containerId + " .kv div{border-radius:8px;background:rgba(255,255,255,.06);padding:7px}#" + c.containerId + " .kv .wide{grid-column:1/-1}#" + c.containerId + " .kv span{display:block;font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .kv b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .kv .wide b{white-space:normal;line-height:1.35}#" + c.containerId + " .bal-toggle{display:flex;gap:4px;margin-top:7px}#" + c.containerId + " .bal-toggle button{border:0;border-radius:6px;background:#22304f;color:#fff;cursor:pointer;font-size:10px;font-weight:800;line-height:1;padding:5px 8px}#" + c.containerId + " .bal-toggle button.on{background:#fd224e}#" + c.containerId + " .bal-toggle button:focus-visible{outline:2px solid #fff;outline-offset:2px}" +
       "#dmbo-live-modal{position:fixed;inset:0;z-index:1000000;display:none;align-items:center;justify-content:center;padding:16px;background:rgba(3,5,10,.66);font-family:Arial,sans-serif;color:#fff}#dmbo-live-modal.open{display:flex}#dmbo-live-modal .live-dialog{position:relative;width:min(820px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;border-radius:12px;background:#111722;border:1px solid rgba(255,255,255,.16);box-shadow:0 24px 70px rgba(0,0,0,.58)}#dmbo-live-modal .live-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.09)}#dmbo-live-modal .live-title{font-size:14px;font-weight:900;line-height:1.25}#dmbo-live-modal .live-meta{margin-top:3px;font-size:11px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-close{width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}#dmbo-live-modal .live-body{padding:12px 14px 14px}#dmbo-live-modal .live-score{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:11px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);transition:border-color .2s ease,background .2s ease}#dmbo-live-modal .live-score.goal-pulse{animation:dmboLiveGoalPulse .78s cubic-bezier(.2,.8,.2,1)}#dmbo-live-modal .live-team{min-width:0;font-size:13px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-team.away{text-align:right}#dmbo-live-modal .live-score-num{font-size:24px;font-weight:900;line-height:1;color:#fff}#dmbo-live-modal .live-sub{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:rgba(255,255,255,.66)}#dmbo-live-modal .live-dot{width:7px;height:7px;border-radius:50%;background:#23d18b;box-shadow:0 0 0 0 rgba(35,209,139,.45);animation:dmboLiveDot 1.4s ease-out infinite}#dmbo-live-modal .live-clock-chip{display:inline-flex;align-items:center;min-width:48px;justify-content:center;border-radius:999px;background:#1f2a44;color:#fff;font-variant-numeric:tabular-nums;font-weight:900;padding:3px 7px}#dmbo-live-modal .live-live-text{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-latest{display:none;align-items:center;gap:7px;margin-top:8px;border-radius:9px;background:rgba(253,34,78,.11);border:1px solid rgba(253,34,78,.28);padding:7px 9px;font-size:11px;animation:dmboLiveRowIn .24s cubic-bezier(.2,.8,.2,1)}#dmbo-live-modal .live-latest span{color:rgba(255,255,255,.62)}#dmbo-live-modal .live-latest b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-latest em{margin-left:auto;font-style:normal;color:rgba(255,255,255,.62);font-variant-numeric:tabular-nums}#dmbo-live-modal .live-ticker{display:none;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin-top:8px}#dmbo-live-modal .live-tick{min-width:0;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);padding:7px;animation:dmboLiveRowIn .24s cubic-bezier(.2,.8,.2,1)}#dmbo-live-modal .live-tick b,#dmbo-live-modal .live-tick span,#dmbo-live-modal .live-tick em{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-tick b{font-size:10px;color:#fff;font-variant-numeric:tabular-nums}#dmbo-live-modal .live-tick span{margin-top:3px;font-size:11px;font-weight:900}#dmbo-live-modal .live-tick em{margin-top:2px;font-size:10px;font-style:normal;color:rgba(255,255,255,.56)}#dmbo-live-modal .live-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:10px}#dmbo-live-modal .live-panel{min-width:0;border-radius:10px;background:rgba(255,255,255,.05);padding:10px}#dmbo-live-modal .live-panel h3{margin:0 0 8px;font-size:12px;line-height:1.2}#dmbo-live-modal .live-panel-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}#dmbo-live-modal .live-panel-head h3{margin:0}#dmbo-live-modal .live-update-tabs{display:inline-flex;flex-wrap:wrap;gap:4px;padding:3px;border-radius:9px;background:rgba(255,255,255,.06)}#dmbo-live-modal .live-update-tabs button{border:0;border-radius:7px;background:transparent;color:rgba(255,255,255,.68);font-size:11px;font-weight:900;padding:5px 8px;cursor:pointer}#dmbo-live-modal .live-update-tabs button.on{background:#fd224e;color:#fff}#dmbo-live-modal .live-update-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#dmbo-live-modal .live-table{display:grid;gap:5px}#dmbo-live-modal .live-row{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;gap:8px;align-items:center;font-size:11px}#dmbo-live-modal .live-row span:nth-child(2){color:rgba(255,255,255,.68);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-row b{text-align:center;font-size:12px}#dmbo-live-modal .live-info-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}#dmbo-live-modal .live-info-list div{min-width:0;border-radius:7px;background:rgba(255,255,255,.045);padding:6px}#dmbo-live-modal .live-info-list span{display:block;font-size:10px;color:rgba(255,255,255,.55)}#dmbo-live-modal .live-info-list b{display:block;margin-top:2px;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-goals{display:grid;gap:6px}#dmbo-live-modal .live-goals div{display:grid;grid-template-columns:38px minmax(0,82px) minmax(0,1fr);gap:7px;align-items:center;border-radius:7px;background:rgba(255,255,255,.045);padding:6px;font-size:11px;animation:dmboLiveRowIn .22s cubic-bezier(.2,.8,.2,1)}#dmbo-live-modal .live-goals div.latest{background:rgba(253,34,78,.12);border:1px solid rgba(253,34,78,.28)}#dmbo-live-modal .live-goals b{font-size:11px;color:#fff;font-variant-numeric:tabular-nums}#dmbo-live-modal .live-goals span,#dmbo-live-modal .live-goals strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-goals em{grid-column:3;font-style:normal;color:rgba(255,255,255,.58);font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-news-list{display:grid;gap:6px}#dmbo-live-modal .live-news-list a{display:block;border-radius:7px;background:rgba(255,255,255,.045);padding:7px;text-decoration:none;font-size:11px;line-height:1.25;transition:background .16s ease,transform .16s ease}#dmbo-live-modal .live-news-list a:hover{background:rgba(255,255,255,.08);transform:translateY(-1px)}#dmbo-live-modal .live-news-list a span{display:block;margin-top:3px;color:rgba(255,255,255,.52);font-size:10px}.live-open-news{display:inline-block;margin-top:7px;font-size:11px;text-decoration:none;color:#fff}#dmbo-live-modal .live-timeline-total{margin-bottom:6px;font-size:11px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-timeline-list{display:grid;gap:6px;max-height:220px;overflow:auto}#dmbo-live-modal .live-timeline-list div{display:grid;grid-template-columns:44px minmax(0,98px) minmax(0,80px) minmax(0,1fr);gap:7px;align-items:center;border-radius:7px;background:rgba(255,255,255,.045);padding:7px;font-size:11px;animation:dmboLiveRowIn .2s cubic-bezier(.2,.8,.2,1)}#dmbo-live-modal .live-timeline-list b{font-variant-numeric:tabular-nums}#dmbo-live-modal .live-timeline-list span,#dmbo-live-modal .live-timeline-list strong,#dmbo-live-modal .live-timeline-list em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#dmbo-live-modal .live-timeline-list em{font-style:normal;color:rgba(255,255,255,.56)}#dmbo-live-modal .live-team-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#dmbo-live-modal .live-team-list>div{min-width:0;border-radius:8px;background:rgba(255,255,255,.045);padding:8px}#dmbo-live-modal .live-team-list h4{margin:0 0 7px;font-size:12px}#dmbo-live-modal .live-team-list p{margin:0 0 7px;font-size:11px;line-height:1.35}#dmbo-live-modal .live-team-list p:last-child{margin-bottom:0}#dmbo-live-modal .live-team-list b{display:block;color:rgba(255,255,255,.58);font-size:10px}#dmbo-live-modal .live-team-list span{display:block;margin-top:2px;color:#fff}#dmbo-live-modal .live-animation{margin-top:10px;border-radius:10px;overflow:hidden;background:#070a10;border:1px solid rgba(255,255,255,.08)}#dmbo-live-modal .live-tabs{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}#dmbo-live-modal .live-tabs span{flex:1}#dmbo-live-modal .live-tabs button{border:0;border-radius:7px;background:#24314f;color:#fff;font-size:11px;font-weight:900;padding:6px 9px;cursor:pointer;transition:background .16s ease,transform .16s ease}#dmbo-live-modal .live-tabs button:hover{transform:translateY(-1px)}#dmbo-live-modal .live-tabs button.on{background:#fd224e}#dmbo-live-modal .live-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#dmbo-live-modal .live-animation iframe{display:block;width:100%;height:230px;border:0;background:#070a10}#dmbo-live-modal .live-empty{padding:14px;text-align:center;font-size:12px;color:rgba(255,255,255,.62)}#dmbo-live-modal .live-error{margin-top:8px;color:#ff8aa1;font-size:11px}#dmbo-live-modal a{color:#fff}" +
       "#dmbo-v12-close{position:absolute;top:6px;right:6px;z-index:2;width:28px;height:28px;border:0;border-radius:50%;background:#fd224e;color:#fff;font-weight:900;cursor:pointer}" +
-      "@keyframes dmboLiveDot{0%{box-shadow:0 0 0 0 rgba(35,209,139,.45)}70%{box-shadow:0 0 0 7px rgba(35,209,139,0)}100%{box-shadow:0 0 0 0 rgba(35,209,139,0)}}@keyframes dmboLiveGoalPulse{0%{border-color:rgba(253,34,78,.7);background:rgba(253,34,78,.18)}100%{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.06)}}@keyframes dmboLiveRowIn{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:translateY(0)}}@keyframes dmboBetRowIn{0%{opacity:0;transform:translateY(5px)}100%{opacity:1;transform:translateY(0)}}" +
-      "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-grid{grid-template-columns:1fr}#dmbo-live-modal .live-ticker{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-team-list{grid-template-columns:1fr}#dmbo-live-modal .live-timeline-list div{grid-template-columns:42px minmax(0,1fr)}#dmbo-live-modal .live-timeline-list strong,#dmbo-live-modal .live-timeline-list em{grid-column:2}#dmbo-live-modal .live-animation iframe{height:210px}}";
+      "@keyframes dmboLiveDot{0%{box-shadow:0 0 0 0 rgba(35,209,139,.45)}70%{box-shadow:0 0 0 7px rgba(35,209,139,0)}100%{box-shadow:0 0 0 0 rgba(35,209,139,0)}}@keyframes dmboLiveGoalPulse{0%{border-color:rgba(253,34,78,.7);background:rgba(253,34,78,.18)}100%{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.06)}}@keyframes dmboLiveRowIn{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:translateY(0)}}@keyframes dmboBetRowIn{0%{opacity:0;transform:translateY(5px)}100%{opacity:1;transform:translateY(0)}}@keyframes dmboBetScorePulse{0%,100%{box-shadow:0 0 0 0 rgba(253,34,78,0)}50%{box-shadow:0 0 0 5px rgba(253,34,78,.12)}}" +
+      "@media(hover:hover) and (pointer:fine){#" + c.containerId + " .bet-board-tabs button:hover,#" + c.containerId + " .bet-odds a:hover,#" + c.containerId + " .bet-tracker-actions .pill:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}#" + c.containerId + " .bet-lrow:hover,#" + c.containerId + " .bet-stat:hover{background:rgba(255,255,255,.07)}}" +
+      "@media(prefers-reduced-motion:reduce){#" + c.containerId + " .bet-row,#" + c.containerId + " .bet-event,#" + c.containerId + " .bet-combo,#" + c.containerId + " .bet-lrow,#" + c.containerId + " .bet-stat,#" + c.containerId + " .bet-score.pulse{animation:none;transition:none}#" + c.containerId + " .bet-player i,#dmbo-live-modal .live-dot{animation:none}}" +
+      "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .bet-board-tabs{grid-template-columns:1fr}#" + c.containerId + " .bet-lrow{grid-template-columns:36px minmax(0,1fr) 58px}#" + c.containerId + " .bet-prize{grid-column:2/4;text-align:left}#" + c.containerId + " .bet-stat-grid{grid-template-columns:1fr}#" + c.containerId + " .bet-tracker-frame{height:260px}#dmbo-live-modal .live-grid{grid-template-columns:1fr}#dmbo-live-modal .live-ticker{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-team-list{grid-template-columns:1fr}#dmbo-live-modal .live-timeline-list div{grid-template-columns:42px minmax(0,1fr)}#dmbo-live-modal .live-timeline-list strong,#dmbo-live-modal .live-timeline-list em{grid-column:2}#dmbo-live-modal .live-animation iframe{height:210px}}";
 
     (document.head || document.documentElement).appendChild(s);
   }
@@ -775,16 +823,35 @@
     var maxItems = Number(config.maxItems);
     var maxEvents = Number(config.maxEvents);
     var maxCombos = Number(config.maxCombos);
+    var maxLeaderboardRows = Number(config.maxLeaderboardRows);
+    var maxStats = Number(config.maxStats);
 
     config.title = config.title || "Live Bets Feed";
     config.brandId = String(config.brandId || c.betbyBrandId || "1653815133341880320");
     config.baseUrl = String(config.baseUrl || c.betbyBaseUrl || "https://demoapi.betby.com").replace(/\/+$/, "");
+    config.lang = String(config.lang || "en").replace(/[^a-z-]/gi, "") || "en";
     config.openUrl = String(config.openUrl || c.betbyOpenUrl || "https://demo.betby.com/sportsbook/tile/bets-feed");
     config.pollMs = isFinite(pollMs) && pollMs >= 5000 ? pollMs : 12000;
     config.maxItems = isFinite(maxItems) && maxItems > 0 ? Math.min(maxItems, 20) : 8;
     config.maxEvents = isFinite(maxEvents) && maxEvents > 0 ? Math.min(maxEvents, 20) : 6;
     config.maxCombos = isFinite(maxCombos) && maxCombos > 0 ? Math.min(maxCombos, 12) : 4;
-    config.tabs = Array.isArray(config.tabs) && config.tabs.length ? config.tabs : ["players", "live", "prematch", "combo"];
+    config.maxLeaderboardRows = isFinite(maxLeaderboardRows) && maxLeaderboardRows > 0 ? Math.min(maxLeaderboardRows, 500) : 500;
+    config.maxStats = isFinite(maxStats) && maxStats > 0 ? Math.min(maxStats, 20) : 8;
+    config.trackerBuild = String(config.trackerBuild || "5d5e9d98").replace(/[^a-z0-9_-]/gi, "") || "5d5e9d98";
+    config.trackers = Array.isArray(config.trackers) ? config.trackers : [
+      {
+        id: "brooksby-buse-wimbledon",
+        title: "Brooksby, Jenson vs Buse, Ignacio",
+        subtitle: "Grand Slam - Wimbledon",
+        provider: "statscore",
+        sportId: "5",
+        lang: config.lang,
+        eventId: 6575292,
+        betbyEventId: "2683375830813515798",
+        openUrl: "https://demo.betby.com/sportsbook/tile/tennis/grand-slam/wimbledon/brooksby-jenson-buse-ignacio-2683375830813515798"
+      }
+    ];
+    config.tabs = Array.isArray(config.tabs) && config.tabs.length ? config.tabs : ["players", "live", "prematch", "combo", "leaderboard", "stats", "tracker"];
 
     return config;
   }
@@ -820,8 +887,230 @@
     return base + "/api/v1/promo/widget/" + brandId + "/en";
   }
 
+  function betbyLeaderboardUrl(c, config) {
+    var runtime = c || cfg();
+    var panel = copyObject(config || {});
+    var base = String(panel.baseUrl || runtime.betbyBaseUrl || "https://demoapi.betby.com").replace(/\/+$/, "");
+    var brandId = encodeURIComponent(String(panel.brandId || runtime.betbyBrandId || "1653815133341880320"));
+    var lang = encodeURIComponent(String(panel.lang || "en"));
+
+    if (panel.leaderboardUrl) return String(panel.leaderboardUrl);
+    return base + "/api/v1/promo/tournaments/brand/" + brandId + "/lang/" + lang + "/view";
+  }
+
+  function betbyTrackerUrl(c, config, tracker) {
+    var runtime = c || cfg();
+    var panel = copyObject(config || {});
+    var item = tracker || {};
+    var base = String(panel.baseUrl || runtime.betbyBaseUrl || "https://demoapi.betby.com").replace(/\/+$/, "");
+    var build = String(panel.trackerBuild || item.trackerBuild || "5d5e9d98").replace(/[^a-z0-9_-]/gi, "") || "5d5e9d98";
+    var provider = {
+      id: item.provider || item.id || "statscore",
+      sportId: String(item.sportId || item.sport_id || ""),
+      lang: item.lang || panel.lang || "en",
+      eventId: item.eventId || item.event_id || item.providerEventId || item.provider_event_id
+    };
+
+    if (item.trackerUrl) provider.trackerUrl = item.trackerUrl;
+    if (!provider.sportId || provider.eventId == null || provider.eventId === "") return "";
+
+    return base + "/" + build + "/tracker.html?providers=" + encodeURIComponent(JSON.stringify(provider));
+  }
+
   function betbyText(value) {
     return String(value == null ? "" : value).replace(/\s+/g, " ").trim();
+  }
+
+  function betbyTimeMs(value) {
+    var n;
+    var parsed;
+
+    if (value == null || value === "") return 0;
+    n = Number(value);
+    if (isFinite(n) && n > 0) return n > 100000000000 ? n : n * 1000;
+    parsed = Date.parse(String(value));
+    return isFinite(parsed) ? parsed : 0;
+  }
+
+  function betbyDateShort(value) {
+    var ms = betbyTimeMs(value);
+
+    if (!ms) return "";
+    try {
+      return new Date(ms).toLocaleDateString([], { month: "short", day: "2-digit" });
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function betbyLeaderboardStatus(tournament, nowMs) {
+    var now = nowMs || Date.now();
+    var starts = betbyTimeMs(tournament && tournament.starts);
+    var ends = betbyTimeMs(tournament && tournament.ends);
+
+    if (starts && now < starts) return "Upcoming";
+    if (ends && now > ends) return "Ended";
+    return "Live";
+  }
+
+  function betbyLeaderboardRows(payload, config, nowMs) {
+    var panel = config || {};
+    var maxRows = Number(panel.maxLeaderboardRows);
+    var limit = isFinite(maxRows) && maxRows > 0 ? Math.min(maxRows, 500) : 500;
+    var tournaments = Array.isArray(payload) ? payload : (
+      (payload && Array.isArray(payload.tournaments) && payload.tournaments) ||
+      (payload && Array.isArray(payload.data) && payload.data) ||
+      []
+    );
+
+    return tournaments.map(function (tournament, index) {
+      var rows = Array.isArray(tournament && tournament.leaderboard) ? tournament.leaderboard : [];
+
+      return {
+        id: betbyText(tournament && tournament.id) || String(index + 1),
+        name: betbyText(tournament && tournament.name) || "Leaderboard",
+        starts: tournament && tournament.starts,
+        ends: tournament && tournament.ends,
+        startsText: betbyDateShort(tournament && tournament.starts),
+        endsText: betbyDateShort(tournament && tournament.ends),
+        imageUrl: betbyText(tournament && (tournament.image_url || tournament.imageUrl)),
+        status: betbyLeaderboardStatus(tournament, nowMs),
+        count: rows.length,
+        rows: rows.slice(0, limit).map(function (row, rowIndex) {
+          return {
+            place: betbyText(row && row.place) || String(rowIndex + 1),
+            playerId: betbyText(row && (row.player_id || row.playerId)) || "Hidden player",
+            score: betbyText(row && row.score) || "0",
+            prize: betbyText(row && row.prize),
+            isCurrent: !!(row && (row.is_current || row.isCurrent))
+          };
+        })
+      };
+    }).filter(function (tournament) {
+      return !!tournament.rows.length;
+    });
+  }
+
+  function betbyScoreText(score) {
+    var row = score || {};
+    return scoreValue(row.home_score) + " - " + scoreValue(row.away_score);
+  }
+
+  function betbyPeriodRows(score) {
+    var periods = Array.isArray(score && score.period_scores) ? score.period_scores : [];
+
+    return periods.slice(-8).map(function (period, index) {
+      var number = period.number || (index + 1);
+      var code = betbyText(period.match_status_code || period.type);
+
+      return {
+        label: code ? "P" + number + " / " + code : "P" + number,
+        home: scoreValue(period.home_score),
+        away: scoreValue(period.away_score)
+      };
+    });
+  }
+
+  function betbyStatPairs(score) {
+    var stats = score && score.statistics || {};
+    var rows = [];
+
+    Object.keys(stats).forEach(function (key) {
+      var value = stats[key];
+      var home;
+      var away;
+
+      if (Array.isArray(value)) {
+        home = value[0];
+        away = value[1];
+      } else if (value && typeof value === "object") {
+        home = value.home || value.home_score || value.homeScore || value[0];
+        away = value.away || value.away_score || value.awayScore || value[1];
+      }
+
+      if (home == null && away == null) return;
+      rows.push({ label: statLabel(key), home: scoreValue(home), away: scoreValue(away) });
+    });
+
+    return rows.slice(0, 10);
+  }
+
+  function betbyStatusText(value) {
+    var text = betbyText(value);
+
+    if (!text || text === "0") return "";
+    return "Status " + text;
+  }
+
+  function betbyStatsRows(snapshot, config) {
+    var panel = config || {};
+    var maxStats = Number(panel.maxStats);
+    var limit = isFinite(maxStats) && maxStats > 0 ? Math.min(maxStats, 20) : 8;
+    var sports = snapshot && snapshot.sports || {};
+    var tournaments = snapshot && snapshot.tournaments || {};
+    var events = snapshot && snapshot.events || {};
+    var rows = [];
+
+    Object.keys(events).some(function (id) {
+      var ev = events[id] || {};
+      var desc = ev.desc || {};
+      var comps = Array.isArray(desc.competitors) ? desc.competitors : [];
+      var score = ev.score || null;
+      var state = ev.state || {};
+      var home = betbyText(comps[0] && comps[0].name);
+      var away = betbyText(comps[1] && comps[1].name);
+      var sportInfo = sports[desc.sport] || {};
+      var tournamentInfo = tournaments[desc.tournament] || {};
+      var gameScore = "";
+
+      if (!home || !away || !score || (desc.type && desc.type !== "match")) return false;
+      if (score.home_gamescore != null || score.away_gamescore != null) {
+        gameScore = scoreValue(score.home_gamescore) + " - " + scoreValue(score.away_gamescore);
+      }
+
+      rows.push({
+        id: String(id),
+        sportName: betbyText(sportInfo.name) || "Sport",
+        tournamentName: betbyText(tournamentInfo.name) || "Tournament",
+        home: home,
+        away: away,
+        score: betbyScoreText(score),
+        gameScore: gameScore,
+        server: score.current_server ? String(score.current_server) : "",
+        clock: betbyText(state.clock && state.clock.match_time),
+        clockTimestamp: state.clock && state.clock.timestamp,
+        matchStatus: betbyStatusText(state.match_status),
+        provider: betbyText(state.provider),
+        periods: betbyPeriodRows(score),
+        stats: betbyStatPairs(score)
+      });
+
+      return rows.length >= limit;
+    });
+
+    return rows;
+  }
+
+  function betbyTrackerRows(config) {
+    var panel = config || {};
+    var trackers = Array.isArray(panel.trackers) ? panel.trackers : [];
+
+    return trackers.map(function (tracker, index) {
+      var row = copyObject(tracker || {});
+      var title = betbyText(row.title) || betbyText(row.name) || "Live animation tracker";
+      var provider = betbyText(row.provider || row.id || "statscore");
+
+      return {
+        id: betbyText(row.id || row.betbyEventId || row.eventId) || String(index + 1),
+        title: title,
+        subtitle: betbyText(row.subtitle || row.tournament || row.sportName) || provider,
+        providerLabel: statLabel(provider),
+        openUrl: betbyText(row.openUrl || row.url),
+        url: betbyTrackerUrl(null, panel, row)
+      };
+    }).filter(function (row) {
+      return !!row.url;
+    });
   }
 
   function betbyType(value) {
@@ -2546,14 +2835,17 @@
       players: "Players are betting now",
       live: "Hot live events",
       prematch: "Popular prematch odds",
-      combo: "Combo of the day"
+      combo: "Combo of the day",
+      leaderboard: "Full Leaderboard",
+      stats: "Live Stats",
+      tracker: "Animation Tracker"
     };
 
     return labels[tab] || "Betby";
   }
 
   function betbyActiveTab(config) {
-    var tabs = config.tabs || ["players", "live", "prematch", "combo"];
+    var tabs = config.tabs || ["players", "live", "prematch", "combo", "leaderboard", "stats", "tracker"];
 
     if (tabs.indexOf(betby.tab) < 0) betby.tab = tabs[0] || "players";
     return betby.tab;
@@ -2590,8 +2882,9 @@
     return html + '</div>';
   }
 
-  function betbyEventsHtml(rows, emptyText) {
+  function betbyEventsHtml(rows, emptyText, config) {
     var html;
+    var openUrl = (config && config.openUrl) || "https://demo.betby.com/sportsbook/tile/bets-feed";
 
     if (!rows.length) return '<div class="m">' + esc(emptyText) + '</div>';
 
@@ -2601,7 +2894,7 @@
         '<div class="bet-event-head"><div style="min-width:0"><div class="bet-event-title">' + esc(row.home + " vs " + row.away) + '</div><div class="bet-event-meta">' + esc(row.sportName + " · " + row.tournamentName + (row.clock ? " · " + row.clock : "")) + '</div></div>' +
         (row.score ? '<div class="bet-score">' + esc(row.score) + '</div>' : '<div class="bet-score">' + esc(row.status) + '</div>') + '</div>' +
         '<div class="bet-odds">' + row.odds.map(function (odd) {
-          return '<span><b>' + esc(odd.label) + '</b> ' + esc(odd.odds) + '</span>';
+          return '<a href="' + esc(openUrl) + '" target="_blank" rel="noopener noreferrer"><b>' + esc(odd.label) + '</b> ' + esc(odd.odds) + '</a>';
         }).join("") + '</div>' +
         '</div>';
     });
@@ -2630,10 +2923,107 @@
     return html + '</div>';
   }
 
+  function betbyLeaderboardHtml(tournaments) {
+    var active;
+    var html;
+
+    if (!tournaments.length) return '<div class="m">Loading full leaderboard...</div>';
+
+    active = tournaments.filter(function (board) { return board.id === betby.leaderboardId; })[0] || tournaments[0];
+    if (active) betby.leaderboardId = active.id;
+
+    html = '<div class="bet-board-tabs">';
+    tournaments.forEach(function (board) {
+      html += '<button type="button" data-dmbo-betby-board="' + esc(board.id) + '" class="' + (active && board.id === active.id ? "on" : "") + '">' +
+        '<span>' + esc(board.name) + '</span><b>' + esc(board.count + " rows") + '</b></button>';
+    });
+    html += '</div>';
+
+    html += '<div class="bet-board-meta">' +
+      '<span>' + esc(active.status) + '</span>' +
+      (active.startsText || active.endsText ? '<span>' + esc([active.startsText, active.endsText].filter(Boolean).join(" - ")) + '</span>' : '') +
+      '<span>' + esc(active.rows.length + " shown") + '</span>' +
+      '</div>';
+
+    html += '<div class="bet-leaderboard">';
+    active.rows.forEach(function (row) {
+      html += '<div class="bet-lrow ' + (row.isCurrent ? "current" : "") + '">' +
+        '<span class="bet-rank">' + esc(row.place) + '</span>' +
+        '<span class="bet-player-id">' + esc(row.playerId) + '</span>' +
+        '<span class="bet-score-points">' + esc(row.score) + '</span>' +
+        '<span class="bet-prize">' + esc(row.prize || "-") + '</span>' +
+        '</div>';
+    });
+    html += '</div>';
+
+    return html;
+  }
+
+  function betbyStatsHtml(rows) {
+    var html;
+
+    if (!rows.length) return '<div class="m">Loading live score and stats...</div>';
+
+    html = '<div class="bet-stat-list">';
+    rows.forEach(function (row) {
+      html += '<div class="bet-stat">' +
+        '<div class="bet-stat-head"><div style="min-width:0"><div class="bet-event-title">' + esc(row.home + " vs " + row.away) + '</div><div class="bet-event-meta">' + esc(row.sportName + " · " + row.tournamentName) + '</div></div>' +
+        '<div class="bet-score pulse">' + esc(row.score) + '</div></div>' +
+        '<div class="bet-stat-strip">' +
+        (row.clock ? '<span><b>Clock</b>' + esc(row.clock) + '</span>' : '') +
+        (row.gameScore ? '<span><b>Game</b>' + esc(row.gameScore) + '</span>' : '') +
+        (row.server ? '<span><b>Server</b>' + esc(row.server) + '</span>' : '') +
+        (row.matchStatus ? '<span><b>Status</b>' + esc(row.matchStatus) + '</span>' : '') +
+        '</div>';
+
+      if (row.periods && row.periods.length) {
+        html += '<div class="bet-periods">' + row.periods.map(function (period) {
+          return '<span><b>' + esc(period.label) + '</b>' + esc(period.home + " - " + period.away) + '</span>';
+        }).join("") + '</div>';
+      }
+
+      if (row.stats && row.stats.length) {
+        html += '<div class="bet-stat-grid">' + row.stats.map(function (stat) {
+          return '<div><span>' + esc(stat.home) + '</span><b>' + esc(stat.label) + '</b><span>' + esc(stat.away) + '</span></div>';
+        }).join("") + '</div>';
+      } else {
+        html += '<div class="m">Sport-specific stat feed not published for this event yet.</div>';
+      }
+
+      html += '</div>';
+    });
+
+    return html + '</div>';
+  }
+
+  function betbyTrackerHtml(rows) {
+    var row = rows && rows[0];
+    var html;
+
+    if (!row) return '<div class="m">No configured public tracker is available for this event yet.</div>';
+
+    html = '<div class="bet-tracker">' +
+      '<div class="bet-tracker-head"><div style="min-width:0"><div class="bet-event-title">' + esc(row.title) + '</div><div class="bet-event-meta">' + esc(row.subtitle + " · " + row.providerLabel) + '</div></div>' +
+      '<div class="bet-tracker-actions">' +
+      (row.openUrl ? '<a class="pill" href="' + esc(row.openUrl) + '" target="_blank" rel="noopener noreferrer">Open event</a>' : '') +
+      '<button type="button" class="pill" data-dmbo-betby-fullscreen="1">Fullscreen</button>' +
+      '</div></div>' +
+      '<div class="bet-tracker-frame" id="dmbo-betby-tracker-frame">' +
+      '<iframe src="' + esc(row.url) + '" title="' + esc(row.title + " animation tracker") + '" loading="lazy" allow="fullscreen; autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>' +
+      '</div>' +
+      '<div class="m">Statscore tracker iframe is shown when the provider mapping is public for the selected event.</div>' +
+      '</div>';
+
+    return html;
+  }
+
   function betbyTabBodyHtml(active, config) {
-    if (active === "live") return betbyEventsHtml(betby.liveRows || [], "Loading hot live events...");
-    if (active === "prematch") return betbyEventsHtml(betby.prematchRows || [], "Loading popular prematch odds...");
+    if (active === "live") return betbyEventsHtml(betby.liveRows || [], "Loading hot live events...", config);
+    if (active === "prematch") return betbyEventsHtml(betby.prematchRows || [], "Loading popular prematch odds...", config);
     if (active === "combo") return betbyCombosHtml(betby.comboRows || [], config);
+    if (active === "leaderboard") return betbyLeaderboardHtml(betby.leaderboardTournaments || []);
+    if (active === "stats") return betbyStatsHtml(betby.statsRows || []);
+    if (active === "tracker") return betbyTrackerHtml(betby.trackerRows || []);
     return betbyPlayersHtml(betby.rows || [], config);
   }
 
@@ -2648,6 +3038,25 @@
         betbyFeedRender(c, widget);
       };
     });
+
+    Array.prototype.forEach.call(box.querySelectorAll("[data-dmbo-betby-board]"), function (button) {
+      button.onclick = function () {
+        betby.leaderboardId = button.getAttribute("data-dmbo-betby-board") || "";
+        betbyFeedRender(c, widget);
+      };
+    });
+
+    Array.prototype.forEach.call(box.querySelectorAll("[data-dmbo-betby-fullscreen]"), function (button) {
+      button.onclick = function () {
+        var frame = qs("dmbo-betby-tracker-frame");
+        var target = frame || button.closest(".bet-tracker");
+        var request = target && (target.requestFullscreen || target.webkitRequestFullscreen || target.msRequestFullscreen);
+
+        if (request) {
+          try { request.call(target); } catch (e) {}
+        }
+      };
+    });
   }
 
   function betbyFeedRender(c, widget) {
@@ -2657,6 +3066,9 @@
     var activeCount = active === "live" ? (betby.liveRows || []).length :
       active === "prematch" ? (betby.prematchRows || []).length :
       active === "combo" ? (betby.comboRows || []).length :
+      active === "leaderboard" ? ((betby.leaderboardTournaments || [])[0] && (betby.leaderboardTournaments || [])[0].count || 0) :
+      active === "stats" ? (betby.statsRows || []).length :
+      active === "tracker" ? (betby.trackerRows || []).length :
       (betby.rows || []).length;
     var updated = betby.updatedAt ? dateText(betby.updatedAt) : "";
     var html;
@@ -2694,11 +3106,12 @@
 
   function betbyFeedLoad(c, widget) {
     var config = betbyFeedConfig(widget);
-    var pending = 4;
+    var pending = 5;
     var failures = 0;
 
     if (betby.loading) return;
 
+    betby.trackerRows = betbyTrackerRows(config);
     betby.loading = true;
     betbyFeedRender(c, widget);
 
@@ -2708,7 +3121,7 @@
       if (pending > 0) return;
 
       betby.loading = false;
-      betby.error = failures >= 4 ? "all Betby feeds failed" : "";
+      betby.error = failures >= 5 ? "all Betby feeds failed" : "";
       betby.updatedAt = Date.now();
       betbyFeedRender(c, widget);
     }
@@ -2721,7 +3134,10 @@
     });
 
     betbySnapshotLoad(c, config, "live", function (e, data) {
-      if (!e) betby.liveRows = betbyEventRows(data, config, "live");
+      if (!e) {
+        betby.liveRows = betbyEventRows(data, config, "live");
+        betby.statsRows = betbyStatsRows(data, config);
+      }
       done(e);
     });
 
@@ -2732,6 +3148,11 @@
 
     getJson(betbyPromoUrl(c, config), "omit", function (e, data) {
       if (!e) betby.comboRows = betbyComboRows(data, config);
+      done(e);
+    });
+
+    getJson(betbyLeaderboardUrl(c, config), "omit", function (e, data) {
+      if (!e) betby.leaderboardTournaments = betbyLeaderboardRows(data, config);
       done(e);
     });
   }
@@ -3755,8 +4176,13 @@
       betbyEventRows: betbyEventRows,
       betbyFeedRows: betbyFeedRows,
       betbyFeedUrl: betbyFeedUrl,
+      betbyLeaderboardRows: betbyLeaderboardRows,
+      betbyLeaderboardUrl: betbyLeaderboardUrl,
       betbyPromoUrl: betbyPromoUrl,
       betbySnapshotUrl: betbySnapshotUrl,
+      betbyStatsRows: betbyStatsRows,
+      betbyTrackerRows: betbyTrackerRows,
+      betbyTrackerUrl: betbyTrackerUrl,
       createDefaultManifest: createDefaultManifest,
       eventHref: eventHref,
       formatMatchClock: formatMatchClock,

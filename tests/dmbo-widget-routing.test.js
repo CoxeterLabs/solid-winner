@@ -155,15 +155,26 @@ test("default Betby feed panel uses public read-only demo feed only", () => {
   assert.equal(betbyFeed.title, "Live Bets Feed");
   assert.equal(betbyFeed.brandId, "1653815133341880320");
   assert.equal(betbyFeed.pollMs, 12000);
+  assert.equal(betbyFeed.maxLeaderboardRows, 500);
+  assert.equal(betbyFeed.maxStats, 8);
+  assert.equal(betbyFeed.trackerBuild, "5d5e9d98");
+  assert.equal(betbyFeed.trackers.length, 1);
   assert.deepEqual(plain(betbyFeed.tabs), [
     "players",
     "live",
     "prematch",
-    "combo"
+    "combo",
+    "leaderboard",
+    "stats",
+    "tracker"
   ]);
   assert.equal(
     api.betbyFeedUrl({ betbyBaseUrl: "https://demoapi.betby.com" }, betbyFeed),
     "https://demoapi.betby.com/api/v1/promo/bets_feed/brand/1653815133341880320"
+  );
+  assert.equal(
+    api.betbyLeaderboardUrl({ betbyBaseUrl: "https://demoapi.betby.com" }, betbyFeed),
+    "https://demoapi.betby.com/api/v1/promo/tournaments/brand/1653815133341880320/lang/en/view"
   );
 });
 
@@ -308,6 +319,122 @@ test("Betby combo rows expose combo of the day promo legs", () => {
       ]
     }
   ]);
+});
+
+test("Betby leaderboard rows expose full public promo leaderboard", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.betbyLeaderboardRows([
+    {
+      id: "board1",
+      name: "Soccer Combo Challenge",
+      starts: 1782626400000,
+      ends: 1783836000000,
+      image_url: "https://example.test/board.png",
+      leaderboard: [
+        { place: 1, player_id: "****001", score: 1200, prize: "€1,000", is_current: false },
+        { place: 2, player_id: "****002", score: 980, prize: "€800", is_current: true }
+      ]
+    }
+  ], { maxLeaderboardRows: 500 }, 1782890000000);
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].id, "board1");
+  assert.equal(rows[0].name, "Soccer Combo Challenge");
+  assert.equal(rows[0].status, "Live");
+  assert.equal(rows[0].count, 2);
+  assert.deepEqual(plain(rows[0].rows), [
+    { place: "1", playerId: "****001", score: "1200", prize: "€1,000", isCurrent: false },
+    { place: "2", playerId: "****002", score: "980", prize: "€800", isCurrent: true }
+  ]);
+});
+
+test("Betby stats rows expose live score, periods, clock, and published statistics", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.betbyStatsRows({
+    sports: { "1": { name: "Soccer" } },
+    tournaments: { "cup": { name: "World Cup" } },
+    events: {
+      live1: {
+        desc: {
+          type: "match",
+          sport: "1",
+          tournament: "cup",
+          competitors: [{ name: "France" }, { name: "Sweden" }]
+        },
+        state: {
+          provider: "statscore",
+          match_status: 6,
+          clock: { match_time: "38:00", timestamp: 1782891627991 }
+        },
+        score: {
+          home_score: "2",
+          away_score: "0",
+          statistics: {
+            yellow_cards: { home: 1, away: 2 },
+            corners: [4, 3]
+          },
+          period_scores: [
+            { match_status_code: 6, number: 1, home_score: 2, away_score: 0 }
+          ]
+        }
+      }
+    }
+  }, { maxStats: 8 });
+
+  assert.deepEqual(plain(rows), [
+    {
+      id: "live1",
+      sportName: "Soccer",
+      tournamentName: "World Cup",
+      home: "France",
+      away: "Sweden",
+      score: "2 - 0",
+      gameScore: "",
+      server: "",
+      clock: "38:00",
+      clockTimestamp: 1782891627991,
+      matchStatus: "Status 6",
+      provider: "statscore",
+      periods: [{ label: "P1 / 6", home: "2", away: "0" }],
+      stats: [
+        { label: "Yellow Cards", home: "1", away: "2" },
+        { label: "Corners", home: "4", away: "3" }
+      ]
+    }
+  ]);
+});
+
+test("Betby tracker rows build public Statscore iframe providers from config", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.betbyTrackerRows({
+    baseUrl: "https://demoapi.betby.com",
+    lang: "en",
+    trackerBuild: "5d5e9d98",
+    trackers: [
+      {
+        id: "brooksby-buse-wimbledon",
+        title: "Brooksby, Jenson vs Buse, Ignacio",
+        subtitle: "Grand Slam - Wimbledon",
+        provider: "statscore",
+        sportId: "5",
+        eventId: 6575292,
+        openUrl: "https://demo.betby.com/sportsbook/tile/tennis/grand-slam/wimbledon/brooksby-jenson-buse-ignacio-2683375830813515798"
+      }
+    ]
+  });
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].title, "Brooksby, Jenson vs Buse, Ignacio");
+  assert.equal(rows[0].providerLabel, "Statscore");
+  assert.equal(rows[0].url.startsWith("https://demoapi.betby.com/5d5e9d98/tracker.html?providers="), true);
+
+  const providers = JSON.parse(decodeURIComponent(new URL(rows[0].url).searchParams.get("providers")));
+  assert.deepEqual(providers, {
+    id: "statscore",
+    sportId: "5",
+    lang: "en",
+    eventId: 6575292
+  });
 });
 
 test("Betby prematch rows prefer match events over outright markets", () => {
