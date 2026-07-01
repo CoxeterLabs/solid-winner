@@ -1020,6 +1020,7 @@ test("live visual resolver keeps animation default and video optional", () => {
   });
   assert.equal(api.liveVisualMode(sources, "", true), "native");
   assert.equal(api.liveVisualMode(sources, "animation", true), "animation");
+  assert.equal(api.liveVisualMode(sources, "animation", true, false), "native");
   assert.equal(api.liveVisualMode(sources, "video", true), "video");
 });
 

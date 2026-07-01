@@ -157,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-native-live-animation-1",
+      version: "20260701-provider-storage-safe-1",
       global: {
         styles: [],
         scripts: []
@@ -2200,13 +2200,26 @@
     return !!(summary && (summary.homeName || summary.awayName || summary.scoreText));
   }
 
-  function liveVisualMode(sources, preferred, nativeAvailable) {
+  function liveProviderInlineAllowed() {
+    var nav = typeof navigator !== "undefined" ? navigator : {};
+    var ua = String(nav.userAgent || "");
+    var vendor = String(nav.vendor || "");
+    var platform = String(nav.platform || "");
+    var iOS = /iPad|iPhone|iPod/i.test(ua) || (platform === "MacIntel" && Number(nav.maxTouchPoints || 0) > 1);
+    var safari = /Safari/i.test(ua) && /Apple/i.test(vendor) && !/CriOS|FxiOS|EdgiOS|Chrome|Chromium|Android/i.test(ua);
+
+    return !(iOS || safari);
+  }
+
+  function liveVisualMode(sources, preferred, nativeAvailable, providerInline) {
     var src = normalizeLiveVisualSources(sources);
+    var canUseProvider = providerInline !== false;
 
     if (preferred === "native" && nativeAvailable) return "native";
+    if (preferred === "animation" && !canUseProvider) return nativeAvailable ? "native" : (src.video ? "video" : "");
     if (preferred && src[preferred]) return preferred;
     if (nativeAvailable) return "native";
-    if (src.animation) return "animation";
+    if (src.animation && canUseProvider) return "animation";
     if (src.video) return "video";
     return "";
   }
@@ -2872,14 +2885,16 @@
     if (item) live.goalCounts[item.key] = count;
   }
 
-  function liveVisualTabsHtml(sources, mode, nativeAvailable) {
+  function liveVisualTabsHtml(sources, mode, nativeAvailable, providerInline) {
     var src = normalizeLiveVisualSources(sources);
+    var canUseProvider = providerInline !== false;
 
     if (!nativeAvailable && !src.animation && !src.video) return "";
     return '<div class="live-tabs" role="tablist" aria-label="Live visual source">' +
       (nativeAvailable ? '<button type="button" data-dmbo-live-visual="native" class="' + (mode === "native" ? "on" : "") + '">Animation</button>' : '') +
-      (src.animation ? '<button type="button" data-dmbo-live-visual="animation" class="' + (mode === "animation" ? "on" : "") + '">Provider</button>' : '') +
+      (src.animation && canUseProvider ? '<button type="button" data-dmbo-live-visual="animation" class="' + (mode === "animation" ? "on" : "") + '">Provider</button>' : '') +
       (src.video ? '<button type="button" data-dmbo-live-visual="video" class="' + (mode === "video" ? "on" : "") + '">Video</button>' : '') +
+      (src.animation && !canUseProvider ? '<button type="button" data-dmbo-live-provider-open>Open provider</button>' : '') +
       '<span></span><button type="button" data-dmbo-live-fullscreen>Full screen</button>' +
       '</div>';
   }
@@ -2903,6 +2918,14 @@
       };
     });
 
+    Array.prototype.forEach.call(slot.querySelectorAll("[data-dmbo-live-provider-open]"), function (button) {
+      button.onclick = function () {
+        var src = normalizeLiveVisualSources(sources).animation;
+
+        if (src) window.open(src, "_blank", "noopener,noreferrer");
+      };
+    });
+
     Array.prototype.forEach.call(slot.querySelectorAll("[data-dmbo-live-fullscreen]"), function (button) {
       button.onclick = function () {
         var frame = slot.querySelector && slot.querySelector("iframe");
@@ -2921,11 +2944,12 @@
   function setLiveVisualSlot(slot, item, sources, summary) {
     var src = normalizeLiveVisualSources(sources);
     var native = liveNativeAvailable(summary);
-    var mode = liveVisualMode(src, live.visualMode[item.key], native);
+    var providerInline = liveProviderInlineAllowed();
+    var mode = liveVisualMode(src, live.visualMode[item.key], native, providerInline);
     var frameSrc = mode && mode !== "native" ? src[mode] : "";
     var frame = slot && slot.querySelector && slot.querySelector("iframe");
     var nativeEl = slot && slot.querySelector && slot.querySelector(".live-native-visual");
-    var signature = liveVisualSignature(src) + "||native:" + (native ? liveNativeVisualSignature(item, summary) : "");
+    var signature = liveVisualSignature(src) + "||provider-inline:" + (providerInline ? "1" : "0") + "||native:" + (native ? liveNativeVisualSignature(item, summary) : "");
 
     if (!slot) return;
     if (!mode) {
@@ -2945,7 +2969,7 @@
     live.visualMode[item.key] = mode;
     slot.setAttribute("data-dmbo-live-mode", mode);
     slot.setAttribute("data-dmbo-live-sources", signature);
-    slot.innerHTML = liveVisualTabsHtml(src, mode, native) + (mode === "native" ? liveNativeVisualHtml(item, summary) : liveVisualFrameHtml(frameSrc, mode));
+    slot.innerHTML = liveVisualTabsHtml(src, mode, native, providerInline) + (mode === "native" ? liveNativeVisualHtml(item, summary) : liveVisualFrameHtml(frameSrc, mode));
     bindLiveVisualTabs(item, slot, src, summary);
   }
 
