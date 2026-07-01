@@ -157,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-provider-cache-reload-1",
+      version: "20260701-provider-clean-reload-1",
       global: {
         styles: [],
         scripts: []
@@ -2218,22 +2218,7 @@
   }
 
   function liveProviderFrameUrl(value, nonce) {
-    var text = directProviderAnimationUrl(value);
-    var parsed;
-    var token = String(nonce || "");
-
-    if (!text || !token) return text;
-    try {
-      parsed = new URL(text, window.location && window.location.href);
-      if (/^https?:$/i.test(parsed.protocol) && /^bet-broadcast\.com$/i.test(parsed.hostname) && parsed.pathname.indexOf("/tracker/") === 0) {
-        parsed.searchParams.set("dmboCache", token);
-        return parsed.toString();
-      }
-    } catch (e) {
-      return text + (text.indexOf("?") === -1 ? "?" : "&") + "dmboCache=" + encodeURIComponent(token);
-    }
-
-    return text;
+    return directProviderAnimationUrl(value);
   }
 
   function liveProviderNonce(item, refresh) {
