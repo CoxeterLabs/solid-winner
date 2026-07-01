@@ -191,6 +191,8 @@ test("default BetBoom match panel uses the Worker catalog and statshub proxies",
   assert.equal(betboomMatch.workerPath, "/betboom/statshub");
   assert.equal(betboomMatch.lang, "en");
   assert.equal(betboomMatch.pollMs, 600000);
+  assert.equal(betboomMatch.catalogDefaultMode, "all");
+  assert.deepEqual(plain(betboomMatch.catalogModes), ["all", "live", "prematch", "history"]);
   assert.deepEqual(plain(betboomMatch.catalogSportIds), [2, 4, 5, 1, 11, 10]);
   assert.equal(betboomMatch.catalogLimit, 42);
   assert.equal(betboomMatch.catalogMaxTournaments, 12);
@@ -208,6 +210,7 @@ test("default BetBoom match panel uses the Worker catalog and statshub proxies",
 
   assert.equal(catalogParsed.origin + catalogParsed.pathname, "https://sports.hypercubik.workers.dev/");
   assert.equal(catalogParsed.searchParams.get("path"), "/betboom/catalog");
+  assert.equal(catalogParsed.searchParams.get("mode"), "all");
   assert.equal(catalogParsed.searchParams.get("sportIds"), "2,4,5,1,11,10");
   assert.equal(catalogParsed.searchParams.get("limit"), "42");
   assert.equal(catalogParsed.searchParams.get("maxTournaments"), "12");
@@ -230,6 +233,33 @@ test("default BetBoom match panel uses the Worker catalog and statshub proxies",
   assert.match(
     parsed.searchParams.get("imageUrls") || "",
     /static\.sporthub\.bet\/aa3d3491a0d2a4774baa3b1863918115\/multifeed\/teams\/11411252-f30c-474d-9d95-4a4e2b285338\.webp/
+  );
+});
+
+test("sports time-window filters keep live and prematch windows separate", () => {
+  const api = loadWidgetTestApi();
+  const now = Date.now();
+  const rows = [
+    { id: "past-live", startTime: now - 30 * 60 * 1000 },
+    { id: "old-live", startTime: now - 3 * 60 * 60 * 1000 },
+    { id: "next-hour", startTime: now + 45 * 60 * 1000 },
+    { id: "tomorrow", startTime: now + 23 * 60 * 60 * 1000 },
+    { id: "unknown" }
+  ];
+
+  assert.equal(api.sportWindowHours("1h"), 1);
+  assert.equal(api.sportWindowHours("1d"), 24);
+  assert.deepEqual(
+    plain(api.sportFilterRowsForWindow(rows, "LIVE", "1h").map((row) => row.id)),
+    ["past-live", "next-hour", "tomorrow", "unknown"]
+  );
+  assert.deepEqual(
+    plain(api.sportFilterRowsForWindow(rows, "PREMATCH", "1h").map((row) => row.id)),
+    ["next-hour", "unknown"]
+  );
+  assert.deepEqual(
+    plain(api.sportFilterRowsForWindow(rows, "PREMATCH", "1d").map((row) => row.id)),
+    ["next-hour", "tomorrow", "unknown"]
   );
 });
 
@@ -358,6 +388,7 @@ test("BetBoom catalog rows keep football World Cup images and metadata", () => {
         tournament: "World Cup 2026",
         tournamentId: "25463",
         status: "Scheduled",
+        catalogMode: "prematch",
         score: { text: "0-0" },
         homeImageUrl: "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/home.webp",
         awayImageUrl: "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/away.webp",
@@ -382,6 +413,7 @@ test("BetBoom catalog rows keep football World Cup images and metadata", () => {
   assert.equal(rows.length, 1);
   assert.equal(rows[0].matchId, "6001001");
   assert.equal(rows[0].sport, "Football");
+  assert.equal(rows[0].catalogMode, "prematch");
   assert.equal(rows[0].tournament, "World Cup 2026");
   assert.equal(rows[0].score, "0-0");
   assert.equal(rows[0].homeImageUrl, "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/home.webp");

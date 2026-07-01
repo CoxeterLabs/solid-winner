@@ -5,7 +5,7 @@ const WORKER_URL = "https://sports.hypercubik.workers.dev/";
 const WIDGET_SOURCE_URL =
   "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/widget-v12.js";
 
-const WIDGET_VERSION = "20260701-betboom-catalog-1";
+const WIDGET_VERSION = "20260701-expanded-catalog-1";
 
 const MATCHTRACKER_RESOLVER_PATH = "/matchtracker-resolver/resolve";
 const MATCHTRACKER_QUERY_KEYS = new Set([
@@ -28,6 +28,7 @@ const BETBOOM_CATALOG_MAX_SPORTS = 8;
 const BETBOOM_CATALOG_MAX_TOURNAMENTS = 18;
 const BETBOOM_CATALOG_MAX_MATCHES_PER_TOURNAMENT = 12;
 const BETBOOM_CATALOG_MAX_MATCHES = 96;
+const BETBOOM_CATALOG_MODES = new Set(["all", "live", "prematch", "history"]);
 const STATSHUB_CDN_BASE = "https://st-cdn001.akamaized.net";
 const STATSHUB_APP_BASE = "https://sh-cdn001.akamaized.net";
 const STATSHUB_FEED_REFERER = "https://sh-cdn001.akamaized.net/";
@@ -106,6 +107,7 @@ function isAllowedPath(path) {
     path.startsWith("/partner-api/sportsbook/public/v2/") ||
     path.startsWith("/partner-api/opensearch-gateway/sportsbooks/search") ||
     path.startsWith("/team-logos/") ||
+    path.startsWith("/sportsbook/sport/") ||
     path.startsWith("/league-icons/") ||
     path.startsWith("/region-flags/") ||
     path.startsWith("/api/cms/league-icons")
@@ -115,6 +117,7 @@ function isAllowedPath(path) {
 function isAssetPath(path) {
   return (
     path.startsWith("/team-logos/") ||
+    path.startsWith("/sportsbook/sport/") ||
     path.startsWith("/league-icons/") ||
     path.startsWith("/region-flags/")
   );
@@ -588,6 +591,41 @@ function periodScoreRows(row) {
   }).filter(Boolean);
 }
 
+function betboomCatalogMode(value) {
+  const mode = cleanText(value || "all").toLowerCase();
+
+  return BETBOOM_CATALOG_MODES.has(mode) ? mode : "all";
+}
+
+function betboomCatalogKind(startTime, scoreText, statusText) {
+  const status = cleanText(statusText).toLowerCase();
+  const startsAt = Date.parse(startTime || "");
+  const now = Date.now();
+
+  if (/\blive\b|in[- ]?play|running|started/.test(status)) return "live";
+  if (Number.isFinite(startsAt) && startsAt > now) return "prematch";
+  if (Number.isFinite(startsAt) && startsAt <= now && startsAt >= now - 8 * 60 * 60 * 1000 && !scoreText) return "live";
+  if (scoreText || (Number.isFinite(startsAt) && startsAt < now)) return "history";
+
+  return "prematch";
+}
+
+function betboomModeCounts(rows) {
+  const counts = {
+    all: rows.length,
+    live: 0,
+    prematch: 0,
+    history: 0
+  };
+
+  rows.forEach((row) => {
+    const mode = betboomCatalogMode(row && row.catalogMode);
+    if (mode !== "all") counts[mode] += 1;
+  });
+
+  return counts;
+}
+
 function normalizeBetboomTournament(row) {
   const tournamentId = cleanText(row && (row.tournament_id || row.tournamentId || row.id));
   const sportId = cleanText(row && (row.sport_id || row.sportId));
@@ -624,7 +662,8 @@ function normalizeBetboomCatalogMatch(row, tournament) {
   const sportIconUrl = safeImageUrl(parent.sportIconUrl);
   const categoryIconUrl = safeImageUrl(parent.categoryIconUrl);
   const startTime = cleanText(source.start_dttm || source.startTime);
-  const status = score.text ? "Result " + score.text : (Date.parse(startTime) > Date.now() ? "Scheduled" : "Listed");
+  const catalogMode = betboomCatalogKind(startTime, score.text, source.status || source.status_name || source.match_status);
+  const status = catalogMode === "prematch" ? "Scheduled" : catalogMode === "live" ? "Live" : (score.text ? "Result " + score.text : "Listed");
   const stats = [score.text ? statPair("Score", score.home, score.away, "") : null].concat(periodScoreRows(source)).filter(Boolean);
   const images = [
     { label: homeName || "Home", url: homeImageUrl },
@@ -648,6 +687,7 @@ function normalizeBetboomCatalogMatch(row, tournament) {
     startTime,
     startTimeText: formatBetboomDateText(startTime),
     status,
+    catalogMode,
     score,
     homeImageUrl,
     awayImageUrl,
@@ -739,6 +779,7 @@ async function fetchBetboomMatchesByTournament(tournament, lang, limit) {
 async function handleBetboomCatalog(requestUrl, cors) {
   const lang = requestUrl.searchParams.get("lang") || "en";
   const query = cleanText(requestUrl.searchParams.get("q") || requestUrl.searchParams.get("query")).toLowerCase();
+  const mode = betboomCatalogMode(requestUrl.searchParams.get("mode"));
   const limit = boundedNumberParam(requestUrl, "limit", 42, 4, BETBOOM_CATALOG_MAX_MATCHES);
   const sportIds = numericListParam(requestUrl, "sportIds", BETBOOM_CATALOG_DEFAULT_SPORT_IDS, BETBOOM_CATALOG_MAX_SPORTS);
   const tournamentIds = numericListParam(requestUrl, "tournamentIds", [], BETBOOM_CATALOG_MAX_TOURNAMENTS);
@@ -813,14 +854,17 @@ async function handleBetboomCatalog(requestUrl, cors) {
       if (matches.length >= limit * 2) break;
     }
 
-    let filtered = matches;
+    let searchFiltered = matches;
     if (query) {
-      filtered = matches.filter((row) => catalogSearchBlob(row).indexOf(query) >= 0);
-      if (!filtered.length && matchedTournaments.length) {
+      searchFiltered = matches.filter((row) => catalogSearchBlob(row).indexOf(query) >= 0);
+      if (!searchFiltered.length && matchedTournaments.length) {
         const matchedTournamentIds = new Set(matchedTournaments.map((row) => row.tournamentId || row.id));
-        filtered = matches.filter((row) => matchedTournamentIds.has(row.tournamentId));
+        searchFiltered = matches.filter((row) => matchedTournamentIds.has(row.tournamentId));
       }
     }
+
+    const modeCounts = betboomModeCounts(searchFiltered);
+    let filtered = mode === "all" ? searchFiltered : searchFiltered.filter((row) => row.catalogMode === mode);
 
     const tournamentRank = new Map();
     selectedTournaments.forEach((row, index) => {
@@ -839,6 +883,7 @@ async function handleBetboomCatalog(requestUrl, cors) {
     return jsonResponse({
       ok: true,
       source: "betboom-result-statistics",
+      mode,
       query,
       sportIds,
       tournaments: selectedTournaments,
@@ -847,8 +892,11 @@ async function handleBetboomCatalog(requestUrl, cors) {
         sports: sportIds.length,
         tournaments: selectedTournaments.length,
         matches: filtered.length,
-        rawMatches: matches.length
+        rawMatches: matches.length,
+        searchMatches: searchFiltered.length,
+        modes: modeCounts
       },
+      modes: ["all", "live", "prematch", "history"],
       endpoints: [
         BETBOOM_API_BASE + "/sporthub/match_result_statistics/tournaments/get_by_sport_id",
         BETBOOM_API_BASE + "/sporthub/match_result_statistics/matches/get_by_tournament_id"
