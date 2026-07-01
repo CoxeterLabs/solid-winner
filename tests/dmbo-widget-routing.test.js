@@ -1114,6 +1114,20 @@ test("live animation resolver unwraps top-parser provider links to direct bet-br
   );
 });
 
+test("live provider frame URLs add a per-load cache token without losing provider params", () => {
+  const api = loadWidgetTestApi();
+  const source = "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66119671?s=1&lang=en";
+  const first = new URL(api.liveProviderFrameUrl(source, "open-1"));
+  const second = new URL(api.liveProviderFrameUrl(source, "open-2"));
+
+  assert.equal(first.origin + first.pathname, "https://bet-broadcast.com/tracker/get/66119671");
+  assert.equal(first.searchParams.get("s"), "1");
+  assert.equal(first.searchParams.get("lang"), "en");
+  assert.equal(first.searchParams.get("dmboCache"), "open-1");
+  assert.equal(second.searchParams.get("dmboCache"), "open-2");
+  assert.notEqual(first.toString(), second.toString());
+});
+
 test("live provider iframe is available as a selectable inline visual source", () => {
   const api = loadWidgetTestApi();
 

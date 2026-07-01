@@ -72,7 +72,7 @@
     updatedAt: 0
   };
   var lastAccountRender = null;
-  var live = { timer: 0, clockTimer: 0, clock: {}, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {}, updateTab: {}, goalCounts: {}, timelineCache: {}, timelinePending: {}, newsCache: {}, newsPending: {}, weatherCache: {}, weatherPending: {} };
+  var live = { timer: 0, clockTimer: 0, clock: {}, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {}, providerNonce: {}, updateTab: {}, goalCounts: {}, timelineCache: {}, timelinePending: {}, newsCache: {}, newsPending: {}, weatherCache: {}, weatherPending: {} };
 
   function log() { try { console.log.apply(console, arguments); } catch (e) {} }
   function err() { try { console.error.apply(console, arguments); } catch (e) {} }
@@ -157,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-direct-provider-url-1",
+      version: "20260701-provider-cache-reload-1",
       global: {
         styles: [],
         scripts: []
@@ -813,6 +813,7 @@
       "#dmbo-live-modal .live-native-point{position:absolute;right:10px;top:10px;display:grid;grid-template-columns:auto 42px 42px;gap:6px;align-items:center;border-radius:9px;background:rgba(7,10,16,.78);border:1px solid rgba(255,255,255,.12);padding:8px;z-index:4}#dmbo-live-modal .live-native-point span{grid-column:1/-1;color:rgba(255,255,255,.6);font-size:10px}#dmbo-live-modal .live-native-point b{text-align:center;font-size:17px;font-variant-numeric:tabular-nums}#dmbo-live-modal .live-native-point em{font-style:normal;font-size:10px;color:rgba(255,255,255,.62)}" +
       "#dmbo-live-modal .live-native-visual .live-native-court.no-provider{display:grid;place-content:center;background:radial-gradient(circle at 50% 35%,rgba(36,49,79,.32),transparent 42%),#0b1220;border-color:rgba(255,255,255,.1)}#dmbo-live-modal .live-native-visual .live-native-court.no-provider i{display:none}#dmbo-live-modal .live-native-no-data{text-align:center;padding:18px;max-width:360px}#dmbo-live-modal .live-native-no-data b,#dmbo-live-modal .live-native-no-data span{display:block}#dmbo-live-modal .live-native-no-data b{font-size:13px}#dmbo-live-modal .live-native-no-data span{margin-top:5px;font-size:11px;color:rgba(255,255,255,.62);line-height:1.35}" +
       "#dmbo-live-modal .live-native-feed p:first-child{border:1px solid rgba(35,209,139,.22);background:rgba(35,209,139,.08)}" +
+      "#dmbo-live-modal .live-provider-note{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#dmbo-live-modal .live-provider-note span{flex:1;min-width:180px}#dmbo-live-modal .live-provider-note button{border:0;border-radius:7px;background:#24314f;color:#fff;font-size:11px;font-weight:900;padding:5px 8px;cursor:pointer}#dmbo-live-modal .live-provider-note button:hover{background:#304064}" +
       "@keyframes dmboLiveEventPulse{0%,100%{box-shadow:0 0 0 0 rgba(234,255,112,.34),0 0 18px rgba(234,255,112,.5)}50%{box-shadow:0 0 0 8px rgba(234,255,112,0),0 0 24px rgba(234,255,112,.62)}}";
 
     (document.head || document.documentElement).appendChild(s);
@@ -2216,6 +2217,35 @@
     return direct;
   }
 
+  function liveProviderFrameUrl(value, nonce) {
+    var text = directProviderAnimationUrl(value);
+    var parsed;
+    var token = String(nonce || "");
+
+    if (!text || !token) return text;
+    try {
+      parsed = new URL(text, window.location && window.location.href);
+      if (/^https?:$/i.test(parsed.protocol) && /^bet-broadcast\.com$/i.test(parsed.hostname) && parsed.pathname.indexOf("/tracker/") === 0) {
+        parsed.searchParams.set("dmboCache", token);
+        return parsed.toString();
+      }
+    } catch (e) {
+      return text + (text.indexOf("?") === -1 ? "?" : "&") + "dmboCache=" + encodeURIComponent(token);
+    }
+
+    return text;
+  }
+
+  function liveProviderNonce(item, refresh) {
+    var key = item && item.key;
+
+    if (!key) return String(Date.now());
+    if (refresh || !live.providerNonce[key]) {
+      live.providerNonce[key] = String(Date.now()) + "-" + Math.random().toString(36).slice(2, 8);
+    }
+    return live.providerNonce[key];
+  }
+
   function liveVideoUrlFromResolver(data) {
     return monitorAbsoluteUrl(data && (data.broadcastUrl || data.videoUrl || data.streamUrl || ""));
   }
@@ -2721,8 +2751,18 @@
     live.activeKey = "";
 
     if (!modal) return;
+    cleanupLiveProviderFrame(modal);
     modal.className = "";
     if (remove && modal.parentNode) modal.parentNode.removeChild(modal);
+  }
+
+  function cleanupLiveProviderFrame(root) {
+    var frame = root && root.querySelector && root.querySelector("#dmbo-live-animation iframe");
+
+    if (!frame) return;
+    try {
+      frame.src = "about:blank";
+    } catch (e) {}
   }
 
   function tableRows(rows) {
@@ -3048,7 +3088,7 @@
 
   function liveVisualFrameHtml(src, mode) {
     var title = mode === "video" ? "Live match video" : "Provider match animation";
-    var note = mode === "animation" ? '<div class="live-provider-note">Provider iframe may be blocked by browser storage. <a href="' + esc(src) + '" target="_blank" rel="noopener noreferrer">Open provider</a></div>' : "";
+    var note = mode === "animation" ? '<div class="live-provider-note"><span>Provider iframe may be blocked by browser storage or stale cache.</span><button type="button" data-dmbo-live-provider-reload>Reload provider</button><a href="' + esc(src) + '" target="_blank" rel="noopener noreferrer">Open provider</a></div>' : "";
 
     return '<iframe title="' + esc(title) + '" src="' + esc(src) + '" loading="eager" allow="storage-access-by-user-activation; autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>' + note;
   }
@@ -3060,7 +3100,22 @@
       button.onclick = function () {
         var mode = button.getAttribute("data-dmbo-live-visual");
 
+        if (mode === "animation") {
+          cleanupLiveProviderFrame(slot);
+          liveProviderNonce(item, true);
+          slot.removeAttribute("data-dmbo-live-sources");
+        }
         live.visualMode[item.key] = mode;
+        setLiveVisualSlot(slot, item, sources, summary);
+      };
+    });
+
+    Array.prototype.forEach.call(slot.querySelectorAll("[data-dmbo-live-provider-reload]"), function (button) {
+      button.onclick = function () {
+        cleanupLiveProviderFrame(slot);
+        liveProviderNonce(item, true);
+        live.visualMode[item.key] = "animation";
+        slot.removeAttribute("data-dmbo-live-sources");
         setLiveVisualSlot(slot, item, sources, summary);
       };
     });
@@ -3093,10 +3148,11 @@
     var native = liveNativeAvailable(summary);
     var providerInline = liveProviderInlineAllowed();
     var mode = liveVisualMode(src, live.visualMode[item.key], native, providerInline);
-    var frameSrc = mode && mode !== "native" ? src[mode] : "";
+    var providerNonce = mode === "animation" ? liveProviderNonce(item, false) : "";
+    var frameSrc = mode && mode !== "native" ? (mode === "animation" ? liveProviderFrameUrl(src[mode], providerNonce) : src[mode]) : "";
     var frame = slot && slot.querySelector && slot.querySelector("iframe");
     var nativeEl = slot && slot.querySelector && slot.querySelector(".live-native-visual");
-    var signature = liveVisualSlotSignature(src, mode, providerInline, native, item, summary);
+    var signature = liveVisualSlotSignature(src, mode, providerInline, native, item, summary) + (providerNonce ? "||provider-cache:" + providerNonce : "");
 
     if (!slot) return;
     if (!mode) {
@@ -3451,6 +3507,8 @@
     }
 
     live.activeKey = key;
+    delete live.providerNonce[key];
+    cleanupLiveProviderFrame(modal);
     modal.className = "open";
     renderLiveModal(c, item, item.event, null);
     loadLiveEvent(c, item);
@@ -5942,6 +6000,7 @@
       liveAnimationResolverUrl: liveAnimationResolverUrl,
       liveEventSummary: liveEventSummary,
       directProviderAnimationUrl: directProviderAnimationUrl,
+      liveProviderFrameUrl: liveProviderFrameUrl,
       liveNativeHasProviderVisual: liveNativeHasProviderVisual,
       liveNativeVisualModel: liveNativeVisualModel,
       liveProviderInlineAllowed: liveProviderInlineAllowed,
