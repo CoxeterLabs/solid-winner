@@ -1,5 +1,5 @@
 {
-  "version": "20260701-betboom-center-1",
+  "version": "20260701-betboom-catalog-1",
   "global": {
     "styles": [],
     "scripts": []
@@ -102,10 +102,15 @@
             },
             {
               "name": "betboomMatch",
-              "title": "BetBoom Match Lab",
+              "title": "BetBoom Match Center",
+              "catalogPath": "/betboom/catalog",
               "workerPath": "/betboom/statshub",
               "lang": "en",
               "pollMs": 600000,
+              "catalogLimit": 42,
+              "catalogSportIds": [2, 4, 5, 1, 11, 10],
+              "catalogMaxTournaments": 12,
+              "catalogMaxMatchesPerTournament": 8,
               "maxStats": 12,
               "maxImages": 14,
               "tabs": ["overview", "players", "stats", "timeline", "images", "sources"],

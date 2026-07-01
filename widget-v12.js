@@ -39,7 +39,19 @@
     trackerRows: [],
     updatedAt: 0
   };
-  var betboom = { timer: 0, loading: false, error: "", tab: "overview", query: "", matches: [], updatedAt: 0 };
+  var betboom = {
+    timer: 0,
+    loading: false,
+    detailLoading: false,
+    error: "",
+    tab: "overview",
+    query: "",
+    selectedId: "",
+    catalog: [],
+    matches: [],
+    detailsById: {},
+    updatedAt: 0
+  };
   var lastAccountRender = null;
   var live = { timer: 0, clockTimer: 0, clock: {}, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {}, updateTab: {}, goalCounts: {}, timelineCache: {}, timelinePending: {}, newsCache: {}, newsPending: {}, weatherCache: {}, weatherPending: {} };
 
@@ -126,7 +138,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-betboom-center-1",
+      version: "20260701-betboom-catalog-1",
       global: {
         styles: [],
         scripts: []
@@ -229,10 +241,15 @@
                 },
                 {
                   name: "betboomMatch",
-                  title: "BetBoom Match Lab",
+                  title: "BetBoom Match Center",
+                  catalogPath: "/betboom/catalog",
                   workerPath: "/betboom/statshub",
                   lang: "en",
                   pollMs: 600000,
+                  catalogLimit: 42,
+                  catalogSportIds: [2, 4, 5, 1, 11, 10],
+                  catalogMaxTournaments: 12,
+                  catalogMaxMatchesPerTournament: 8,
                   maxStats: 12,
                   maxImages: 14,
                   tabs: ["overview", "players", "stats", "timeline", "images", "sources"],
@@ -664,7 +681,19 @@
       trackerRows: [],
       updatedAt: 0
     };
-    betboom = { timer: 0, loading: false, error: "", tab: "overview", query: "", matches: [], updatedAt: 0 };
+    betboom = {
+      timer: 0,
+      loading: false,
+      detailLoading: false,
+      error: "",
+      tab: "overview",
+      query: "",
+      selectedId: "",
+      catalog: [],
+      matches: [],
+      detailsById: {},
+      updatedAt: 0
+    };
     live.store = {};
   }
 
@@ -706,7 +735,7 @@
       "#" + c.containerId + " .bet-feed-list{display:grid;gap:8px}#" + c.containerId + " .bet-row{display:grid;gap:7px;padding:9px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1);transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-row:hover{background:rgba(255,255,255,.075);transform:translateY(-1px)}#" + c.containerId + " .bet-row:first-child{border-color:rgba(253,34,78,.32);box-shadow:0 0 0 1px rgba(253,34,78,.08) inset}#" + c.containerId + " .bet-top{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px}#" + c.containerId + " .bet-player{min-width:0;display:flex;align-items:center;gap:6px;font-weight:900}#" + c.containerId + " .bet-player i{width:7px;height:7px;border-radius:50%;background:#23d18b;box-shadow:0 0 0 0 rgba(35,209,139,.45);animation:dmboLiveDot 1.4s ease-out infinite}#" + c.containerId + " .bet-type{flex:0 0 auto;color:rgba(255,255,255,.62);text-transform:uppercase;font-size:10px;font-weight:900}#" + c.containerId + " .bet-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}#" + c.containerId + " .bet-metric{min-width:0;border-radius:7px;background:rgba(255,255,255,.055);padding:6px}#" + c.containerId + " .bet-metric span{display:block;font-size:9px;color:rgba(255,255,255,.52)}#" + c.containerId + " .bet-metric b{display:block;margin-top:2px;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-odd{background:rgba(253,34,78,.13)}#" + c.containerId + " .bet-selection{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:rgba(255,255,255,.72)}#" + c.containerId + " .bet-selection span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-selection a{flex:0 0 auto;text-decoration:none;color:#fff}" +
       "#" + c.containerId + " .bet-tabs{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 9px;padding:3px;border-radius:9px;background:rgba(255,255,255,.055)}#" + c.containerId + " .bet-tabs button{border:0;border-radius:7px;background:transparent;color:rgba(255,255,255,.7);font-size:10px;font-weight:900;padding:6px 8px;cursor:pointer;transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-tabs button:hover{background:rgba(255,255,255,.08);transform:translateY(-1px)}#" + c.containerId + " .bet-tabs button.on{background:#fd224e;color:#fff}#" + c.containerId + " .bet-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#" + c.containerId + " .bet-event-list,#" + c.containerId + " .bet-combo-list{display:grid;gap:8px}#" + c.containerId + " .bet-event,.bet-combo{display:grid;gap:7px;padding:9px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-event-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}#" + c.containerId + " .bet-event-title{min-width:0;font-size:12px;font-weight:900;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-score{flex:0 0 auto;border-radius:7px;background:rgba(253,34,78,.15);padding:5px 7px;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}#" + c.containerId + " .bet-score.pulse{animation:dmboBetScorePulse 1.8s ease-in-out infinite}#" + c.containerId + " .bet-event-meta{font-size:10px;color:rgba(255,255,255,.56);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-odds{display:flex;flex-wrap:wrap;gap:5px}#" + c.containerId + " .bet-odds span,#" + c.containerId + " .bet-odds a{display:inline-flex;gap:5px;align-items:center;max-width:100%;border-radius:7px;background:#1f2a44;color:#fff;padding:5px 7px;font-size:11px;text-decoration:none}#" + c.containerId + " .bet-odds b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-combo-head{display:flex;align-items:center;justify-content:space-between;gap:8px}#" + c.containerId + " .bet-combo-title{font-size:12px;font-weight:900}#" + c.containerId + " .bet-combo-mult{border-radius:999px;background:rgba(35,209,139,.14);color:#b7ffd8;padding:4px 7px;font-size:11px;font-weight:900}#" + c.containerId + " .bet-legs{display:grid;gap:5px}#" + c.containerId + " .bet-leg{display:flex;align-items:center;gap:6px;min-width:0;font-size:11px;color:rgba(255,255,255,.7)}#" + c.containerId + " .bet-leg span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
       "#" + c.containerId + " .bet-board-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:8px}#" + c.containerId + " .bet-board-tabs button{min-width:0;text-align:left;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.045);color:#fff;padding:7px;cursor:pointer;transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-board-tabs button.on{border-color:rgba(253,34,78,.45);background:rgba(253,34,78,.14)}#" + c.containerId + " .bet-board-tabs span,#" + c.containerId + " .bet-board-tabs b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-board-tabs span{font-size:11px;font-weight:900}#" + c.containerId + " .bet-board-tabs b{margin-top:2px;font-size:10px;color:rgba(255,255,255,.6)}#" + c.containerId + " .bet-board-meta{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:7px}#" + c.containerId + " .bet-board-meta span{border-radius:999px;background:rgba(255,255,255,.07);padding:4px 7px;font-size:10px;color:rgba(255,255,255,.72)}#" + c.containerId + " .bet-leaderboard{display:grid;gap:4px;max-height:310px;overflow:auto;scrollbar-width:thin}#" + c.containerId + " .bet-lrow{display:grid;grid-template-columns:42px minmax(0,1fr) 74px 90px;gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.045);padding:6px;font-size:11px;animation:dmboBetRowIn .18s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-lrow.current{background:rgba(35,209,139,.12);border:1px solid rgba(35,209,139,.28)}#" + c.containerId + " .bet-lrow:nth-child(1),#" + c.containerId + " .bet-lrow:nth-child(2),#" + c.containerId + " .bet-lrow:nth-child(3){background:rgba(253,186,116,.11)}#" + c.containerId + " .bet-rank{font-weight:900;color:#ffd38a}#" + c.containerId + " .bet-player-id,#" + c.containerId + " .bet-prize{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-score-points{font-weight:900;text-align:right;font-variant-numeric:tabular-nums}#" + c.containerId + " .bet-prize{text-align:right;color:rgba(255,255,255,.72)}#" + c.containerId + " .bet-stat-list{display:grid;gap:8px}#" + c.containerId + " .bet-stat{display:grid;gap:7px;padding:9px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bet-stat-head,#" + c.containerId + " .bet-tracker-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}#" + c.containerId + " .bet-stat-strip,#" + c.containerId + " .bet-periods{display:flex;flex-wrap:wrap;gap:5px}#" + c.containerId + " .bet-stat-strip span,#" + c.containerId + " .bet-periods span{display:inline-grid;grid-template-columns:auto auto;gap:4px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:5px 7px;font-size:11px}#" + c.containerId + " .bet-stat-strip b,#" + c.containerId + " .bet-periods b{color:rgba(255,255,255,.58)}#" + c.containerId + " .bet-stat-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}#" + c.containerId + " .bet-stat-grid div{display:grid;grid-template-columns:36px minmax(0,1fr) 36px;gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:6px;font-size:11px}#" + c.containerId + " .bet-stat-grid span{text-align:center;font-weight:900;font-variant-numeric:tabular-nums}#" + c.containerId + " .bet-stat-grid b{text-align:center;color:rgba(255,255,255,.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bet-tracker{display:grid;gap:8px}#" + c.containerId + " .bet-tracker-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:5px}#" + c.containerId + " .bet-tracker-actions button.pill{cursor:pointer}#" + c.containerId + " .bet-tracker-frame{height:320px;border-radius:10px;overflow:hidden;border:1px solid rgba(255,255,255,.1);background:#05070c}#" + c.containerId + " .bet-tracker-frame iframe{display:block;width:100%;height:100%;border:0;border-radius:0;background:#05070c}" +
-      "#" + c.containerId + " .bb-tools{margin:0 0 9px}#" + c.containerId + " .bb-tools input{width:100%;box-sizing:border-box;background:#101827;border-color:rgba(255,255,255,.14)}#" + c.containerId + " .bb-list{display:grid;gap:10px}#" + c.containerId + " .bb-card{display:grid;gap:9px;border-radius:10px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);padding:10px;animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bb-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}#" + c.containerId + " .bb-title{min-width:0;font-size:13px;font-weight:900;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-sub{margin-top:2px;font-size:10px;color:rgba(255,255,255,.58);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-tag{flex:0 0 auto;border-radius:999px;background:rgba(253,34,78,.14);color:#fff;padding:5px 8px;font-size:10px;font-weight:900}#" + c.containerId + " .bb-tabs{display:flex;flex-wrap:wrap;gap:5px;padding:3px;border-radius:9px;background:rgba(255,255,255,.055)}#" + c.containerId + " .bb-tabs button{border:0;border-radius:7px;background:transparent;color:rgba(255,255,255,.68);font-size:10px;font-weight:900;padding:6px 8px;cursor:pointer;transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bb-tabs button.on{background:#fd224e;color:#fff}#" + c.containerId + " .bb-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#" + c.containerId + " .bb-pane{display:grid;gap:8px}#" + c.containerId + " .bb-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#" + c.containerId + " .bb-player{min-width:0;border-radius:9px;background:rgba(255,255,255,.055);padding:8px;display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;align-items:center}#" + c.containerId + " .bb-player.detail{align-items:start}#" + c.containerId + " .bb-avatar{width:42px;height:42px;border-radius:10px;object-fit:cover;background:#1f2a44}#" + c.containerId + " .bb-player b,#" + c.containerId + " .bb-player span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-player b{font-size:12px}#" + c.containerId + " .bb-player span{font-size:10px;color:rgba(255,255,255,.6)}#" + c.containerId + " .bb-player-kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-top:7px}#" + c.containerId + " .bb-player-kv em{min-width:0;border-radius:6px;background:rgba(255,255,255,.045);padding:5px;font-style:normal;font-size:10px;color:rgba(255,255,255,.74)}#" + c.containerId + " .bb-player-kv strong{display:block;margin-bottom:2px;color:rgba(255,255,255,.52);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-facts{display:flex;flex-wrap:wrap;gap:6px}#" + c.containerId + " .bb-facts span{border-radius:7px;background:rgba(255,255,255,.06);padding:5px 7px;font-size:10px;color:rgba(255,255,255,.72)}#" + c.containerId + " .bb-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}#" + c.containerId + " .bb-stat{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:6px;font-size:11px}#" + c.containerId + " .bb-stat span{text-align:center;font-weight:900}#" + c.containerId + " .bb-stat b{text-align:center;color:rgba(255,255,255,.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-images{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}#" + c.containerId + " .bb-images a{min-width:0;text-decoration:none;color:#fff}#" + c.containerId + " .bb-images img{display:block;width:100%;height:58px;border-radius:8px;object-fit:cover;background:#111827;border:1px solid rgba(255,255,255,.08)}#" + c.containerId + " .bb-images span{display:block;margin-top:3px;font-size:9px;color:rgba(255,255,255,.58);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-timeline,#" + c.containerId + " .bb-sources{display:grid;gap:5px}#" + c.containerId + " .bb-time-row{display:grid;grid-template-columns:42px minmax(0,1fr) minmax(0,82px) minmax(0,1fr);gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:6px;font-size:11px}#" + c.containerId + " .bb-time-row b{font-variant-numeric:tabular-nums}#" + c.containerId + " .bb-time-row span,#" + c.containerId + " .bb-time-row strong,#" + c.containerId + " .bb-time-row em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-time-row em{font-style:normal;color:rgba(255,255,255,.58)}#" + c.containerId + " .bb-source{display:grid;grid-template-columns:42px minmax(0,1fr) 72px auto;gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:6px;font-size:10px}#" + c.containerId + " .bb-source span{font-weight:900;color:#b7ffd8}#" + c.containerId + " .bb-source b,#" + c.containerId + " .bb-source em,#" + c.containerId + " .bb-source small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-source em{font-style:normal;color:rgba(255,255,255,.64)}#" + c.containerId + " .bb-source a{color:#fff;text-decoration:none}#" + c.containerId + " .bb-source small{grid-column:2/5;color:rgba(255,255,255,.5)}#" + c.containerId + " .bb-actions{display:flex;flex-wrap:wrap;gap:6px}" +
+      "#" + c.containerId + " .bb-tools{position:relative;margin:0 0 9px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px}#" + c.containerId + " .bb-tools input{width:100%;box-sizing:border-box;background:#101827;border-color:rgba(255,255,255,.14)}#" + c.containerId + " .bb-layout{display:grid;grid-template-columns:minmax(300px,.86fr) minmax(420px,1.34fr);gap:10px;align-items:start}#" + c.containerId + " .bb-catalog{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;max-height:438px;overflow:auto;scrollbar-width:thin;padding-right:2px}#" + c.containerId + " .bb-event-card{position:relative;min-width:0;overflow:hidden;text-align:left;border:1px solid rgba(255,255,255,.09);border-radius:10px;background:#111827;color:#fff;padding:9px;cursor:pointer;animation:dmboBetRowIn .2s cubic-bezier(.23,1,.32,1);transition:border-color .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1),background .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bb-event-card:before{content:\"\";position:absolute;inset:0;background:linear-gradient(90deg,rgba(17,24,39,.98),rgba(17,24,39,.88)),var(--bb-bg);background-size:cover;background-position:center;opacity:.78}#" + c.containerId + " .bb-event-card>*{position:relative}#" + c.containerId + " .bb-event-card.on{border-color:rgba(253,34,78,.62);box-shadow:0 0 0 1px rgba(253,34,78,.22) inset}#" + c.containerId + " .bb-event-card:hover{transform:translateY(-1px);background:#172033}#" + c.containerId + " .bb-event-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:8px}#" + c.containerId + " .bb-event-title{font-size:12px;font-weight:900;line-height:1.25;min-width:0;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}#" + c.containerId + " .bb-score{flex:0 0 auto;border-radius:8px;background:#fd224e;color:#fff;padding:5px 7px;font-size:12px;font-weight:900;font-variant-numeric:tabular-nums}#" + c.containerId + " .bb-event-meta{font-size:10px;color:rgba(255,255,255,.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-bottom:8px}#" + c.containerId + " .bb-teams{display:grid;gap:5px}#" + c.containerId + " .bb-team{display:grid;grid-template-columns:26px minmax(0,1fr);gap:7px;align-items:center;font-size:11px;font-weight:900}#" + c.containerId + " .bb-team img{width:26px;height:26px;border-radius:50%;object-fit:cover;background:#1f2a44;border:1px solid rgba(255,255,255,.1)}#" + c.containerId + " .bb-team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-ac{position:absolute;z-index:4;left:0;right:74px;top:100%;margin-top:4px;display:grid;gap:4px;padding:5px;border-radius:9px;background:#0b1220;border:1px solid rgba(255,255,255,.13);box-shadow:0 14px 32px rgba(0,0,0,.42)}#" + c.containerId + " .bb-ac button{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:7px;align-items:center;width:100%;border:0;border-radius:7px;background:transparent;color:#fff;text-align:left;padding:6px;cursor:pointer}#" + c.containerId + " .bb-ac button:hover{background:rgba(255,255,255,.07)}#" + c.containerId + " .bb-ac img{width:28px;height:28px;border-radius:50%;object-fit:cover;background:#1f2a44}#" + c.containerId + " .bb-ac b,#" + c.containerId + " .bb-ac span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-ac b{font-size:11px}#" + c.containerId + " .bb-ac span{font-size:10px;color:rgba(255,255,255,.58)}#" + c.containerId + " .bb-list{display:grid;gap:10px}#" + c.containerId + " .bb-card{display:grid;gap:9px;border-radius:10px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.08);padding:10px;animation:dmboBetRowIn .22s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bb-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}#" + c.containerId + " .bb-title{min-width:0;font-size:13px;font-weight:900;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-sub{margin-top:2px;font-size:10px;color:rgba(255,255,255,.58);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-tag{flex:0 0 auto;border-radius:999px;background:rgba(253,34,78,.14);color:#fff;padding:5px 8px;font-size:10px;font-weight:900}#" + c.containerId + " .bb-tabs{display:flex;flex-wrap:wrap;gap:5px;padding:3px;border-radius:9px;background:rgba(255,255,255,.055)}#" + c.containerId + " .bb-tabs button{border:0;border-radius:7px;background:transparent;color:rgba(255,255,255,.68);font-size:10px;font-weight:900;padding:6px 8px;cursor:pointer;transition:background .16s cubic-bezier(.23,1,.32,1),transform .16s cubic-bezier(.23,1,.32,1)}#" + c.containerId + " .bb-tabs button.on{background:#fd224e;color:#fff}#" + c.containerId + " .bb-tabs button:focus-visible{outline:2px solid #fff;outline-offset:2px}#" + c.containerId + " .bb-pane{display:grid;gap:8px}#" + c.containerId + " .bb-players{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}#" + c.containerId + " .bb-player{min-width:0;border-radius:9px;background:rgba(255,255,255,.055);padding:8px;display:grid;grid-template-columns:42px minmax(0,1fr);gap:8px;align-items:center}#" + c.containerId + " .bb-player.detail{align-items:start}#" + c.containerId + " .bb-avatar{width:42px;height:42px;border-radius:10px;object-fit:cover;background:#1f2a44}#" + c.containerId + " .bb-player b,#" + c.containerId + " .bb-player span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-player b{font-size:12px}#" + c.containerId + " .bb-player span{font-size:10px;color:rgba(255,255,255,.6)}#" + c.containerId + " .bb-player-kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;margin-top:7px}#" + c.containerId + " .bb-player-kv em{min-width:0;border-radius:6px;background:rgba(255,255,255,.045);padding:5px;font-style:normal;font-size:10px;color:rgba(255,255,255,.74)}#" + c.containerId + " .bb-player-kv strong{display:block;margin-bottom:2px;color:rgba(255,255,255,.52);font-size:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-facts{display:flex;flex-wrap:wrap;gap:6px}#" + c.containerId + " .bb-facts span{border-radius:7px;background:rgba(255,255,255,.06);padding:5px 7px;font-size:10px;color:rgba(255,255,255,.72)}#" + c.containerId + " .bb-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}#" + c.containerId + " .bb-stat{display:grid;grid-template-columns:42px minmax(0,1fr) 42px;gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:6px;font-size:11px}#" + c.containerId + " .bb-stat span{text-align:center;font-weight:900}#" + c.containerId + " .bb-stat b{text-align:center;color:rgba(255,255,255,.62);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-images{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px}#" + c.containerId + " .bb-images a{min-width:0;text-decoration:none;color:#fff}#" + c.containerId + " .bb-images img{display:block;width:100%;height:58px;border-radius:8px;object-fit:cover;background:#111827;border:1px solid rgba(255,255,255,.08)}#" + c.containerId + " .bb-images span{display:block;margin-top:3px;font-size:9px;color:rgba(255,255,255,.58);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-timeline,#" + c.containerId + " .bb-sources{display:grid;gap:5px}#" + c.containerId + " .bb-time-row{display:grid;grid-template-columns:42px minmax(0,1fr) minmax(0,82px) minmax(0,1fr);gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:6px;font-size:11px}#" + c.containerId + " .bb-time-row b{font-variant-numeric:tabular-nums}#" + c.containerId + " .bb-time-row span,#" + c.containerId + " .bb-time-row strong,#" + c.containerId + " .bb-time-row em{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-time-row em{font-style:normal;color:rgba(255,255,255,.58)}#" + c.containerId + " .bb-source{display:grid;grid-template-columns:42px minmax(0,1fr) 72px auto;gap:6px;align-items:center;border-radius:7px;background:rgba(255,255,255,.055);padding:6px;font-size:10px}#" + c.containerId + " .bb-source span{font-weight:900;color:#b7ffd8}#" + c.containerId + " .bb-source b,#" + c.containerId + " .bb-source em,#" + c.containerId + " .bb-source small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}#" + c.containerId + " .bb-source em{font-style:normal;color:rgba(255,255,255,.64)}#" + c.containerId + " .bb-source a{color:#fff;text-decoration:none}#" + c.containerId + " .bb-source small{grid-column:2/5;color:rgba(255,255,255,.5)}#" + c.containerId + " .bb-actions{display:flex;flex-wrap:wrap;gap:6px}" +
       "#" + c.containerId + " .stat-btn{display:inline-flex;vertical-align:middle;align-items:center;justify-content:center;width:24px;height:24px;margin-left:6px;border:0;border-radius:7px;background:#fd224e;color:#fff;cursor:pointer}#" + c.containerId + " .stat-btn:hover{background:#ff4569}#" + c.containerId + " .stat-btn:focus-visible{outline:2px solid #fff;outline-offset:2px}" +
       "#" + c.containerId + " .stat-bars{display:inline-grid;grid-template-columns:repeat(3,3px);align-items:end;gap:2px;height:12px}#" + c.containerId + " .stat-bars i{display:block;width:3px;border-radius:2px;background:#fff}#" + c.containerId + " .stat-bars i:nth-child(1){height:6px}#" + c.containerId + " .stat-bars i:nth-child(2){height:10px}#" + c.containerId + " .stat-bars i:nth-child(3){height:8px}" +
       "#" + c.containerId + " .btn{border:0;border-radius:7px;background:#fd224e;color:#fff;font-size:11px;font-weight:800;padding:6px 8px;cursor:pointer}#" + c.containerId + " .btn2{background:#24314f}" +
@@ -722,7 +751,7 @@
       "@keyframes dmboLiveDot{0%{box-shadow:0 0 0 0 rgba(35,209,139,.45)}70%{box-shadow:0 0 0 7px rgba(35,209,139,0)}100%{box-shadow:0 0 0 0 rgba(35,209,139,0)}}@keyframes dmboLiveGoalPulse{0%{border-color:rgba(253,34,78,.7);background:rgba(253,34,78,.18)}100%{border-color:rgba(255,255,255,.08);background:rgba(255,255,255,.06)}}@keyframes dmboLiveRowIn{0%{opacity:0;transform:translateY(4px)}100%{opacity:1;transform:translateY(0)}}@keyframes dmboBetRowIn{0%{opacity:0;transform:translateY(5px)}100%{opacity:1;transform:translateY(0)}}@keyframes dmboBetScorePulse{0%,100%{box-shadow:0 0 0 0 rgba(253,34,78,0)}50%{box-shadow:0 0 0 5px rgba(253,34,78,.12)}}" +
       "@media(hover:hover) and (pointer:fine){#" + c.containerId + " .bet-board-tabs button:hover,#" + c.containerId + " .bet-odds a:hover,#" + c.containerId + " .bet-tracker-actions .pill:hover{background:rgba(255,255,255,.1);transform:translateY(-1px)}#" + c.containerId + " .bet-lrow:hover,#" + c.containerId + " .bet-stat:hover{background:rgba(255,255,255,.07)}}" +
       "@media(prefers-reduced-motion:reduce){#" + c.containerId + " .bet-row,#" + c.containerId + " .bet-event,#" + c.containerId + " .bet-combo,#" + c.containerId + " .bet-lrow,#" + c.containerId + " .bet-stat,#" + c.containerId + " .bet-score.pulse,#" + c.containerId + " .bb-card,#" + c.containerId + " .bb-tabs button{animation:none;transition:none}#" + c.containerId + " .bet-player i,#dmbo-live-modal .live-dot{animation:none}}" +
-      "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .bet-board-tabs{grid-template-columns:1fr}#" + c.containerId + " .bet-lrow{grid-template-columns:36px minmax(0,1fr) 58px}#" + c.containerId + " .bet-prize{grid-column:2/4;text-align:left}#" + c.containerId + " .bet-stat-grid,#" + c.containerId + " .bb-players,#" + c.containerId + " .bb-stats{grid-template-columns:1fr}#" + c.containerId + " .bb-images{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .bb-time-row{grid-template-columns:42px minmax(0,1fr)}#" + c.containerId + " .bb-time-row strong,#" + c.containerId + " .bb-time-row em{grid-column:2}#" + c.containerId + " .bb-source{grid-template-columns:42px minmax(0,1fr) 64px}#" + c.containerId + " .bb-source a{grid-column:2/4}#" + c.containerId + " .bb-source small{grid-column:2/4}#" + c.containerId + " .bet-tracker-frame{height:260px}#dmbo-live-modal .live-grid{grid-template-columns:1fr}#dmbo-live-modal .live-ticker{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-team-list{grid-template-columns:1fr}#dmbo-live-modal .live-timeline-list div{grid-template-columns:42px minmax(0,1fr)}#dmbo-live-modal .live-timeline-list strong,#dmbo-live-modal .live-timeline-list em{grid-column:2}#dmbo-live-modal .live-animation iframe{height:210px}}";
+      "@media(max-width:980px){#" + c.containerId + "{grid-template-columns:1fr;max-height:calc(100vh - 36px);overflow:auto}#" + c.containerId + " .s2,#" + c.containerId + " .s3{grid-column:auto}#" + c.containerId + " .grid{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .bb-layout{grid-template-columns:1fr}#" + c.containerId + " .bb-catalog{grid-template-columns:1fr;max-height:310px}#" + c.containerId + " .bb-tools{grid-template-columns:1fr}#" + c.containerId + " .bb-ac{right:0}#" + c.containerId + " .bet-board-tabs{grid-template-columns:1fr}#" + c.containerId + " .bet-lrow{grid-template-columns:36px minmax(0,1fr) 58px}#" + c.containerId + " .bet-prize{grid-column:2/4;text-align:left}#" + c.containerId + " .bet-stat-grid,#" + c.containerId + " .bb-players,#" + c.containerId + " .bb-stats{grid-template-columns:1fr}#" + c.containerId + " .bb-images{grid-template-columns:repeat(2,minmax(0,1fr))}#" + c.containerId + " .bb-time-row{grid-template-columns:42px minmax(0,1fr)}#" + c.containerId + " .bb-time-row strong,#" + c.containerId + " .bb-time-row em{grid-column:2}#" + c.containerId + " .bb-source{grid-template-columns:42px minmax(0,1fr) 64px}#" + c.containerId + " .bb-source a{grid-column:2/4}#" + c.containerId + " .bb-source small{grid-column:2/4}#" + c.containerId + " .bet-tracker-frame{height:260px}#dmbo-live-modal .live-grid{grid-template-columns:1fr}#dmbo-live-modal .live-ticker{grid-template-columns:repeat(2,minmax(0,1fr))}#dmbo-live-modal .live-team-list{grid-template-columns:1fr}#dmbo-live-modal .live-timeline-list div{grid-template-columns:42px minmax(0,1fr)}#dmbo-live-modal .live-timeline-list strong,#dmbo-live-modal .live-timeline-list em{grid-column:2}#dmbo-live-modal .live-animation iframe{height:210px}}";
 
     (document.head || document.documentElement).appendChild(s);
   }
@@ -1378,11 +1407,16 @@
     var maxStats = Number(config.maxStats);
     var maxImages = Number(config.maxImages);
 
-    config.title = config.title || "BetBoom Match Lab";
+    config.title = config.title || "BetBoom Match Center";
+    config.catalogPath = config.catalogPath || "/betboom/catalog";
     config.workerPath = config.workerPath || "/betboom/statshub";
     config.lang = String(config.lang || "en").replace(/[^a-z-]/gi, "") || "en";
     config.theme = config.theme || "THEMES_BLACK";
     config.pollMs = isFinite(pollMs) && pollMs >= 60000 ? pollMs : 600000;
+    config.catalogLimit = Math.min(Math.max(Number(config.catalogLimit) || 42, 4), 96);
+    config.catalogMaxTournaments = Math.min(Math.max(Number(config.catalogMaxTournaments) || 12, 1), 18);
+    config.catalogMaxMatchesPerTournament = Math.min(Math.max(Number(config.catalogMaxMatchesPerTournament) || 8, 1), 12);
+    config.catalogSportIds = Array.isArray(config.catalogSportIds) && config.catalogSportIds.length ? config.catalogSportIds : [2, 4, 5, 1, 11, 10];
     config.maxStats = isFinite(maxStats) && maxStats > 0 ? Math.min(maxStats, 20) : 12;
     config.maxImages = isFinite(maxImages) && maxImages > 0 ? Math.min(maxImages, 20) : 14;
     config.tabs = Array.isArray(config.tabs) && config.tabs.length ? config.tabs : ["overview", "players", "stats", "timeline", "images", "sources"];
@@ -1454,6 +1488,20 @@
     });
   }
 
+  function betboomCatalogUrl(c, config) {
+    var panel = config || {};
+    var sportIds = Array.isArray(panel.catalogSportIds) ? panel.catalogSportIds.join(",") : "";
+
+    return proxy(c || cfg(), panel.catalogPath || "/betboom/catalog", {
+      lang: panel.lang || "en",
+      q: betboom.query || "",
+      sportIds: sportIds,
+      limit: panel.catalogLimit || 42,
+      maxTournaments: panel.catalogMaxTournaments || 12,
+      maxMatchesPerTournament: panel.catalogMaxMatchesPerTournament || 8
+    });
+  }
+
   function betboomSafeUrl(value) {
     var text = betbyText(value);
 
@@ -1463,6 +1511,62 @@
 
   function betboomText(value) {
     return betbyText(value);
+  }
+
+  function betboomScoreText(score) {
+    if (!score) return "";
+    if (typeof score === "string") return betboomText(score);
+    return betboomText(score.text || [score.home, score.away].filter(function (value) {
+      return value !== "" && value != null;
+    }).join("-"));
+  }
+
+  function betboomCatalogRow(row) {
+    var item = row || {};
+    var players = Array.isArray(item.players) ? item.players.map(function (player, index) {
+      return betboomPlayer(player, index === 0 ? "home" : "away");
+    }).filter(function (player) {
+      return !!(player.name || player.imageUrl || player.flagUrl);
+    }) : [];
+    var home = players[0] || {};
+    var away = players[1] || {};
+    var score = betboomScoreText(item.score);
+
+    return {
+      id: betboomText(item.matchId || item.id),
+      matchId: betboomText(item.matchId || item.id),
+      title: betboomText(item.title) || [home.name, away.name].filter(Boolean).join(" vs "),
+      subtitle: betboomText(item.subtitle),
+      sport: betboomText(item.sport),
+      sportId: betboomText(item.sportId),
+      category: betboomText(item.category),
+      categoryId: betboomText(item.categoryId),
+      tournament: betboomText(item.tournament),
+      tournamentId: betboomText(item.tournamentId),
+      startTime: betboomText(item.startTime),
+      startTimeText: betboomText(item.startTimeText),
+      status: betboomText(item.status),
+      score: score,
+      openUrl: betboomSafeUrl(item.openUrl),
+      homeImageUrl: betboomSafeUrl(item.homeImageUrl || (home && home.imageUrl)),
+      awayImageUrl: betboomSafeUrl(item.awayImageUrl || (away && away.imageUrl)),
+      backgroundImageUrl: betboomSafeUrl(item.backgroundImageUrl || item.sportIconUrl || item.categoryIconUrl || item.homeImageUrl || item.awayImageUrl),
+      sportIconUrl: betboomSafeUrl(item.sportIconUrl),
+      categoryIconUrl: betboomSafeUrl(item.categoryIconUrl),
+      players: players,
+      facts: Array.isArray(item.facts) ? item.facts : [],
+      stats: Array.isArray(item.stats) ? item.stats : [],
+      timeline: Array.isArray(item.timeline) ? item.timeline : [],
+      images: Array.isArray(item.images) ? item.images : []
+    };
+  }
+
+  function betboomCatalogRows(payload) {
+    return (Array.isArray(payload && payload.matches) ? payload.matches : [])
+      .map(betboomCatalogRow)
+      .filter(function (row) {
+        return !!row.matchId;
+      });
   }
 
   function betboomPlayer(player, side) {
@@ -1650,8 +1754,12 @@
       title: title || betboomText(panel.title) || "BetBoom match",
       subtitle: subtitle || betboomText(match.subtitle || data.subtitle || panel.subtitle),
       status: betboomText(match.status || data.status),
+      score: betboomScoreText(match.score || data.score || panel.score || (panel.matchConfig && panel.matchConfig.score)),
       statUrl: betboomSafeUrl(match.statUrl || data.statUrl || data.stat_url),
       openUrl: betboomSafeUrl(match.openUrl || data.openUrl || panel.openUrl),
+      homeImageUrl: betboomSafeUrl(match.homeImageUrl || data.homeImageUrl || panel.homeImageUrl || (panel.matchConfig && panel.matchConfig.homeImageUrl)),
+      awayImageUrl: betboomSafeUrl(match.awayImageUrl || data.awayImageUrl || panel.awayImageUrl || (panel.matchConfig && panel.matchConfig.awayImageUrl)),
+      backgroundImageUrl: betboomSafeUrl(match.backgroundImageUrl || data.backgroundImageUrl || panel.backgroundImageUrl || (panel.matchConfig && panel.matchConfig.backgroundImageUrl)),
       facts: betboomFactRows(match, data.facts),
       players: players,
       stats: stats,
@@ -3535,7 +3643,12 @@
       row && row.id,
       row && row.title,
       row && row.subtitle,
-      row && row.status
+      row && row.status,
+      row && row.score,
+      row && row.sport,
+      row && row.category,
+      row && row.tournament,
+      /world cup/i.test(String((row && row.title || "") + " " + (row && row.subtitle || "") + " " + (row && row.tournament || ""))) ? "fifa fifa world cup" : ""
     ];
 
     (row && row.players || []).forEach(function (player) {
@@ -3560,6 +3673,69 @@
     });
   }
 
+  function betboomFilteredCatalog() {
+    return betboomFilteredMatches(betboom.catalog || []);
+  }
+
+  function betboomSelectedCatalog() {
+    var rows = betboom.catalog || [];
+    var selected = betboom.selectedId;
+    var found = null;
+
+    rows.some(function (row) {
+      if (String(row.matchId || row.id) === String(selected)) {
+        found = row;
+        return true;
+      }
+      return false;
+    });
+
+    return found || rows[0] || null;
+  }
+
+  function betboomSuggestionRows(rows) {
+    var query = clean(betboom.query);
+
+    if (!query) return [];
+    return (rows || []).slice(0, 8);
+  }
+
+  function betboomSuggestionsHtml(rows) {
+    var suggestions = betboomSuggestionRows(rows);
+
+    if (!suggestions.length) return "";
+    return '<div class="bb-ac" role="listbox">' + suggestions.map(function (row) {
+      var image = row.homeImageUrl || row.awayImageUrl || row.sportIconUrl || row.categoryIconUrl || row.backgroundImageUrl;
+      return '<button type="button" data-dmbo-betboom-suggest="' + esc(row.matchId || row.id) + '">' +
+        (image ? '<img src="' + esc(image) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '<span class="init">' + esc(initials(row.title)) + '</span>') +
+        '<b>' + esc(row.title || "BetBoom match") + '</b>' +
+        '<span>' + esc(row.score || row.sport || row.status || "") + '</span>' +
+        '</button>';
+    }).join("") + '</div>';
+  }
+
+  function betboomCatalogCardHtml(row) {
+    var selected = String(row.matchId || row.id) === String(betboom.selectedId || "");
+    var home = row.players && row.players[0] || {};
+    var away = row.players && row.players[1] || {};
+    var bg = row.backgroundImageUrl ? " style=\"--bb-bg:url('" + esc(row.backgroundImageUrl) + "')\"" : "";
+
+    return '<button type="button" class="bb-event-card ' + (selected ? "on" : "") + '" data-dmbo-betboom-select="' + esc(row.matchId || row.id) + '"' + bg + '>' +
+      '<div class="bb-event-top"><div class="bb-event-title">' + esc(row.title || "BetBoom match") + '</div>' +
+      (row.score ? '<div class="bb-score">' + esc(row.score) + '</div>' : '') + '</div>' +
+      '<div class="bb-event-meta">' + esc(row.subtitle || row.startTimeText || row.status || "") + '</div>' +
+      '<div class="bb-teams">' +
+        '<div class="bb-team">' + (home.imageUrl ? '<img src="' + esc(home.imageUrl) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '<span class="init">' + esc(initials(home.name || row.title)) + '</span>') + '<span>' + esc(home.name || "Home") + '</span></div>' +
+        '<div class="bb-team">' + (away.imageUrl ? '<img src="' + esc(away.imageUrl) + '" alt="" loading="lazy" onerror="this.style.display=\'none\'">' : '<span class="init">' + esc(initials(away.name || row.title)) + '</span>') + '<span>' + esc(away.name || "Away") + '</span></div>' +
+      '</div>' +
+      '</button>';
+  }
+
+  function betboomCatalogHtml(rows) {
+    if (!rows.length) return '<div class="m">No BetBoom matches match this search.</div>';
+    return '<div class="bb-catalog">' + rows.map(betboomCatalogCardHtml).join("") + '</div>';
+  }
+
   function betboomPlayerHtml(players, detailed) {
     if (!players || !players.length) return "";
 
@@ -3577,7 +3753,8 @@
       ].filter(Boolean).join(" · ");
       var media = player.imageUrl ?
         '<img class="bb-avatar" src="' + esc(player.imageUrl) + '" alt="' + esc(player.name || "Player") + '" loading="lazy" onerror="this.style.display=\'none\'">' :
-        '<span class="init" style="width:38px;height:38px">' + esc(initials(player.name)) + '</span>';
+        (player.flagUrl ? '<img class="bb-avatar" src="' + esc(player.flagUrl) + '" alt="' + esc(player.country || player.name || "Flag") + '" loading="lazy" onerror="this.style.display=\'none\'">' :
+        '<span class="init" style="width:38px;height:38px">' + esc(initials(player.name)) + '</span>');
       var details = [
         ["Full name", player.fullName],
         ["Country", player.countryCode ? player.country + " (" + player.countryCode + ")" : player.country],
@@ -3710,9 +3887,41 @@
       '</div>';
   }
 
+  function betboomCatalogFallbackDetail(match, config) {
+    var row = betboomCatalogRow(match || {});
+
+    return betboomMatchSummary({
+      match: {
+        matchId: row.matchId,
+        title: row.title,
+        subtitle: row.subtitle,
+        tournament: row.tournament,
+        category: row.category,
+        sport: row.sport,
+        status: row.status || "Catalog",
+        score: row.score,
+        openUrl: row.openUrl,
+        homeImageUrl: row.homeImageUrl,
+        awayImageUrl: row.awayImageUrl,
+        backgroundImageUrl: row.backgroundImageUrl
+      },
+      players: row.players || [],
+      stats: row.stats || [],
+      facts: row.facts || [],
+      timeline: row.timeline || [],
+      images: row.images || []
+    }, {
+      openUrl: row.openUrl || (config && config.openUrl),
+      matchConfig: row,
+      maxStats: config && config.maxStats,
+      maxImages: config && config.maxImages
+    });
+  }
+
   function betboomBindControls(c, widget, focusSearch) {
     var box = qs("dmbo-betboom-match");
     var input;
+    var config = betboomMatchConfig(widget);
 
     if (!box) return;
 
@@ -3723,11 +3932,32 @@
       };
     });
 
+    Array.prototype.forEach.call(box.querySelectorAll("[data-dmbo-betboom-select],[data-dmbo-betboom-suggest]"), function (button) {
+      button.onclick = function () {
+        var id = button.getAttribute("data-dmbo-betboom-select") || button.getAttribute("data-dmbo-betboom-suggest") || "";
+        var row = (betboom.catalog || []).filter(function (item) {
+          return String(item.matchId || item.id) === String(id);
+        })[0];
+
+        betboom.selectedId = id;
+        if (button.getAttribute("data-dmbo-betboom-suggest") && row) betboom.query = row.title || "";
+        betboomLoadSelectedDetail(c, widget, row || betboomSelectedCatalog());
+      };
+    });
+
     input = box.querySelector("[data-dmbo-betboom-search]");
     if (input) {
       input.oninput = function () {
         betboom.query = input.value || "";
         betboomMatchRender(c, widget, true);
+      };
+      input.onkeydown = function (event) {
+        var rows = betboomFilteredCatalog();
+        if (event.key === "Enter" && rows[0]) {
+          event.preventDefault();
+          betboom.selectedId = rows[0].matchId || rows[0].id;
+          betboomLoadSelectedDetail(c, widget, rows[0]);
+        }
       };
       if (focusSearch) {
         try {
@@ -3736,45 +3966,68 @@
         } catch (e) {}
       }
     }
+
+    Array.prototype.forEach.call(box.querySelectorAll("[data-dmbo-betboom-refresh]"), function (button) {
+      button.onclick = function () {
+        betboomMatchLoad(c, widget, true);
+      };
+    });
+
+    if (config && !config.tabs) return;
   }
 
   function betboomMatchRender(c, widget, focusSearch) {
     var box = qs("dmbo-betboom-match");
     var config = betboomMatchConfig(widget);
     var updated = betboom.updatedAt ? dateText(betboom.updatedAt) : "";
-    var count = (betboom.matches || []).length;
-    var rows = betboomFilteredMatches(betboom.matches || []);
+    var catalogRows = betboomFilteredCatalog();
+    var catalogCount = (betboom.catalog || []).length;
+    var selected = betboomSelectedCatalog();
+    var details = betboom.matches || [];
+    var status = betboom.loading ? "Loading" : (catalogCount ? catalogRows.length + "/" + catalogCount + " matches" : "Ready");
     var html;
 
     if (!box) return;
 
-    html = '<div class="t"><span>' + esc(config.title) + '</span><span class="m">' + esc(betboom.loading ? "Loading" : (count ? rows.length + "/" + count + " match" + (count === 1 ? "" : "es") : "Ready")) + '</span></div>';
-    html += '<div class="bb-tools"><input type="search" data-dmbo-betboom-search="1" value="' + esc(betboom.query || "") + '" placeholder="Search matches, players, IDs, feeds" autocomplete="off"></div>';
+    html = '<div class="t"><span>' + esc(config.title) + '</span><span class="m">' + esc(status) + '</span></div>';
+    html += '<div class="bb-tools"><input type="search" data-dmbo-betboom-search="1" value="' + esc(betboom.query || "") + '" placeholder="' + esc(config.searchPlaceholder || "Search BetBoom matches, FIFA, football, players") + '" autocomplete="off"><button class="btn btn2" type="button" data-dmbo-betboom-refresh="1">Refresh</button>' + betboomSuggestionsHtml(catalogRows) + '</div>';
 
     if (betboom.error) {
-      html += '<div class="m" style="margin-bottom:8px">BetBoom Worker route is pending or unavailable. Showing configured fallback links.</div>';
+      html += '<div class="m" style="margin-bottom:8px">' + esc(betboom.error) + '</div>';
     }
 
-    if (!count && betboom.loading) {
-      box.innerHTML = html + '<div class="m">Loading BetBoom match data...</div>';
+    if (!catalogCount && betboom.loading) {
+      box.innerHTML = html + '<div class="m">Loading BetBoom match catalog...</div>';
       betboomBindControls(c, widget, focusSearch);
       return;
     }
 
-    if (!count) {
-      box.innerHTML = html + '<div class="m">No BetBoom matches configured.</div>';
+    if (!catalogCount && details.length) {
+      html += '<div class="bb-list">' + details.map(betboomCardHtml).join("") + '</div>';
+      box.innerHTML = html;
       betboomBindControls(c, widget, focusSearch);
       return;
     }
 
-    if (!rows.length) {
-      box.innerHTML = html + '<div class="m">No BetBoom matches match this search.</div>';
+    if (!catalogCount) {
+      box.innerHTML = html + '<div class="m">No BetBoom catalog rows loaded yet.</div>';
       betboomBindControls(c, widget, focusSearch);
       return;
     }
 
-    html += '<div class="bb-list">' + rows.map(betboomCardHtml).join("") + '</div>';
-    if (updated) html += '<div class="m" style="margin-top:8px">Updated ' + esc(updated) + (betboom.loading ? " · refreshing" : "") + '</div>';
+    html += '<div class="bb-layout"><div>' + betboomCatalogHtml(catalogRows) + '</div><div class="bb-list">';
+    if (betboom.detailLoading && !details.length) {
+      html += '<div class="m">Loading selected match details...</div>';
+    } else if (details.length) {
+      html += details.map(betboomCardHtml).join("");
+    } else if (selected) {
+      html += betboomCardHtml(betboomCatalogFallbackDetail(selected, config));
+    } else {
+      html += '<div class="m">Select a BetBoom match.</div>';
+    }
+    html += '</div></div>';
+    if (updated) html += '<div class="m" style="margin-top:8px">Updated ' + esc(updated) + (betboom.loading || betboom.detailLoading ? " · refreshing" : "") + '</div>';
+
     box.innerHTML = html;
     betboomBindControls(c, widget, focusSearch);
   }
@@ -3802,51 +4055,96 @@
     });
   }
 
-  function betboomMatchLoad(c, widget) {
+  function betboomLoadSelectedDetail(c, widget, match) {
     var config = betboomMatchConfig(widget);
-    var matches = config.matches || [];
-    var pending = matches.length;
-    var failures = 0;
-    var rows = [];
+    var selected = match || betboomSelectedCatalog();
+    var id = selected && (selected.matchId || selected.id);
 
-    if (betboom.loading) return;
-    if (!pending) {
+    if (!selected || !id) {
       betboom.matches = [];
       betboomMatchRender(c, widget);
       return;
     }
 
+    betboom.selectedId = String(id);
+    if (betboom.detailsById[id]) {
+      betboom.matches = [betboom.detailsById[id]];
+      betboomMatchRender(c, widget);
+      return;
+    }
+
+    betboom.detailLoading = true;
+    betboom.matches = [betboomCatalogFallbackDetail(selected, config)];
+    betboomMatchRender(c, widget);
+
+    getJson(betboomMatchUrl(c, config, selected), "omit", function (error, data) {
+      var summary;
+
+      betboom.detailLoading = false;
+      if (error) {
+        summary = betboomCatalogFallbackDetail(selected, config);
+        betboom.error = "";
+      } else {
+        summary = betboomMatchSummary(data, {
+          openUrl: selected.openUrl || config.openUrl,
+          matchConfig: selected,
+          score: selected.score,
+          homeImageUrl: selected.homeImageUrl,
+          awayImageUrl: selected.awayImageUrl,
+          backgroundImageUrl: selected.backgroundImageUrl,
+          maxStats: config.maxStats,
+          maxImages: config.maxImages
+        });
+        betboom.error = "";
+      }
+
+      betboom.detailsById[id] = summary;
+      betboom.matches = [summary];
+      betboom.updatedAt = Date.now();
+      betboomMatchRender(c, widget);
+    });
+  }
+
+  function betboomMatchLoad(c, widget, force) {
+    var config = betboomMatchConfig(widget);
+
+    if (betboom.loading && !force) return;
     betboom.loading = true;
     betboom.error = "";
     betboomMatchRender(c, widget);
 
-    function done(index, error, data, match) {
-      if (error) {
-        failures += 1;
-        rows[index] = betboomFallbackMatches({ matches: [match], maxStats: config.maxStats, maxImages: config.maxImages })[0];
-      } else {
-        rows[index] = betboomMatchSummary(data, {
-          openUrl: match.openUrl || config.openUrl,
-          matchConfig: match,
-          maxStats: config.maxStats,
-          maxImages: config.maxImages
-        });
-      }
-
-      pending -= 1;
-      if (pending > 0) return;
+    getJson(betboomCatalogUrl(c, config), "omit", function (error, data) {
+      var rows;
+      var selected;
 
       betboom.loading = false;
-      betboom.error = failures ? failures + " BetBoom request(s) failed" : "";
-      betboom.matches = rows.filter(Boolean);
-      betboom.updatedAt = Date.now();
-      betboomMatchRender(c, widget);
-    }
+      if (error) {
+        betboom.error = "BetBoom catalog Worker route is pending or unavailable. Showing configured fallback.";
+        betboom.catalog = [];
+        betboom.matches = betboomFallbackMatches(config);
+        betboom.updatedAt = Date.now();
+        betboomMatchRender(c, widget);
+        return;
+      }
 
-    matches.forEach(function (match, index) {
-      getJson(betboomMatchUrl(c, config, match), "omit", function (error, data) {
-        done(index, error, data, match);
-      });
+      rows = betboomCatalogRows(data);
+      betboom.catalog = rows;
+      if (!rows.length) {
+        betboom.matches = betboomFallbackMatches(config);
+        betboom.error = "No BetBoom catalog matches returned.";
+        betboom.updatedAt = Date.now();
+        betboomMatchRender(c, widget);
+        return;
+      }
+
+      selected = betboomSelectedCatalog();
+      if (!selected || !betboom.selectedId) {
+        selected = rows[0];
+        betboom.selectedId = selected.matchId || selected.id;
+      }
+
+      betboom.updatedAt = Date.now();
+      betboomLoadSelectedDetail(c, widget, selected);
     });
   }
 
@@ -4672,7 +4970,7 @@
     }
 
     if (panelEnabled(widget, "betboomMatch")) {
-      html += '<div class="b d s2" id="dmbo-betboom-match"><div class="t">BetBoom Match Lab</div><div class="m">Loading...</div></div>';
+      html += '<div class="b d s3" id="dmbo-betboom-match"><div class="t">BetBoom Match Center</div><div class="m">Loading...</div></div>';
     }
 
     if (panelEnabled(widget, "top")) {
@@ -4870,6 +5168,8 @@
     window.__DMBO_WIDGET_TESTS__ = {
       accountBalanceDisplay: accountBalanceDisplay,
       accountDataEndpoints: accountDataEndpoints,
+      betboomCatalogRows: betboomCatalogRows,
+      betboomCatalogUrl: betboomCatalogUrl,
       betboomMatchConfig: betboomMatchConfig,
       betboomMatchSummary: betboomMatchSummary,
       betboomMatchUrl: betboomMatchUrl,

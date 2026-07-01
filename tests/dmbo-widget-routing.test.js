@@ -179,21 +179,38 @@ test("default Betby feed panel uses public read-only demo feed only", () => {
   );
 });
 
-test("default BetBoom match panel uses the Worker statshub proxy", () => {
+test("default BetBoom match panel uses the Worker catalog and statshub proxies", () => {
   const api = loadWidgetTestApi();
   const manifest = api.createDefaultManifest();
   const panels = manifest.pages[0].widgets[0].panels;
   const betboomMatch = panels.find((panel) => panel && typeof panel === "object" && panel.name === "betboomMatch");
 
   assert.equal(api.panelEnabled(manifest.pages[0].widgets[0], "betboomMatch"), true);
-  assert.equal(betboomMatch.title, "BetBoom Match Lab");
+  assert.equal(betboomMatch.title, "BetBoom Match Center");
+  assert.equal(betboomMatch.catalogPath, "/betboom/catalog");
   assert.equal(betboomMatch.workerPath, "/betboom/statshub");
   assert.equal(betboomMatch.lang, "en");
   assert.equal(betboomMatch.pollMs, 600000);
+  assert.deepEqual(plain(betboomMatch.catalogSportIds), [2, 4, 5, 1, 11, 10]);
+  assert.equal(betboomMatch.catalogLimit, 42);
+  assert.equal(betboomMatch.catalogMaxTournaments, 12);
+  assert.equal(betboomMatch.catalogMaxMatchesPerTournament, 8);
   assert.equal(betboomMatch.maxStats, 12);
   assert.equal(betboomMatch.maxImages, 14);
   assert.equal(betboomMatch.matches.length, 1);
   assert.deepEqual(plain(betboomMatch.tabs), ["overview", "players", "stats", "timeline", "images", "sources"]);
+
+  const catalogUrl = api.betboomCatalogUrl(
+    { sportsProxyUrl: "https://sports.hypercubik.workers.dev/" },
+    betboomMatch
+  );
+  const catalogParsed = new URL(catalogUrl);
+
+  assert.equal(catalogParsed.origin + catalogParsed.pathname, "https://sports.hypercubik.workers.dev/");
+  assert.equal(catalogParsed.searchParams.get("path"), "/betboom/catalog");
+  assert.equal(catalogParsed.searchParams.get("sportIds"), "2,4,5,1,11,10");
+  assert.equal(catalogParsed.searchParams.get("limit"), "42");
+  assert.equal(catalogParsed.searchParams.get("maxTournaments"), "12");
 
   const url = api.betboomMatchUrl(
     { sportsProxyUrl: "https://sports.hypercubik.workers.dev/" },
@@ -325,6 +342,51 @@ test("BetBoom match summary keeps public stats, players, and images", () => {
     { label: "Medvedev D.", url: "https://static.sporthub.bet/medvedev.webp" },
     { label: "Neutral", url: "https://img-cdn001.akamaized.net/ls/crest/medium/int.png" }
   ]);
+});
+
+test("BetBoom catalog rows keep football World Cup images and metadata", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.betboomCatalogRows({
+    matches: [
+      {
+        matchId: "6001001",
+        title: "Brazil vs Norway",
+        subtitle: "World Cup 2026 · World · Football",
+        sport: "Football",
+        sportId: "2",
+        category: "World",
+        tournament: "World Cup 2026",
+        tournamentId: "25463",
+        status: "Scheduled",
+        score: { text: "0-0" },
+        homeImageUrl: "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/home.webp",
+        awayImageUrl: "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/away.webp",
+        backgroundImageUrl: "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/sports/football.svg",
+        openUrl: "https://betboom.ru/sport/football/133/25463/6001001",
+        players: [
+          {
+            side: "home",
+            name: "Brazil",
+            imageUrl: "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/home.webp"
+          },
+          {
+            side: "away",
+            name: "Norway",
+            imageUrl: "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/away.webp"
+          }
+        ]
+      }
+    ]
+  });
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].matchId, "6001001");
+  assert.equal(rows[0].sport, "Football");
+  assert.equal(rows[0].tournament, "World Cup 2026");
+  assert.equal(rows[0].score, "0-0");
+  assert.equal(rows[0].homeImageUrl, "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/home.webp");
+  assert.equal(rows[0].players[0].imageUrl, rows[0].homeImageUrl);
+  assert.equal(rows[0].openUrl, "https://betboom.ru/sport/football/133/25463/6001001");
 });
 
 test("Betby feed rows normalize masked public bets without private account fields", () => {

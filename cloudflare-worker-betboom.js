@@ -5,7 +5,7 @@ const WORKER_URL = "https://sports.hypercubik.workers.dev/";
 const WIDGET_SOURCE_URL =
   "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/widget-v12.js";
 
-const WIDGET_VERSION = "20260701-betboom-center-1";
+const WIDGET_VERSION = "20260701-betboom-catalog-1";
 
 const MATCHTRACKER_RESOLVER_PATH = "/matchtracker-resolver/resolve";
 const MATCHTRACKER_QUERY_KEYS = new Set([
@@ -23,6 +23,11 @@ const MATCHTRACKER_QUERY_KEYS = new Set([
 ]);
 
 const BETBOOM_API_BASE = "https://siteapi.betboom.ru/api/site_api/v1";
+const BETBOOM_CATALOG_DEFAULT_SPORT_IDS = [2, 4, 5, 1, 11, 10];
+const BETBOOM_CATALOG_MAX_SPORTS = 8;
+const BETBOOM_CATALOG_MAX_TOURNAMENTS = 18;
+const BETBOOM_CATALOG_MAX_MATCHES_PER_TOURNAMENT = 12;
+const BETBOOM_CATALOG_MAX_MATCHES = 96;
 const STATSHUB_CDN_BASE = "https://st-cdn001.akamaized.net";
 const STATSHUB_APP_BASE = "https://sh-cdn001.akamaized.net";
 const STATSHUB_FEED_REFERER = "https://sh-cdn001.akamaized.net/";
@@ -95,6 +100,7 @@ function isAllowedPath(path) {
 
   return (
     path === MATCHTRACKER_RESOLVER_PATH ||
+    path === "/betboom/catalog" ||
     path === "/betboom/match-details" ||
     path === "/betboom/statshub" ||
     path.startsWith("/partner-api/sportsbook/public/v2/") ||
@@ -116,6 +122,7 @@ function isAssetPath(path) {
 
 function cacheControlForPath(path) {
   if (path === MATCHTRACKER_RESOLVER_PATH) return "no-store";
+  if (path === "/betboom/catalog") return "public, max-age=45";
   if (path === "/betboom/match-details" || path === "/betboom/statshub") return "public, max-age=60";
   return isAssetPath(path) ? "public, max-age=86400" : "public, max-age=5";
 }
@@ -447,6 +454,410 @@ async function fetchBetboomDetails(matchId, lang, theme) {
   }
 
   return data;
+}
+
+async function betboomApiPost(path, body) {
+  const upstream = await fetch(BETBOOM_API_BASE + path, {
+    method: "POST",
+    headers: {
+      accept: "application/json",
+      "content-type": "application/json",
+      "x-platform": "web",
+      origin: "https://betboom.ru",
+      referer: "https://betboom.ru/",
+      "user-agent": STATSHUB_UA
+    },
+    body: JSON.stringify(body || {})
+  });
+  const text = await upstream.text();
+  let data = null;
+
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    data = { raw: text };
+  }
+
+  if (!upstream.ok || (data && Number(data.code) >= 400)) {
+    throw new Error("BetBoom API " + path + " HTTP " + upstream.status + " code " + cleanText(data && data.code));
+  }
+
+  return data || {};
+}
+
+function numericListParam(requestUrl, key, fallback, limit) {
+  const values = [];
+  const seen = new Set();
+  const max = Math.max(1, Number(limit) || 20);
+
+  function add(value) {
+    const id = Number(String(value || "").trim());
+    if (!Number.isFinite(id) || id <= 0 || seen.has(id)) return;
+    seen.add(id);
+    values.push(id);
+  }
+
+  requestUrl.searchParams.getAll(key).forEach((value) => {
+    String(value || "").split(/[,\s|]+/).forEach(add);
+  });
+
+  if (!values.length && Array.isArray(fallback)) {
+    fallback.forEach(add);
+  }
+
+  return values.slice(0, max);
+}
+
+function boundedNumberParam(requestUrl, key, fallback, min, max) {
+  const value = Number(requestUrl.searchParams.get(key));
+  const out = Number.isFinite(value) ? value : fallback;
+  return Math.max(min, Math.min(max, out));
+}
+
+function sportSlug(name) {
+  const text = cleanText(name).toLowerCase();
+  const aliases = {
+    "ice hockey": "ice-hockey",
+    "table tennis": "table-tennis",
+    "american football": "american-football",
+    "australian rules": "australian-rules",
+    "esports": "esport",
+    "e-sport": "esport"
+  };
+
+  return aliases[text] || text.replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "sport";
+}
+
+function firstIconUrl(icon) {
+  if (!icon || typeof icon !== "object") return "";
+  return safeImageUrl(icon.svg || icon.webp || icon.png || icon.url || icon.image || "");
+}
+
+function betboomOpenUrl(row, tournament) {
+  const sport = sportSlug(row.sport_name || tournament.sportName || tournament.sport);
+  const categoryId = cleanText(row.category_id || tournament.categoryId);
+  const tournamentId = cleanText(row.tournament_id || tournament.tournamentId);
+  const matchId = cleanText(row.match_id);
+
+  if (!categoryId || !tournamentId || !matchId) return "";
+  return `https://betboom.ru/sport/${encodeURIComponent(sport)}/${encodeURIComponent(categoryId)}/${encodeURIComponent(tournamentId)}/${encodeURIComponent(matchId)}`;
+}
+
+function formatBetboomDateText(value) {
+  const date = new Date(value || "");
+  if (!Number.isFinite(date.getTime())) return cleanText(value);
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      timeZone: "UTC",
+      hour12: false
+    }).format(date) + " UTC";
+  } catch (e) {
+    return date.toISOString().replace("T", " ").replace(/\.\d+Z$/, " UTC");
+  }
+}
+
+function scorePair(row) {
+  const scores = Array.isArray(row && row.scores) ? row.scores : [];
+  const total = scores.find((score) => cleanText(score.type) === "SCORE_TYPES_TOTAL") || scores[0] || {};
+  const home = cleanText(total.home_score_str || total.home_score);
+  const away = cleanText(total.away_score_str || total.away_score);
+
+  return {
+    home: home || "",
+    away: away || "",
+    text: home || away ? `${home || "0"}-${away || "0"}` : ""
+  };
+}
+
+function periodScoreRows(row) {
+  const periods = Array.isArray(row && row.period_scores) ? row.period_scores : [];
+
+  return periods.map((period) => {
+    const score = (Array.isArray(period.scores) ? period.scores : [])[0] || {};
+    return statPair(
+      "Period " + cleanText(period.number || period.id || ""),
+      score.home_score_str || score.home_score,
+      score.away_score_str || score.away_score,
+      ""
+    );
+  }).filter(Boolean);
+}
+
+function normalizeBetboomTournament(row) {
+  const tournamentId = cleanText(row && (row.tournament_id || row.tournamentId || row.id));
+  const sportId = cleanText(row && (row.sport_id || row.sportId));
+  const categoryId = cleanText(row && (row.category_id || row.categoryId));
+
+  return {
+    id: tournamentId,
+    tournamentId,
+    title: cleanText(row && (row.tournament_title || row.tournamentTitle || row.title || row.name)),
+    sport: cleanText(row && (row.sport_name || row.sportName)),
+    sportId,
+    category: cleanText(row && (row.category_name || row.categoryName)),
+    categoryId,
+    countMatches: Number(row && (row.count_matches || row.countMatches)) || 0,
+    order: Number(row && (row.tournament_order_index || row.order)) || 999999,
+    showCategory: !!(row && row.show_category),
+    sportIconUrl: firstIconUrl(row && row.sport_icon),
+    categoryIconUrl: firstIconUrl(row && row.category_icon)
+  };
+}
+
+function normalizeBetboomCatalogMatch(row, tournament) {
+  const source = row || {};
+  const parent = tournament || {};
+  const matchId = cleanText(source.match_id || source.matchId || source.id);
+  const homeName = cleanText(source.home_team_name || source.homeTeamName);
+  const awayName = cleanText(source.away_team_name || source.awayTeamName);
+  const homeImageUrl = safeImageUrl(source.home_team_logo_url || source.homeTeamLogoUrl);
+  const awayImageUrl = safeImageUrl(source.away_team_logo_url || source.awayTeamLogoUrl);
+  const score = scorePair(source);
+  const sport = cleanText(source.sport_name || parent.sport);
+  const category = cleanText(source.category_name || parent.category);
+  const tournamentName = cleanText(source.tournament_title || parent.title);
+  const sportIconUrl = safeImageUrl(parent.sportIconUrl);
+  const categoryIconUrl = safeImageUrl(parent.categoryIconUrl);
+  const startTime = cleanText(source.start_dttm || source.startTime);
+  const status = score.text ? "Result " + score.text : (Date.parse(startTime) > Date.now() ? "Scheduled" : "Listed");
+  const stats = [score.text ? statPair("Score", score.home, score.away, "") : null].concat(periodScoreRows(source)).filter(Boolean);
+  const images = [
+    { label: homeName || "Home", url: homeImageUrl },
+    { label: awayName || "Away", url: awayImageUrl },
+    { label: sport || "Sport", url: sportIconUrl },
+    { label: category || "Category", url: categoryIconUrl }
+  ].filter((image) => image.url);
+  const backgroundImageUrl = homeImageUrl || awayImageUrl || sportIconUrl || categoryIconUrl;
+
+  return {
+    id: matchId,
+    matchId,
+    title: [homeName, awayName].filter(Boolean).join(" vs ") || tournamentName || "BetBoom match",
+    subtitle: [tournamentName, category, sport].filter(Boolean).join(" · "),
+    sport,
+    sportId: cleanText(source.sport_id || parent.sportId),
+    category,
+    categoryId: cleanText(source.category_id || parent.categoryId),
+    tournament: tournamentName,
+    tournamentId: cleanText(source.tournament_id || parent.tournamentId),
+    startTime,
+    startTimeText: formatBetboomDateText(startTime),
+    status,
+    score,
+    homeImageUrl,
+    awayImageUrl,
+    backgroundImageUrl,
+    sportIconUrl,
+    categoryIconUrl,
+    openUrl: betboomOpenUrl(source, parent),
+    players: [
+      {
+        side: "home",
+        name: homeName,
+        fullName: cleanText(source.home_team_short_name || homeName),
+        country: cleanText(source.home_team_description),
+        teamUid: cleanText(source.home_team_id),
+        imageUrl: homeImageUrl
+      },
+      {
+        side: "away",
+        name: awayName,
+        fullName: cleanText(source.away_team_short_name || awayName),
+        country: cleanText(source.away_team_description),
+        teamUid: cleanText(source.away_team_id),
+        imageUrl: awayImageUrl
+      }
+    ].filter((player) => player.name || player.imageUrl),
+    facts: [
+      { label: "Start", value: formatBetboomDateText(startTime) },
+      { label: "Status", value: status },
+      { label: "Tournament", value: tournamentName },
+      { label: "Category", value: category },
+      { label: "Sport", value: sport }
+    ].filter((item) => item.value),
+    stats,
+    timeline: (Array.isArray(source.game_log) ? source.game_log : []).slice(-10).reverse().map((event) => ({
+      type: cleanText(event.type || event.name),
+      name: cleanText(event.name || event.type || "Game log"),
+      time: cleanText(event.time || event.match_time),
+      score: event.score || null
+    })),
+    images,
+    source: "betboom-result-statistics"
+  };
+}
+
+function catalogSearchBlob(row) {
+  const text = [
+    row && row.title,
+    row && row.subtitle,
+    row && row.sport,
+    row && row.category,
+    row && row.tournament,
+    row && row.matchId,
+    row && row.status,
+    /world cup/i.test(cleanText(row && (row.title + " " + row.subtitle + " " + row.tournament))) ? "fifa fifa world cup" : ""
+  ];
+
+  (row && row.players || []).forEach((player) => {
+    text.push(player.name, player.fullName, player.country, player.teamUid);
+  });
+
+  return cleanText(text.filter(Boolean).join(" ")).toLowerCase();
+}
+
+async function fetchBetboomTournamentsBySport(sportId, lang, page, limit) {
+  const data = await betboomApiPost("/sporthub/match_result_statistics/tournaments/get_by_sport_id", {
+    sport_ids: [Number(sportId)],
+    language: languageCode(lang),
+    page: page || 1,
+    limit: limit || 20
+  });
+
+  return (Array.isArray(data.tournaments) ? data.tournaments : []).map(normalizeBetboomTournament);
+}
+
+async function fetchBetboomMatchesByTournament(tournament, lang, limit) {
+  const data = await betboomApiPost("/sporthub/match_result_statistics/matches/get_by_tournament_id", {
+    tournament_ids: [Number(tournament.tournamentId || tournament.id)],
+    language: languageCode(lang),
+    page: 1,
+    limit: limit || BETBOOM_CATALOG_MAX_MATCHES_PER_TOURNAMENT,
+    is_long_period: true
+  });
+
+  return (Array.isArray(data.results) ? data.results : [])
+    .map((row) => normalizeBetboomCatalogMatch(row, tournament))
+    .filter((row) => row.matchId);
+}
+
+async function handleBetboomCatalog(requestUrl, cors) {
+  const lang = requestUrl.searchParams.get("lang") || "en";
+  const query = cleanText(requestUrl.searchParams.get("q") || requestUrl.searchParams.get("query")).toLowerCase();
+  const limit = boundedNumberParam(requestUrl, "limit", 42, 4, BETBOOM_CATALOG_MAX_MATCHES);
+  const sportIds = numericListParam(requestUrl, "sportIds", BETBOOM_CATALOG_DEFAULT_SPORT_IDS, BETBOOM_CATALOG_MAX_SPORTS);
+  const tournamentIds = numericListParam(requestUrl, "tournamentIds", [], BETBOOM_CATALOG_MAX_TOURNAMENTS);
+  const maxTournaments = boundedNumberParam(requestUrl, "maxTournaments", 12, 1, BETBOOM_CATALOG_MAX_TOURNAMENTS);
+  const maxMatchesPerTournament = boundedNumberParam(
+    requestUrl,
+    "maxMatchesPerTournament",
+    8,
+    1,
+    BETBOOM_CATALOG_MAX_MATCHES_PER_TOURNAMENT
+  );
+  const tournamentLimitPerSport = boundedNumberParam(requestUrl, "tournamentLimit", 8, 1, 30);
+  const tournaments = [];
+  const seenTournaments = new Set();
+
+  try {
+    if (tournamentIds.length) {
+      tournamentIds.forEach((id) => {
+        tournaments.push({ id: String(id), tournamentId: String(id), title: "Tournament " + id, order: 0 });
+      });
+    } else {
+      for (const sportId of sportIds) {
+        try {
+          const rows = await fetchBetboomTournamentsBySport(sportId, lang, 1, tournamentLimitPerSport);
+          rows.forEach((row) => {
+            const key = row.tournamentId;
+            if (!key || seenTournaments.has(key)) return;
+            seenTournaments.add(key);
+            tournaments.push(row);
+          });
+        } catch (e) {}
+      }
+    }
+
+    const tournamentMatchesQuery = (row) => {
+      if (!query) return false;
+      return catalogSearchBlob({
+        title: row.title,
+        subtitle: [row.category, row.sport].join(" "),
+        tournament: row.title,
+        sport: row.sport,
+        category: row.category
+      }).indexOf(query) >= 0;
+    };
+    const sportRank = new Map();
+    sportIds.forEach((sportId, index) => sportRank.set(String(sportId), index));
+    const prioritized = tournaments
+      .slice()
+      .sort((a, b) => {
+        const aSport = sportRank.has(cleanText(a.sportId)) ? sportRank.get(cleanText(a.sportId)) : 999;
+        const bSport = sportRank.has(cleanText(b.sportId)) ? sportRank.get(cleanText(b.sportId)) : 999;
+
+        return aSport - bSport || (a.order || 999999) - (b.order || 999999) || cleanText(a.title).localeCompare(cleanText(b.title));
+      });
+    const matchedTournaments = query ? prioritized.filter(tournamentMatchesQuery) : [];
+    const selectedTournaments = [];
+    const selectedSeen = new Set();
+
+    matchedTournaments.concat(prioritized).forEach((row) => {
+      const key = row.tournamentId || row.id;
+      if (!key || selectedSeen.has(key) || selectedTournaments.length >= maxTournaments) return;
+      selectedSeen.add(key);
+      selectedTournaments.push(row);
+    });
+
+    const matches = [];
+    for (const tournament of selectedTournaments) {
+      try {
+        const rows = await fetchBetboomMatchesByTournament(tournament, lang, maxMatchesPerTournament);
+        rows.forEach((row) => matches.push(row));
+      } catch (e) {}
+      if (matches.length >= limit * 2) break;
+    }
+
+    let filtered = matches;
+    if (query) {
+      filtered = matches.filter((row) => catalogSearchBlob(row).indexOf(query) >= 0);
+      if (!filtered.length && matchedTournaments.length) {
+        const matchedTournamentIds = new Set(matchedTournaments.map((row) => row.tournamentId || row.id));
+        filtered = matches.filter((row) => matchedTournamentIds.has(row.tournamentId));
+      }
+    }
+
+    const tournamentRank = new Map();
+    selectedTournaments.forEach((row, index) => {
+      tournamentRank.set(cleanText(row.tournamentId || row.id), index);
+    });
+    filtered = filtered
+      .sort((a, b) => {
+        const aRank = tournamentRank.has(cleanText(a.tournamentId)) ? tournamentRank.get(cleanText(a.tournamentId)) : 999;
+        const bRank = tournamentRank.has(cleanText(b.tournamentId)) ? tournamentRank.get(cleanText(b.tournamentId)) : 999;
+        const dateDelta = Date.parse(b.startTime || "") - Date.parse(a.startTime || "");
+
+        return aRank - bRank || dateDelta || cleanText(a.title).localeCompare(cleanText(b.title));
+      })
+      .slice(0, limit);
+
+    return jsonResponse({
+      ok: true,
+      source: "betboom-result-statistics",
+      query,
+      sportIds,
+      tournaments: selectedTournaments,
+      matches: filtered,
+      counts: {
+        sports: sportIds.length,
+        tournaments: selectedTournaments.length,
+        matches: filtered.length,
+        rawMatches: matches.length
+      },
+      endpoints: [
+        BETBOOM_API_BASE + "/sporthub/match_result_statistics/tournaments/get_by_sport_id",
+        BETBOOM_API_BASE + "/sporthub/match_result_statistics/matches/get_by_tournament_id"
+      ],
+      updatedAt: new Date().toISOString()
+    }, 200, cors, "public, max-age=45");
+  } catch (error) {
+    return jsonResponse({ error: error.message || "BetBoom catalog failed" }, 502, cors);
+  }
 }
 
 function detailsStatUrl(details) {
@@ -1195,6 +1606,10 @@ export default {
       return textResponse("Only GET/HEAD allowed", 405, cors);
     }
 
+    if (requestUrl.pathname === "/betboom/catalog") {
+      return handleBetboomCatalog(requestUrl, cors);
+    }
+
     if (requestUrl.pathname === "/betboom/match-details") {
       return handleBetboomMatchDetails(requestUrl, cors);
     }
@@ -1211,6 +1626,10 @@ export default {
 
     if (path === "/betboom/match-details") {
       return handleBetboomMatchDetails(requestUrl, cors);
+    }
+
+    if (path === "/betboom/catalog") {
+      return handleBetboomCatalog(requestUrl, cors);
     }
 
     if (path === "/betboom/statshub") {
