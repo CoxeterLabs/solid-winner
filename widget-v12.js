@@ -72,7 +72,7 @@
     updatedAt: 0
   };
   var lastAccountRender = null;
-  var live = { timer: 0, clockTimer: 0, clock: {}, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {}, providerNonce: {}, updateTab: {}, goalCounts: {}, timelineCache: {}, timelinePending: {}, newsCache: {}, newsPending: {}, weatherCache: {}, weatherPending: {} };
+  var live = { timer: 0, clockTimer: 0, clock: {}, seq: 0, activeKey: "", store: {}, animationCache: {}, animationMiss: {}, animationPending: {}, visualMode: {}, providerNonce: {}, providerWarmup: {}, updateTab: {}, goalCounts: {}, timelineCache: {}, timelinePending: {}, newsCache: {}, newsPending: {}, weatherCache: {}, weatherPending: {} };
 
   function log() { try { console.log.apply(console, arguments); } catch (e) {} }
   function err() { try { console.error.apply(console, arguments); } catch (e) {} }
@@ -157,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-provider-clean-reload-1",
+      version: "20260702-provider-warmup-1",
       global: {
         styles: [],
         scripts: []
@@ -814,7 +814,8 @@
       "#dmbo-live-modal .live-native-visual .live-native-court.no-provider{display:grid;place-content:center;background:radial-gradient(circle at 50% 35%,rgba(36,49,79,.32),transparent 42%),#0b1220;border-color:rgba(255,255,255,.1)}#dmbo-live-modal .live-native-visual .live-native-court.no-provider i{display:none}#dmbo-live-modal .live-native-no-data{text-align:center;padding:18px;max-width:360px}#dmbo-live-modal .live-native-no-data b,#dmbo-live-modal .live-native-no-data span{display:block}#dmbo-live-modal .live-native-no-data b{font-size:13px}#dmbo-live-modal .live-native-no-data span{margin-top:5px;font-size:11px;color:rgba(255,255,255,.62);line-height:1.35}" +
       "#dmbo-live-modal .live-native-feed p:first-child{border:1px solid rgba(35,209,139,.22);background:rgba(35,209,139,.08)}" +
       "#dmbo-live-modal .live-provider-note{display:flex;align-items:center;gap:8px;flex-wrap:wrap}#dmbo-live-modal .live-provider-note span{flex:1;min-width:180px}#dmbo-live-modal .live-provider-note button{border:0;border-radius:7px;background:#24314f;color:#fff;font-size:11px;font-weight:900;padding:5px 8px;cursor:pointer}#dmbo-live-modal .live-provider-note button:hover{background:#304064}" +
-      "@keyframes dmboLiveEventPulse{0%,100%{box-shadow:0 0 0 0 rgba(234,255,112,.34),0 0 18px rgba(234,255,112,.5)}50%{box-shadow:0 0 0 8px rgba(234,255,112,0),0 0 24px rgba(234,255,112,.62)}}";
+      "#dmbo-live-modal .live-provider-shell{position:relative;background:#1d1e20;min-height:280px}#dmbo-live-modal .live-provider-loading{position:absolute;inset:0;z-index:2;display:grid;place-content:center;gap:6px;text-align:center;background:radial-gradient(circle at 50% 34%,rgba(36,49,79,.78),rgba(29,30,32,.94) 46%,rgba(29,30,32,.88));pointer-events:none;animation:dmboProviderLoadingFade 8.8s ease forwards}#dmbo-live-modal .live-provider-loading b{font-size:13px}#dmbo-live-modal .live-provider-loading span{max-width:340px;font-size:11px;line-height:1.35;color:rgba(255,255,255,.66)}#dmbo-live-provider-warmup{position:fixed;left:-1200px;top:0;width:960px;height:420px;opacity:.01;pointer-events:none;overflow:hidden}#dmbo-live-provider-warmup iframe{width:960px;height:420px;border:0;background:#1d1e20}" +
+      "@keyframes dmboLiveEventPulse{0%,100%{box-shadow:0 0 0 0 rgba(234,255,112,.34),0 0 18px rgba(234,255,112,.5)}50%{box-shadow:0 0 0 8px rgba(234,255,112,0),0 0 24px rgba(234,255,112,.62)}}@keyframes dmboProviderLoadingFade{0%,72%{opacity:1;visibility:visible}100%{opacity:0;visibility:hidden}}";
 
     (document.head || document.documentElement).appendChild(s);
   }
@@ -2221,6 +2222,50 @@
     return directProviderAnimationUrl(value);
   }
 
+  function liveProviderWarmupKey(item, src) {
+    return (item && item.key ? item.key : "provider") + "||" + directProviderAnimationUrl(src);
+  }
+
+  function warmLiveProviderFrame(item, src) {
+    var url = liveProviderFrameUrl(src, "");
+    var key = liveProviderWarmupKey(item, src);
+    var modal;
+    var root;
+    var frame;
+
+    if (!url || !item || !item.key || typeof document === "undefined" || !document.createElement) return url;
+    if (live.providerWarmup[key]) return url;
+
+    modal = qs("dmbo-live-modal");
+    if (!modal || !modal.appendChild) return url;
+
+    root = qs("dmbo-live-provider-warmup");
+    if (!root) {
+      root = document.createElement("div");
+      root.id = "dmbo-live-provider-warmup";
+      root.setAttribute("aria-hidden", "true");
+      modal.appendChild(root);
+    }
+
+    if (root.getAttribute("data-dmbo-live-provider-src") === url && root.querySelector("iframe")) {
+      live.providerWarmup[key] = true;
+      return url;
+    }
+
+    root.innerHTML = "";
+    root.setAttribute("data-dmbo-live-provider-src", url);
+    frame = document.createElement("iframe");
+    frame.title = "Provider match animation warmup";
+    frame.tabIndex = -1;
+    frame.src = url;
+    frame.loading = "eager";
+    frame.allow = "storage-access-by-user-activation; autoplay; fullscreen; encrypted-media; picture-in-picture";
+    frame.referrerPolicy = "no-referrer";
+    root.appendChild(frame);
+    live.providerWarmup[key] = true;
+    return url;
+  }
+
   function liveProviderNonce(item, refresh) {
     var key = item && item.key;
 
@@ -2743,11 +2788,23 @@
 
   function cleanupLiveProviderFrame(root) {
     var frame = root && root.querySelector && root.querySelector("#dmbo-live-animation iframe");
+    var warmup = root && root.querySelector && root.querySelector("#dmbo-live-provider-warmup");
 
-    if (!frame) return;
-    try {
-      frame.src = "about:blank";
-    } catch (e) {}
+    if (frame) {
+      try {
+        frame.src = "about:blank";
+      } catch (e) {}
+    }
+    if (warmup) {
+      try {
+        Array.prototype.forEach.call(warmup.querySelectorAll("iframe"), function (item) {
+          item.src = "about:blank";
+        });
+      } catch (e2) {}
+      warmup.innerHTML = "";
+      warmup.removeAttribute("data-dmbo-live-provider-src");
+      live.providerWarmup = {};
+    }
   }
 
   function tableRows(rows) {
@@ -3073,9 +3130,12 @@
 
   function liveVisualFrameHtml(src, mode) {
     var title = mode === "video" ? "Live match video" : "Provider match animation";
-    var note = mode === "animation" ? '<div class="live-provider-note"><span>Provider iframe may be blocked by browser storage or stale cache.</span><button type="button" data-dmbo-live-provider-reload>Reload provider</button><a href="' + esc(src) + '" target="_blank" rel="noopener noreferrer">Open provider</a></div>' : "";
+    var note = mode === "animation" ? '<div class="live-provider-note"><span>Provider can take a few seconds on a cold load. Use reload if it stays blank.</span><button type="button" data-dmbo-live-provider-reload>Reload provider</button><a href="' + esc(src) + '" target="_blank" rel="noopener noreferrer">Open provider</a></div>' : "";
+    var frame = '<iframe title="' + esc(title) + '" src="' + esc(src) + '" loading="eager" allow="storage-access-by-user-activation; autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>';
 
-    return '<iframe title="' + esc(title) + '" src="' + esc(src) + '" loading="eager" allow="storage-access-by-user-activation; autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>' + note;
+    if (mode !== "animation") return frame + note;
+
+    return '<div class="live-provider-shell">' + frame + '<div class="live-provider-loading" data-dmbo-live-provider-loading><b>Loading provider animation</b><span>The provider app is warming up. Native score and stats stay live below.</span></div></div>' + note;
   }
 
   function bindLiveVisualTabs(item, slot, sources, summary) {
@@ -3140,6 +3200,7 @@
     var signature = liveVisualSlotSignature(src, mode, providerInline, native, item, summary) + (providerNonce ? "||provider-cache:" + providerNonce : "");
 
     if (!slot) return;
+    if (src.animation && mode !== "animation") warmLiveProviderFrame(item, src.animation);
     if (!mode) {
       slot.innerHTML = '<div class="live-empty">Animation is not available for this event yet.</div>';
       return;
@@ -3493,6 +3554,7 @@
 
     live.activeKey = key;
     delete live.providerNonce[key];
+    live.providerWarmup = {};
     cleanupLiveProviderFrame(modal);
     modal.className = "open";
     renderLiveModal(c, item, item.event, null);
@@ -5988,7 +6050,9 @@
       liveProviderFrameUrl: liveProviderFrameUrl,
       liveNativeHasProviderVisual: liveNativeHasProviderVisual,
       liveNativeVisualModel: liveNativeVisualModel,
+      liveProviderWarmupKey: liveProviderWarmupKey,
       liveProviderInlineAllowed: liveProviderInlineAllowed,
+      liveVisualFrameHtml: liveVisualFrameHtml,
       liveVisualSlotSignature: liveVisualSlotSignature,
       liveVisualMode: liveVisualMode,
       liveVisualSourcesFromResolver: liveVisualSourcesFromResolver,

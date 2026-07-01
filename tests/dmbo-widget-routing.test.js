@@ -1133,6 +1133,20 @@ test("live provider iframe is available as a selectable inline visual source", (
   assert.equal(api.liveProviderInlineAllowed(), true);
 });
 
+test("live provider frame html includes a loading shell without mutating provider URL", () => {
+  const api = loadWidgetTestApi();
+  const html = api.liveVisualFrameHtml(
+    "https://bet-broadcast.com/tracker/get/66119671?s=1&lang=en",
+    "animation"
+  );
+
+  assert.match(html, /data-dmbo-live-provider-loading/);
+  assert.match(html, /Loading provider animation/);
+  assert.match(html, /data-dmbo-live-provider-reload/);
+  assert.match(html, /https:\/\/bet-broadcast\.com\/tracker\/get\/66119671\?s=1&amp;lang=en/);
+  assert.doesNotMatch(html, /dmboCache/);
+});
+
 test("live visual resolver keeps animation default and video optional", () => {
   const api = loadWidgetTestApi();
   const animationUrl = "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en";
