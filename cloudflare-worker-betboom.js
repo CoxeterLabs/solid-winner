@@ -5,7 +5,7 @@ const WORKER_URL = "https://sports.hypercubik.workers.dev/";
 const WIDGET_SOURCE_URL =
   "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/widget-v12.js";
 
-const WIDGET_VERSION = "20260701-betboom-rich-1";
+const WIDGET_VERSION = "20260701-betboom-center-1";
 
 const MATCHTRACKER_RESOLVER_PATH = "/matchtracker-resolver/resolve";
 const MATCHTRACKER_QUERY_KEYS = new Set([
@@ -307,22 +307,45 @@ function teamLogoCandidates(team) {
   ];
 }
 
-function extraImageCandidates(requestUrl) {
+function imageCandidatesFromParams(requestUrl, keys, label) {
   const rows = [];
   const rawValues = [];
 
-  requestUrl.searchParams.getAll("imageUrl").forEach((value) => rawValues.push(value));
-  requestUrl.searchParams.getAll("imageUrls").forEach((value) => rawValues.push(value));
-  requestUrl.searchParams.getAll("extraImageUrl").forEach((value) => rawValues.push(value));
+  keys.forEach((key) => {
+    requestUrl.searchParams.getAll(key).forEach((value) => rawValues.push(value));
+  });
 
   rawValues.forEach((value) => {
-    String(value || "").split(/[\s,|]+/).forEach((part) => {
+    String(value || "").split(/[\s|]+/).forEach((part) => {
       const url = safeImageUrl(part);
-      if (url) rows.push({ label: "SportHub image", url });
+      if (url) rows.push({ label, url });
     });
   });
 
   return rows;
+}
+
+function extraImageCandidates(requestUrl) {
+  return imageCandidatesFromParams(requestUrl, ["imageUrl", "imageUrls", "extraImageUrl"], "SportHub image");
+}
+
+function playerImageCandidates(requestUrl, side, player) {
+  const label = cleanText(player && player.name) || side + " image";
+  const prefix = side === "away" ? "away" : "home";
+
+  return imageCandidatesFromParams(requestUrl, [
+    prefix + "ImageUrl",
+    prefix + "ImageUrls",
+    prefix + "PlayerImageUrl",
+    prefix + "PlayerImageUrls"
+  ], label);
+}
+
+function firstImageByCandidate(images, candidates) {
+  const urls = new Set((candidates || []).map((row) => safeImageUrl(row && row.url)).filter(Boolean));
+  const found = (images || []).find((image) => urls.has(safeImageUrl(image && image.url)));
+
+  return found && found.url ? found.url : "";
 }
 
 function usableImageMeta(headers) {
@@ -931,6 +954,9 @@ async function normalizeStatsHubPayload(html, matchId, statUrl, openUrl, details
   const title = [home.name, away.name].filter(Boolean).join(" vs ");
   const startTime = match._dt || match.time || {};
   const status = cleanText(match.status && (match.status.name || match.status.shortName)) || "StatsHub";
+  const homeImageCandidates = playerImageCandidates(requestUrl, "home", home);
+  const awayImageCandidates = playerImageCandidates(requestUrl, "away", away);
+  const extraImages = extraImageCandidates(requestUrl);
   const facts = [
     { label: "Start", value: cleanText([startTime.date, startTime.time, startTime.tz].filter(Boolean).join(" ")) },
     { label: "Status", value: status },
@@ -949,7 +975,10 @@ async function normalizeStatsHubPayload(html, matchId, statUrl, openUrl, details
     { label: "Media", value: coverage.mediacoverage ? "Available" : "" },
     { label: "LMT support", value: cleanText(coverage.lmtsupport) }
   ].filter((item) => item.value);
-  const imageCandidates = detailsImages(details)
+  const imageCandidates = homeImageCandidates
+    .concat(awayImageCandidates)
+    .concat(extraImages)
+    .concat(detailsImages(details))
     .concat(extractHtmlImages(html))
     .concat([
       { label: home.country || home.name, url: home.flagUrl },
@@ -961,14 +990,13 @@ async function normalizeStatsHubPayload(html, matchId, statUrl, openUrl, details
       { label: "SportHub team image", url: BETBOOM_STATIC_TEAM_SAMPLE }
     ])
     .concat(teamLogoCandidates(teams.home))
-    .concat(teamLogoCandidates(teams.away))
-    .concat(extraImageCandidates(requestUrl));
+    .concat(teamLogoCandidates(teams.away));
   const images = await probeUsableImages(imageCandidates);
   const stats = normalizeStats(homeInfo, awayInfo, matchData);
   const timeline = normalizeTimeline((feedList.match_timeline || [])[0] || (feedList.match_timelinedelta || [])[0]);
 
-  home.imageUrl = (images.find((image) => image.label === home.name) || {}).url || "";
-  away.imageUrl = (images.find((image) => image.label === away.name) || {}).url || "";
+  home.imageUrl = firstImageByCandidate(images, homeImageCandidates) || (images.find((image) => image.label === home.name) || {}).url || "";
+  away.imageUrl = firstImageByCandidate(images, awayImageCandidates) || (images.find((image) => image.label === away.name) || {}).url || "";
 
   return {
     match: {

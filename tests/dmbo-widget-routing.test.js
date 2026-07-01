@@ -193,7 +193,7 @@ test("default BetBoom match panel uses the Worker statshub proxy", () => {
   assert.equal(betboomMatch.maxStats, 12);
   assert.equal(betboomMatch.maxImages, 14);
   assert.equal(betboomMatch.matches.length, 1);
-  assert.deepEqual(plain(betboomMatch.tabs), ["overview", "stats", "players", "images"]);
+  assert.deepEqual(plain(betboomMatch.tabs), ["overview", "players", "stats", "timeline", "images", "sources"]);
 
   const url = api.betboomMatchUrl(
     { sportsProxyUrl: "https://sports.hypercubik.workers.dev/" },
@@ -206,9 +206,13 @@ test("default BetBoom match panel uses the Worker statshub proxy", () => {
   assert.equal(parsed.searchParams.get("path"), "/betboom/statshub");
   assert.equal(parsed.searchParams.get("matchId"), "5146706");
   assert.equal(parsed.searchParams.get("lang"), "en");
+  assert.equal(
+    parsed.searchParams.get("awayImageUrl"),
+    "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/11411252-f30c-474d-9d95-4a4e2b285338.webp"
+  );
   assert.match(
     parsed.searchParams.get("imageUrls") || "",
-    /static\.sporthub\.bet\/aa3d3491a0d2a4774baa3b1863918115\/multifeed\/teams\/47759e63-4ac3-4ed3-a8a5-64325f9fbaa7\.webp/
+    /static\.sporthub\.bet\/aa3d3491a0d2a4774baa3b1863918115\/multifeed\/teams\/11411252-f30c-474d-9d95-4a4e2b285338\.webp/
   );
 });
 
@@ -249,11 +253,34 @@ test("BetBoom match summary keeps public stats, players, and images", () => {
       { label: "Grass win rate", home: "0%", away: "62.5%" },
       { label: "First serve won", home: "63.3%", away: "73.5%" }
     ],
+    timeline: [
+      { time: "12", name: "Break point", team: "Medvedev" }
+    ],
+    feeds: [
+      { feed: "match_timeline", ok: true, args: "72318942" }
+    ],
+    sources: {
+      apiEndpoints: [
+        { label: "StatsHub feed match_timeline", method: "GET", ok: true, args: "72318942" }
+      ]
+    },
+    ids: {
+      statshubMatchId: "72318942"
+    },
     images: [
       { label: "Statistic", url: "https://static.sporthub.bet/stat.webp" }
     ]
   }, {
-    openUrl: "https://betboom.ru/sport/tennis/365/5019/5146706"
+    openUrl: "https://betboom.ru/sport/tennis/365/5019/5146706",
+    matchConfig: {
+      players: [
+        {
+          side: "away",
+          name: "Medvedev D.",
+          imageUrl: "https://static.sporthub.bet/medvedev.webp"
+        }
+      ]
+    }
   });
 
   assert.equal(summary.id, "5146706");
@@ -279,10 +306,14 @@ test("BetBoom match summary keeps public stats, players, and images", () => {
       side: "away",
       name: "Medvedev D.",
       rank: "9",
-      imageUrl: "https://static.sporthub.bet/team-away.webp",
+      imageUrl: "https://static.sporthub.bet/medvedev.webp",
       flagUrl: "https://img-cdn001.akamaized.net/ls/crest/medium/int.png"
     }
   ]);
+  assert.equal(summary.timeline.length, 1);
+  assert.equal(summary.feeds.length, 1);
+  assert.equal(summary.sourceCount, 1);
+  assert.equal(summary.ids.statshubMatchId, "72318942");
   assert.deepEqual(plain(summary.stats), [
     { label: "Grass win rate", home: "0%", away: "62.5%" },
     { label: "First serve won", home: "63.3%", away: "73.5%" }
@@ -291,7 +322,7 @@ test("BetBoom match summary keeps public stats, players, and images", () => {
     { label: "Statistic", url: "https://static.sporthub.bet/stat.webp" },
     { label: "Merida, Daniel", url: "https://static.sporthub.bet/team-home.webp" },
     { label: "Spain", url: "https://img-cdn001.akamaized.net/ls/crest/4x3/es.svg" },
-    { label: "Medvedev D.", url: "https://static.sporthub.bet/team-away.webp" },
+    { label: "Medvedev D.", url: "https://static.sporthub.bet/medvedev.webp" },
     { label: "Neutral", url: "https://img-cdn001.akamaized.net/ls/crest/medium/int.png" }
   ]);
 });
