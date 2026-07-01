@@ -1,5 +1,5 @@
 {
-  "version": "20260701-live-animation-ui-8",
+  "version": "20260701-betby-tabs-1",
   "global": {
     "styles": [],
     "scripts": []
@@ -70,6 +70,18 @@
                   "animationUrl": "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66083805?s=3&lang=en"
                 }
               }
+            },
+            {
+              "name": "betbyFeed",
+              "title": "Live Bets Feed",
+              "brandId": "1653815133341880320",
+              "baseUrl": "https://demoapi.betby.com",
+              "openUrl": "https://demo.betby.com/sportsbook/tile/bets-feed",
+              "pollMs": 12000,
+              "maxItems": 8,
+              "maxEvents": 6,
+              "maxCombos": 4,
+              "tabs": ["players", "live", "prematch", "combo"]
             },
             "top",
             "worldcup",

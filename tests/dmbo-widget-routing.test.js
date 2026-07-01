@@ -137,11 +137,211 @@ test("default manifest mounts the DMBO widget only on the Advanced Features page
     "youtube",
     "iframe",
     "liveMatch",
+    "betbyFeed",
     "top",
     "worldcup",
     "sports",
     "casino"
   ]);
+});
+
+test("default Betby feed panel uses public read-only demo feed only", () => {
+  const api = loadWidgetTestApi();
+  const manifest = api.createDefaultManifest();
+  const panels = manifest.pages[0].widgets[0].panels;
+  const betbyFeed = panels.find((panel) => panel && typeof panel === "object" && panel.name === "betbyFeed");
+
+  assert.equal(api.panelEnabled(manifest.pages[0].widgets[0], "betbyFeed"), true);
+  assert.equal(betbyFeed.title, "Live Bets Feed");
+  assert.equal(betbyFeed.brandId, "1653815133341880320");
+  assert.equal(betbyFeed.pollMs, 12000);
+  assert.deepEqual(plain(betbyFeed.tabs), [
+    "players",
+    "live",
+    "prematch",
+    "combo"
+  ]);
+  assert.equal(
+    api.betbyFeedUrl({ betbyBaseUrl: "https://demoapi.betby.com" }, betbyFeed),
+    "https://demoapi.betby.com/api/v1/promo/bets_feed/brand/1653815133341880320"
+  );
+});
+
+test("Betby feed rows normalize masked public bets without private account fields", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.betbyFeedRows([
+    {
+      id: "79286515425550",
+      odds: "1.140",
+      stake: "10.00 €",
+      pot_win: "11.40 €",
+      player: "****180",
+      type: "single",
+      selections: [
+        {
+          event_id: "2683951396356759563",
+          market_id: "186",
+          outcome_id: "4",
+          specifiers: "",
+          k: "1.14"
+        }
+      ],
+      token: "should-not-render",
+      email: "private@example.com"
+    }
+  ], { maxItems: 8 });
+
+  assert.deepEqual(plain(rows), [
+    {
+      id: "79286515425550",
+      odds: "1.140",
+      stake: "10.00 €",
+      potentialWin: "11.40 €",
+      player: "****180",
+      type: "Single",
+      selectionCount: 1,
+      selections: [
+        {
+          eventId: "2683951396356759563",
+          marketId: "186",
+          outcomeId: "4",
+          odds: "1.14",
+          label: "Event 2683951396356759563 · Market 186 · Outcome 4"
+        }
+      ]
+    }
+  ]);
+});
+
+test("Betby event rows expose live score and odds from public snapshots", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.betbyEventRows({
+    sports: {
+      "1": { name: "Soccer" }
+    },
+    tournaments: {
+      "t1": { name: "England FA Cup" }
+    },
+    events: {
+      "e1": {
+        desc: {
+          scheduled: 1782888731,
+          sport: "1",
+          tournament: "t1",
+          competitors: [
+            { name: "Manchester City" },
+            { name: "Man. United" }
+          ]
+        },
+        state: {
+          status: 1,
+          clock: { match_time: "43:45", stopped: true }
+        },
+        score: {
+          home_score: "0",
+          away_score: "0"
+        },
+        markets: {
+          "1": {
+            "": {
+              "1": { k: "2.55" },
+              "2": { k: "2.65" },
+              "3": { k: "3.0" }
+            }
+          }
+        }
+      }
+    }
+  }, { maxEvents: 5 }, "live");
+
+  assert.deepEqual(plain(rows), [
+    {
+      id: "e1",
+      sportName: "Soccer",
+      tournamentName: "England FA Cup",
+      home: "Manchester City",
+      away: "Man. United",
+      status: "Live",
+      score: "0 - 0",
+      clock: "43:45",
+      scheduled: 1782888731,
+      odds: [
+        { label: "Manchester City", odds: "2.55" },
+        { label: "Draw", odds: "2.65" },
+        { label: "Man. United", odds: "3.0" }
+      ]
+    }
+  ]);
+});
+
+test("Betby combo rows expose combo of the day promo legs", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.betbyComboRows({
+    home_page_under_popular_section: [
+      {
+        id: "promo1",
+        view: "combo_of_the_day",
+        payload: [
+          {
+            multiplier: "1.15",
+            bonus_id: "bonus1",
+            event_bet_data: [
+              { event_id: "event1", market_id: "186", outcome_id: "5", specifier: "", is_bet_builder: false },
+              { event_id: "event2", market_id: "18", outcome_id: "12", specifier: "total=2.5", is_bet_builder: true }
+            ]
+          }
+        ]
+      }
+    ]
+  }, { maxCombos: 4 });
+
+  assert.deepEqual(plain(rows), [
+    {
+      id: "promo1-0",
+      title: "Combo of the day",
+      multiplier: "1.15",
+      bonusId: "bonus1",
+      legs: 2,
+      selections: [
+        { eventId: "event1", marketId: "186", outcomeId: "5", specifier: "", betBuilder: false, label: "Event event1 · Market 186 · Outcome 5" },
+        { eventId: "event2", marketId: "18", outcomeId: "12", specifier: "total=2.5", betBuilder: true, label: "Event event2 · Market 18 · Outcome 12 · total=2.5 · Builder" }
+      ]
+    }
+  ]);
+});
+
+test("Betby prematch rows prefer match events over outright markets", () => {
+  const api = loadWidgetTestApi();
+  const rows = api.betbyEventRows({
+    sports: { "5": { name: "Tennis" } },
+    tournaments: { "future": { name: "Tournament Winner" }, "match": { name: "Wimbledon" } },
+    events: {
+      future1: {
+        desc: {
+          type: "stage",
+          sport: "5",
+          tournament: "future",
+          competitors: [{ name: "Wimbledon 2027" }, { name: "Winner" }]
+        },
+        markets: { "534": { "": { "1": { k: "1.7" } } } },
+        state: { status: 0 }
+      },
+      match1: {
+        desc: {
+          type: "match",
+          sport: "5",
+          tournament: "match",
+          competitors: [{ name: "Player A" }, { name: "Player B" }]
+        },
+        markets: { "186": { "": { "4": { k: "1.8" }, "5": { k: "1.9" } } } },
+        state: { status: 0 }
+      }
+    }
+  }, { maxEvents: 5 }, "prematch");
+
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].home, "Player A");
+  assert.equal(rows[0].away, "Player B");
 });
 
 test("default live match panel config enables per-event stats modal", () => {
