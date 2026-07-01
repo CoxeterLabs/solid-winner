@@ -138,6 +138,7 @@ test("default manifest mounts the DMBO widget only on the Advanced Features page
     "iframe",
     "liveMatch",
     "betbyFeed",
+    "betboomMatch",
     "top",
     "worldcup",
     "sports",
@@ -176,6 +177,116 @@ test("default Betby feed panel uses public read-only demo feed only", () => {
     api.betbyLeaderboardUrl({ betbyBaseUrl: "https://demoapi.betby.com" }, betbyFeed),
     "https://demoapi.betby.com/api/v1/promo/tournaments/brand/1653815133341880320/lang/en/view"
   );
+});
+
+test("default BetBoom match panel uses the Worker statshub proxy", () => {
+  const api = loadWidgetTestApi();
+  const manifest = api.createDefaultManifest();
+  const panels = manifest.pages[0].widgets[0].panels;
+  const betboomMatch = panels.find((panel) => panel && typeof panel === "object" && panel.name === "betboomMatch");
+
+  assert.equal(api.panelEnabled(manifest.pages[0].widgets[0], "betboomMatch"), true);
+  assert.equal(betboomMatch.title, "BetBoom Match Lab");
+  assert.equal(betboomMatch.workerPath, "/betboom/statshub");
+  assert.equal(betboomMatch.pollMs, 600000);
+  assert.equal(betboomMatch.matches.length, 1);
+  assert.deepEqual(plain(betboomMatch.tabs), ["overview", "stats", "players", "images"]);
+
+  const url = api.betboomMatchUrl(
+    { sportsProxyUrl: "https://sports.hypercubik.workers.dev/" },
+    betboomMatch,
+    betboomMatch.matches[0]
+  );
+  const parsed = new URL(url);
+
+  assert.equal(parsed.origin + parsed.pathname, "https://sports.hypercubik.workers.dev/");
+  assert.equal(parsed.searchParams.get("path"), "/betboom/statshub");
+  assert.equal(parsed.searchParams.get("matchId"), "5146706");
+  assert.equal(parsed.searchParams.get("lang"), "ru");
+});
+
+test("BetBoom match summary keeps public stats, players, and images", () => {
+  const api = loadWidgetTestApi();
+  const summary = api.betboomMatchSummary({
+    match: {
+      matchId: "5146706",
+      title: "Merida Aguilar D. vs Medvedev D.",
+      tournament: "Wimbledon",
+      round: "1/32",
+      surface: "Grass",
+      startTimeText: "Jul 01, 14:50",
+      statUrl: "https://st-cdn001.akamaized.net/bingoboom/ru/match/m5146706"
+    },
+    players: [
+      {
+        side: "home",
+        name: "Merida, Daniel",
+        country: "Spain",
+        rank: "84",
+        form: "60/100",
+        handedness: "Right-handed",
+        imageUrl: "https://static.sporthub.bet/team-home.webp",
+        flagUrl: "https://img-cdn001.akamaized.net/ls/crest/4x3/es.svg"
+      },
+      {
+        side: "away",
+        name: "Medvedev D.",
+        country: "Neutral",
+        rank: "9",
+        coach: "Gilles Cervara",
+        imageUrl: "https://static.sporthub.bet/team-away.webp",
+        flagUrl: "https://img-cdn001.akamaized.net/ls/crest/medium/int.png"
+      }
+    ],
+    stats: [
+      { label: "Grass win rate", home: "0%", away: "62.5%" },
+      { label: "First serve won", home: "63.3%", away: "73.5%" }
+    ],
+    images: [
+      { label: "Statistic", url: "https://static.sporthub.bet/stat.webp" }
+    ]
+  }, {
+    openUrl: "https://betboom.ru/sport/tennis/365/5019/5146706"
+  });
+
+  assert.equal(summary.id, "5146706");
+  assert.equal(summary.title, "Merida Aguilar D. vs Medvedev D.");
+  assert.equal(summary.subtitle, "Wimbledon · 1/32 · Grass");
+  assert.equal(summary.statUrl, "https://st-cdn001.akamaized.net/bingoboom/ru/match/m5146706");
+  assert.equal(summary.openUrl, "https://betboom.ru/sport/tennis/365/5019/5146706");
+  assert.deepEqual(plain(summary.players.map((player) => ({
+    side: player.side,
+    name: player.name,
+    rank: player.rank,
+    imageUrl: player.imageUrl,
+    flagUrl: player.flagUrl
+  }))), [
+    {
+      side: "home",
+      name: "Merida, Daniel",
+      rank: "84",
+      imageUrl: "https://static.sporthub.bet/team-home.webp",
+      flagUrl: "https://img-cdn001.akamaized.net/ls/crest/4x3/es.svg"
+    },
+    {
+      side: "away",
+      name: "Medvedev D.",
+      rank: "9",
+      imageUrl: "https://static.sporthub.bet/team-away.webp",
+      flagUrl: "https://img-cdn001.akamaized.net/ls/crest/medium/int.png"
+    }
+  ]);
+  assert.deepEqual(plain(summary.stats), [
+    { label: "Grass win rate", home: "0%", away: "62.5%" },
+    { label: "First serve won", home: "63.3%", away: "73.5%" }
+  ]);
+  assert.deepEqual(plain(summary.images), [
+    { label: "Statistic", url: "https://static.sporthub.bet/stat.webp" },
+    { label: "Merida, Daniel", url: "https://static.sporthub.bet/team-home.webp" },
+    { label: "Spain", url: "https://img-cdn001.akamaized.net/ls/crest/4x3/es.svg" },
+    { label: "Medvedev D.", url: "https://static.sporthub.bet/team-away.webp" },
+    { label: "Neutral", url: "https://img-cdn001.akamaized.net/ls/crest/medium/int.png" }
+  ]);
 });
 
 test("Betby feed rows normalize masked public bets without private account fields", () => {
