@@ -126,7 +126,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-betboom-stats-1",
+      version: "20260701-betboom-rich-1",
       global: {
         styles: [],
         scripts: []
@@ -231,10 +231,10 @@
                   name: "betboomMatch",
                   title: "BetBoom Match Lab",
                   workerPath: "/betboom/statshub",
-                  lang: "ru",
+                  lang: "en",
                   pollMs: 600000,
-                  maxStats: 8,
-                  maxImages: 8,
+                  maxStats: 12,
+                  maxImages: 14,
                   tabs: ["overview", "stats", "players", "images"],
                   matches: [
                     {
@@ -242,7 +242,10 @@
                       matchId: "5146706",
                       title: "Merida Aguilar D. vs Medvedev D.",
                       subtitle: "Wimbledon tennis match center",
-                      openUrl: "https://betboom.ru/sport/tennis/365/5019/5146706"
+                      openUrl: "https://betboom.ru/sport/tennis/365/5019/5146706",
+                      imageUrls: [
+                        "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/47759e63-4ac3-4ed3-a8a5-64325f9fbaa7.webp"
+                      ]
                     }
                   ]
                 },
@@ -1369,11 +1372,11 @@
 
     config.title = config.title || "BetBoom Match Lab";
     config.workerPath = config.workerPath || "/betboom/statshub";
-    config.lang = String(config.lang || "ru").replace(/[^a-z-]/gi, "") || "ru";
+    config.lang = String(config.lang || "en").replace(/[^a-z-]/gi, "") || "en";
     config.theme = config.theme || "THEMES_BLACK";
     config.pollMs = isFinite(pollMs) && pollMs >= 60000 ? pollMs : 600000;
-    config.maxStats = isFinite(maxStats) && maxStats > 0 ? Math.min(maxStats, 20) : 8;
-    config.maxImages = isFinite(maxImages) && maxImages > 0 ? Math.min(maxImages, 20) : 8;
+    config.maxStats = isFinite(maxStats) && maxStats > 0 ? Math.min(maxStats, 20) : 12;
+    config.maxImages = isFinite(maxImages) && maxImages > 0 ? Math.min(maxImages, 20) : 14;
     config.tabs = Array.isArray(config.tabs) && config.tabs.length ? config.tabs : ["overview", "stats", "players", "images"];
     config.matches = Array.isArray(config.matches) && config.matches.length ? config.matches : [
       {
@@ -1381,7 +1384,10 @@
         matchId: "5146706",
         title: "Merida Aguilar D. vs Medvedev D.",
         subtitle: "Wimbledon tennis match center",
-        openUrl: "https://betboom.ru/sport/tennis/365/5019/5146706"
+        openUrl: "https://betboom.ru/sport/tennis/365/5019/5146706",
+        imageUrls: [
+          "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/47759e63-4ac3-4ed3-a8a5-64325f9fbaa7.webp"
+        ]
       }
     ];
 
@@ -1392,12 +1398,23 @@
     var panel = config || {};
     var item = match || {};
     var matchId = betbyText(item.matchId || item.match_id || item.id || panel.matchId);
+    var imageUrls = [];
+
+    if (Array.isArray(panel.imageUrls)) imageUrls = imageUrls.concat(panel.imageUrls);
+    if (Array.isArray(panel.images)) imageUrls = imageUrls.concat(panel.images.map(function (image) {
+      return typeof image === "string" ? image : image && (image.url || image.src || image.imageUrl);
+    }));
+    if (Array.isArray(item.imageUrls)) imageUrls = imageUrls.concat(item.imageUrls);
+    if (Array.isArray(item.images)) imageUrls = imageUrls.concat(item.images.map(function (image) {
+      return typeof image === "string" ? image : image && (image.url || image.src || image.imageUrl);
+    }));
 
     return proxy(c || cfg(), panel.workerPath || "/betboom/statshub", {
       matchId: matchId,
-      lang: panel.lang || "ru",
+      lang: panel.lang || "en",
       theme: panel.theme || "THEMES_BLACK",
-      openUrl: item.openUrl || panel.openUrl || ""
+      openUrl: item.openUrl || panel.openUrl || "",
+      imageUrls: imageUrls.filter(Boolean).join("|")
     });
   }
 
@@ -1418,14 +1435,21 @@
     return {
       side: betboomText(row.side || side || ""),
       name: betboomText(row.name || row.fullName || row.title),
+      fullName: betboomText(row.fullName || row.mediumName || row.displayName),
       country: betboomText(row.country || row.countryName),
+      countryCode: betboomText(row.countryCode || row.cc),
       rank: betboomText(row.rank || row.ranking || row.atpRank || row.wtaRank),
+      seed: betboomText(row.seed || row.seeding),
       form: betboomText(row.form || row.formScore),
       age: betboomText(row.age),
+      birthDate: betboomText(row.birthDate || row.dateOfBirth),
       height: betboomText(row.height),
       weight: betboomText(row.weight),
       handedness: betboomText(row.handedness || row.hand),
       coach: betboomText(row.coach || row.manager),
+      favoriteSurface: betboomText(row.favoriteSurface || row.favouriteSurface),
+      turnedPro: betboomText(row.turnedPro),
+      teamUid: betboomText(row.teamUid || row.uid),
       imageUrl: betboomSafeUrl(row.imageUrl || row.image || row.logoUrl),
       flagUrl: betboomSafeUrl(row.flagUrl || row.flag || row.countryFlagUrl)
     };
@@ -1474,21 +1498,41 @@
     return rows;
   }
 
-  function betboomFactRows(match) {
+  function betboomFactRows(match, payloadFacts) {
     var row = match || {};
     var facts = [];
+    var seen = {};
+
+    function add(label, value) {
+      var cleanLabel = betboomText(label);
+      var cleanValue = betboomText(value);
+      var key;
+
+      if (!cleanLabel || !cleanValue) return;
+      key = (cleanLabel + ":" + cleanValue).toLowerCase();
+      if (seen[key]) return;
+      seen[key] = true;
+      facts.push({ label: cleanLabel, value: cleanValue });
+    }
+
+    (Array.isArray(payloadFacts) ? payloadFacts : []).forEach(function (fact) {
+      if (Array.isArray(fact)) add(fact[0], fact[1]);
+      else add(fact && (fact.label || fact.name), fact && (fact.value || fact.text));
+    });
 
     [
       ["Start", row.startTimeText || row.startText || row.startTime],
       ["Status", row.status],
       ["Tournament", row.tournament],
+      ["Category", row.category],
       ["Round", row.round],
       ["Surface", row.surface],
       ["City", row.city],
-      ["Venue", row.venue]
+      ["Country", row.country],
+      ["Venue", row.venue],
+      ["Sport", row.sport]
     ].forEach(function (item) {
-      var value = betboomText(item[1]);
-      if (value) facts.push({ label: item[0], value: value });
+      add(item[0], item[1]);
     });
 
     return facts;
@@ -1525,11 +1569,14 @@
       status: betboomText(match.status || data.status),
       statUrl: betboomSafeUrl(match.statUrl || data.statUrl || data.stat_url),
       openUrl: betboomSafeUrl(match.openUrl || data.openUrl || panel.openUrl),
-      facts: betboomFactRows(match),
+      facts: betboomFactRows(match, data.facts),
       players: players,
       stats: stats,
       images: betboomImageRows(data, players, panel),
-      rawAvailable: !!(data.raw || data.gismo || data.details)
+      feedCount: Array.isArray(data.feeds) ? data.feeds.filter(function (feed) { return feed && feed.ok; }).length : 0,
+      timelineCount: Array.isArray(data.timeline) ? data.timeline.length : 0,
+      sourceCount: data.sources && Array.isArray(data.sources.apiEndpoints) ? data.sources.apiEndpoints.length : 0,
+      rawAvailable: !!(data.raw || data.gismo || data.details || data.sources)
     };
   }
 
@@ -3374,10 +3421,14 @@
 
     return '<div class="bb-players">' + players.slice(0, 2).map(function (player) {
       var meta = [
+        player.seed ? "Seed " + player.seed : "",
         player.rank ? "Rank " + player.rank : "",
+        player.age ? "Age " + player.age : "",
         player.country,
         player.form ? "Form " + player.form : "",
         player.handedness,
+        player.favoriteSurface ? "Fav " + player.favoriteSurface : "",
+        player.height ? player.height + "cm" : "",
         player.coach ? "Coach " + player.coach : ""
       ].filter(Boolean).join(" · ");
       var media = player.imageUrl ?
@@ -3391,7 +3442,7 @@
   function betboomFactsHtml(facts) {
     if (!facts || !facts.length) return "";
 
-    return '<div class="bb-facts">' + facts.slice(0, 8).map(function (fact) {
+    return '<div class="bb-facts">' + facts.slice(0, 14).map(function (fact) {
       return '<span><b>' + esc(fact.label) + '</b> ' + esc(fact.value) + '</span>';
     }).join("") + '</div>';
   }
@@ -3414,12 +3465,17 @@
 
   function betboomCardHtml(row) {
     var actions = [];
+    var badges = [
+      row.feedCount ? row.feedCount + " feeds" : "",
+      row.timelineCount ? row.timelineCount + " timeline" : "",
+      row.sourceCount ? row.sourceCount + " endpoints" : ""
+    ].filter(Boolean).join(" · ");
 
     if (row.openUrl) actions.push('<a class="pill" href="' + esc(row.openUrl) + '" target="_blank" rel="noopener noreferrer">Open BetBoom</a>');
     if (row.statUrl) actions.push('<a class="pill" href="' + esc(row.statUrl) + '" target="_blank" rel="noopener noreferrer">Open StatsHub</a>');
 
     return '<div class="bb-card">' +
-      '<div class="bb-head"><div style="min-width:0"><div class="bb-title">' + esc(row.title) + '</div><div class="bb-sub">' + esc(row.subtitle || "BetBoom public match data") + '</div></div><div class="bb-tag">' + esc(row.status || "Stats") + '</div></div>' +
+      '<div class="bb-head"><div style="min-width:0"><div class="bb-title">' + esc(row.title) + '</div><div class="bb-sub">' + esc(row.subtitle || "BetBoom public match data") + (badges ? " · " + esc(badges) : "") + '</div></div><div class="bb-tag">' + esc(row.status || "Stats") + '</div></div>' +
       betboomPlayerHtml(row.players) +
       betboomFactsHtml(row.facts) +
       betboomStatsHtml(row.stats) +

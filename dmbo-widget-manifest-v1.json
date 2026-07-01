@@ -1,5 +1,5 @@
 {
-  "version": "20260701-betboom-stats-1",
+  "version": "20260701-betboom-rich-1",
   "global": {
     "styles": [],
     "scripts": []
@@ -104,10 +104,10 @@
               "name": "betboomMatch",
               "title": "BetBoom Match Lab",
               "workerPath": "/betboom/statshub",
-              "lang": "ru",
+              "lang": "en",
               "pollMs": 600000,
-              "maxStats": 8,
-              "maxImages": 8,
+              "maxStats": 12,
+              "maxImages": 14,
               "tabs": ["overview", "stats", "players", "images"],
               "matches": [
                 {
@@ -115,7 +115,10 @@
                   "matchId": "5146706",
                   "title": "Merida Aguilar D. vs Medvedev D.",
                   "subtitle": "Wimbledon tennis match center",
-                  "openUrl": "https://betboom.ru/sport/tennis/365/5019/5146706"
+                  "openUrl": "https://betboom.ru/sport/tennis/365/5019/5146706",
+                  "imageUrls": [
+                    "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/47759e63-4ac3-4ed3-a8a5-64325f9fbaa7.webp"
+                  ]
                 }
               ]
             },

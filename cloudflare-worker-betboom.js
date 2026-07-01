@@ -5,7 +5,7 @@ const WORKER_URL = "https://sports.hypercubik.workers.dev/";
 const WIDGET_SOURCE_URL =
   "https://raw.githubusercontent.com/CoxeterLabs/solid-winner/refs/heads/main/widget-v12.js";
 
-const WIDGET_VERSION = "20260701-betboom-stats-1";
+const WIDGET_VERSION = "20260701-betboom-rich-1";
 
 const MATCHTRACKER_RESOLVER_PATH = "/matchtracker-resolver/resolve";
 const MATCHTRACKER_QUERY_KEYS = new Set([
@@ -25,8 +25,29 @@ const MATCHTRACKER_QUERY_KEYS = new Set([
 const BETBOOM_API_BASE = "https://siteapi.betboom.ru/api/site_api/v1";
 const STATSHUB_CDN_BASE = "https://st-cdn001.akamaized.net";
 const STATSHUB_APP_BASE = "https://sh-cdn001.akamaized.net";
+const STATSHUB_FEED_REFERER = "https://sh-cdn001.akamaized.net/";
 const STATSHUB_UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36";
+const BETBOOM_STATIC_TEAM_SAMPLE =
+  "https://static.sporthub.bet/aa3d3491a0d2a4774baa3b1863918115/multifeed/teams/47759e63-4ac3-4ed3-a8a5-64325f9fbaa7.webp";
+
+const STATSHUB_PUBLIC_FEEDS = [
+  "match_info_statshub",
+  "stats_match_get",
+  "match_details",
+  "match_detailsextended",
+  "match_timeline",
+  "match_timelinedelta",
+  "stats_match_timeline",
+  "stats_match_stats",
+  "stats_match_head2head",
+  "match_playerdetails",
+  "tennis_competitors",
+  "stats_team_info",
+  "stats_team_lastx",
+  "stats_team_versus",
+  "stats_team_versusrecent"
+];
 
 const ALLOWED_ORIGINS = new Set([
   "https://winrai1.com",
@@ -199,13 +220,13 @@ function safeMatchId(value) {
 }
 
 function languageCode(value) {
-  const lang = String(value || "ru").toLowerCase();
+  const lang = String(value || "en").toLowerCase();
   if (lang.startsWith("en")) return "LANGUAGES_EN";
   return "LANGUAGES_RU";
 }
 
 function statshubLang(value) {
-  const lang = String(value || "ru").toLowerCase();
+  const lang = String(value || "en").toLowerCase();
   return lang.startsWith("en") ? "en" : "ru";
 }
 
@@ -232,6 +253,143 @@ function safeUrl(value, base) {
   } catch (e) {
     return "";
   }
+}
+
+function safeImageUrl(value, base) {
+  const url = safeUrl(value, base);
+  if (!url) return "";
+
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.toLowerCase();
+    const path = parsed.pathname.toLowerCase();
+    const allowedHost = (
+      host === "static.sporthub.bet" ||
+      host === "img-cdn001.akamaized.net" ||
+      host === "sh-cdn001.akamaized.net" ||
+      host === "site-static-blue2.betboom.ru"
+    );
+    const allowedExt = /\.(png|jpe?g|webp|gif|svg)$/i.test(path);
+
+    return allowedHost && allowedExt ? parsed.toString() : "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function statshubAssetUrl(path) {
+  return safeImageUrl(path, STATSHUB_APP_BASE);
+}
+
+function countryFlagUrl(country) {
+  const a2 = cleanText(country && (country.a2 || country.code || country.cc)).toLowerCase();
+
+  if (a2 && a2 !== "int") {
+    return `https://img-cdn001.akamaized.net/ls/crest/4x3/${encodeURIComponent(a2)}.svg`;
+  }
+
+  return "https://img-cdn001.akamaized.net/ls/crest/medium/int.png";
+}
+
+function teamLogoCandidates(team) {
+  const uid = cleanText(team && team.uid);
+  if (!uid || !/^\d+$/.test(uid)) return [];
+
+  return [
+    {
+      label: cleanText(team.surname || team.name || "Team") + " medium logo",
+      url: `https://img-cdn001.akamaized.net/ls/teams/medium/${uid}.png`
+    },
+    {
+      label: cleanText(team.surname || team.name || "Team") + " large logo",
+      url: `https://img-cdn001.akamaized.net/ls/teams/large/${uid}.png`
+    }
+  ];
+}
+
+function extraImageCandidates(requestUrl) {
+  const rows = [];
+  const rawValues = [];
+
+  requestUrl.searchParams.getAll("imageUrl").forEach((value) => rawValues.push(value));
+  requestUrl.searchParams.getAll("imageUrls").forEach((value) => rawValues.push(value));
+  requestUrl.searchParams.getAll("extraImageUrl").forEach((value) => rawValues.push(value));
+
+  rawValues.forEach((value) => {
+    String(value || "").split(/[\s,|]+/).forEach((part) => {
+      const url = safeImageUrl(part);
+      if (url) rows.push({ label: "SportHub image", url });
+    });
+  });
+
+  return rows;
+}
+
+function usableImageMeta(headers) {
+  const contentType = String(headers.get("content-type") || "").toLowerCase();
+  const contentLength = Number(headers.get("content-length") || 0);
+
+  if (!contentType.startsWith("image/")) return null;
+  if (contentType !== "image/svg+xml" && contentLength && contentLength <= 128) return null;
+
+  return {
+    contentType,
+    bytes: contentLength || null
+  };
+}
+
+async function probeUsableImages(rows) {
+  const candidates = uniqueImages(rows).slice(0, 40);
+  const out = [];
+
+  await Promise.all(candidates.map(async (row) => {
+    const url = safeImageUrl(row.url);
+    if (!url) return;
+
+    try {
+      let upstream = await fetch(url, {
+        method: "HEAD",
+        headers: {
+          accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+          referer: "https://betboom.ru/",
+          "user-agent": STATSHUB_UA
+        }
+      });
+      let meta = usableImageMeta(upstream.headers);
+
+      if ((!upstream.ok || !meta) && upstream.status === 405) {
+        upstream = await fetch(url, {
+          method: "GET",
+          headers: {
+            accept: "image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
+            range: "bytes=0-1023",
+            referer: "https://betboom.ru/",
+            "user-agent": STATSHUB_UA
+          }
+        });
+        meta = usableImageMeta(upstream.headers);
+      }
+
+      if (upstream.ok && meta) {
+        out.push({
+          label: cleanText(row.label || "Image"),
+          url,
+          contentType: meta.contentType,
+          bytes: meta.bytes
+        });
+      }
+    } catch (e) {}
+  }));
+
+  return uniqueImages(out).map((row) => {
+    const found = out.find((item) => item.url === row.url) || row;
+    return {
+      label: row.label,
+      url: row.url,
+      contentType: found.contentType || "",
+      bytes: found.bytes || null
+    };
+  });
 }
 
 async function fetchBetboomDetails(matchId, lang, theme) {
@@ -369,6 +527,336 @@ function regexValue(source, re) {
   return decodeHtml(match && match[1] ? match[1] : "");
 }
 
+function decodeRouterWire(wire) {
+  const memo = new Map();
+  const special = new Map([
+    [-1, undefined],
+    [-2, NaN],
+    [-3, Infinity],
+    [-4, -Infinity],
+    [-5, undefined],
+    [-6, -0],
+    [-7, null]
+  ]);
+
+  function value(ref) {
+    if (typeof ref === "number" && Number.isInteger(ref)) {
+      if (ref < 0) return special.has(ref) ? special.get(ref) : undefined;
+      return decode(ref);
+    }
+
+    return ref;
+  }
+
+  function decode(index) {
+    const node = wire[index];
+
+    if (memo.has(index)) return memo.get(index);
+
+    if (Array.isArray(node)) {
+      const arr = [];
+      memo.set(index, arr);
+      node.forEach((item) => arr.push(value(item)));
+      return arr;
+    }
+
+    if (node && typeof node === "object") {
+      const obj = {};
+      memo.set(index, obj);
+      Object.keys(node).forEach((key) => {
+        const decodedKey = key.startsWith("_") ? value(Number(key.slice(1))) : key;
+        obj[decodedKey] = value(node[key]);
+      });
+      return obj;
+    }
+
+    return node;
+  }
+
+  return decode(0);
+}
+
+function decodeStatsHubRouterData(html) {
+  const match = String(html || "").match(/streamController\.enqueue\(("(?:\\.|[^"\\])*")\)/);
+  if (!match) return null;
+
+  try {
+    const payload = JSON.parse(match[1]);
+    return decodeRouterWire(JSON.parse(payload));
+  } catch (e) {
+    return null;
+  }
+}
+
+function overviewRoute(root) {
+  return root && root.loaderData && root.loaderData["routes/_sh.match.$matchId/index/_overview"];
+}
+
+function rootRoute(root) {
+  return root && root.loaderData && root.loaderData.root;
+}
+
+function matchRootRoute(root) {
+  return root && root.loaderData && root.loaderData["routes/_sh.match.$matchId/_matchRoot"];
+}
+
+function firstFeedDoc(payload) {
+  return payload && Array.isArray(payload.doc) ? payload.doc[0] : null;
+}
+
+function firstFeedData(payload) {
+  const doc = firstFeedDoc(payload);
+  if (!doc || !doc.data || doc.event === "exception" || doc.data._doc === "exception") return null;
+  return doc.data;
+}
+
+function feedError(payload) {
+  const doc = firstFeedDoc(payload);
+  if (!doc || !doc.data || (doc.event !== "exception" && doc.data._doc !== "exception")) return "";
+  return cleanText([doc.data.code, doc.data.message || doc.data.name].filter(Boolean).join(" "));
+}
+
+function statshubFeedEndpoint(cctx, feed, args) {
+  const base = cleanText(cctx && cctx.fishnetUrl) || "https://sh-fn-cdn001.akamaized.net";
+  const client = cleanText(cctx && cctx.fishnetClientAlias) || "bingoboom";
+  const lang = cleanText(cctx && cctx.language) || "en";
+  const token = cleanText(cctx && cctx.fishnetToken);
+  const url = `${base}/${client}/${lang}/Etc:UTC/gismo/${feed}/${args}`;
+
+  return token ? `${url}?T=${token}` : url;
+}
+
+async function fetchStatsHubFeed(cctx, feed, args) {
+  if (!STATSHUB_PUBLIC_FEEDS.includes(feed)) return null;
+
+  const upstream = await fetch(statshubFeedEndpoint(cctx, feed, args), {
+    headers: {
+      accept: "application/json",
+      referer: STATSHUB_FEED_REFERER,
+      "user-agent": STATSHUB_UA
+    }
+  });
+  const text = await upstream.text();
+  let data = null;
+
+  try {
+    data = JSON.parse(text);
+  } catch (e) {
+    data = { raw: text };
+  }
+
+  return {
+    ok: upstream.ok && !feedError(data),
+    status: upstream.status,
+    feed,
+    args: cleanText(args),
+    event: cleanText(firstFeedDoc(data) && firstFeedDoc(data).event),
+    maxage: firstFeedDoc(data) && firstFeedDoc(data)._maxage,
+    error: feedError(data),
+    data: firstFeedData(data),
+    raw: data
+  };
+}
+
+async function fetchStatsHubFeeds(cctx, matchData) {
+  const match = matchData && matchData.match;
+  const teams = match && match.teams ? match.teams : {};
+  const matchId = cleanText(match && match._id);
+  const homeUid = cleanText(teams.home && teams.home.uid);
+  const awayUid = cleanText(teams.away && teams.away.uid);
+  const calls = [];
+
+  if (!matchId) return {};
+
+  [
+    ["match_info_statshub", matchId],
+    ["stats_match_get", matchId],
+    ["match_details", matchId],
+    ["match_detailsextended", matchId],
+    ["match_timeline", matchId],
+    ["match_timelinedelta", matchId],
+    ["stats_match_timeline", matchId],
+    ["stats_match_stats", matchId],
+    ["stats_match_head2head", matchId],
+    ["match_playerdetails", matchId],
+    ["tennis_competitors", matchId]
+  ].forEach((item) => calls.push(item));
+
+  if (homeUid) calls.push(["stats_team_info", homeUid]);
+  if (awayUid) calls.push(["stats_team_info", awayUid]);
+  if (homeUid) calls.push(["stats_team_lastx", `${homeUid}/10`]);
+  if (awayUid) calls.push(["stats_team_lastx", `${awayUid}/10`]);
+  if (homeUid && awayUid) {
+    calls.push(["stats_team_versus", `${homeUid}/${awayUid}/10`]);
+    calls.push(["stats_team_versusrecent", `${homeUid}/${awayUid}/10`]);
+  }
+
+  const rows = await Promise.all(calls.map(([feed, args]) => {
+    return fetchStatsHubFeed(cctx, feed, args).catch((error) => ({
+      ok: false,
+      feed,
+      args: cleanText(args),
+      error: error.message || "feed failed"
+    }));
+  }));
+  const out = {
+    rows,
+    byFeed: {}
+  };
+
+  rows.forEach((row) => {
+    if (!row) return;
+    if (!out.byFeed[row.feed]) out.byFeed[row.feed] = [];
+    out.byFeed[row.feed].push(row);
+  });
+
+  return out;
+}
+
+function playerDisplayName(team, info) {
+  return cleanText(
+    (info && info.team && (info.team.surname || info.team.mediumname || info.team.name)) ||
+    (team && (team.surname || team.mediumname || team.name))
+  );
+}
+
+function playerRank(info) {
+  return cleanText(info && (info.singlesrank || info.rank || info.ranking));
+}
+
+function playerAge(info) {
+  const date = cleanText(info && info.dateofbirth);
+  if (!date) return "";
+
+  const time = Date.parse(date + "T00:00:00Z");
+  if (!Number.isFinite(time)) return "";
+
+  const now = Date.now();
+  const age = Math.floor((now - time) / 31557600000);
+  return age > 0 && age < 100 ? String(age) : "";
+}
+
+function normalizePlayer(side, team, info) {
+  const country = (info && (info.countrycode || info.team && info.team.cc)) || (team && (team.countrycode || team.cc)) || {};
+  const flagUrl = countryFlagUrl(country);
+
+  return {
+    side,
+    name: playerDisplayName(team, info),
+    fullName: cleanText((info && info.team && (info.team.mediumname || info.team.name)) || (team && (team.mediumname || team.name))),
+    country: cleanText(info && info.nationality) || cleanText(country.name),
+    countryCode: cleanText(country.a2 || info && info.cc).toUpperCase(),
+    rank: playerRank(info),
+    seed: cleanText(team && team.seed && team.seed.seeding),
+    age: playerAge(info),
+    birthDate: cleanText(info && info.dateofbirth),
+    height: cleanText(info && info.height),
+    weight: cleanText(info && info.weight),
+    handedness: cleanText(info && info.plays),
+    coach: cleanText(info && info.coachname),
+    favoriteSurface: cleanText(info && info.favouritesurface),
+    turnedPro: cleanText(info && info.turnedpro),
+    teamUid: cleanText(team && team.uid),
+    teamId: cleanText(team && team._id),
+    flagUrl
+  };
+}
+
+function statPair(label, home, away, suffix) {
+  const left = cleanText(home);
+  const right = cleanText(away);
+  if (!label || (!left && !right)) return null;
+
+  return {
+    label,
+    home: left ? left + (suffix || "") : "-",
+    away: right ? right + (suffix || "") : "-"
+  };
+}
+
+function groundStat(teamInfo, groundName) {
+  const rows = Array.isArray(teamInfo && teamInfo.groundstats) ? teamInfo.groundstats : [];
+  const wanted = cleanText(groundName).toLowerCase();
+
+  return rows.find((row) => cleanText(row.ground).toLowerCase() === wanted) ||
+    rows.find((row) => cleanText(row.ground).toLowerCase() === "all surfaces") ||
+    null;
+}
+
+function normalizeStats(homeInfo, awayInfo, matchData) {
+  const surface = cleanText(matchData && matchData.tournament && matchData.tournament.ground && matchData.tournament.ground.name);
+  const homeGround = groundStat(homeInfo, surface);
+  const awayGround = groundStat(awayInfo, surface);
+  const homeAll = groundStat(homeInfo, "All surfaces");
+  const awayAll = groundStat(awayInfo, "All surfaces");
+  const rows = [
+    statPair(`${surface || "Surface"} win rate`, homeGround && homeGround.matcheswon_percent, awayGround && awayGround.matcheswon_percent, "%"),
+    statPair(`${surface || "Surface"} wins`, homeGround && homeGround.matcheswon, awayGround && awayGround.matcheswon, ""),
+    statPair("All-surface win rate", homeAll && homeAll.matcheswon_percent, awayAll && awayAll.matcheswon_percent, "%"),
+    statPair("Singles rank", homeInfo && homeInfo.singlesrank, awayInfo && awayInfo.singlesrank, ""),
+    statPair("Highest ranking", homeInfo && homeInfo.highestranking && homeInfo.highestranking.singles && homeInfo.highestranking.singles.ranking, awayInfo && awayInfo.highestranking && awayInfo.highestranking.singles && awayInfo.highestranking.singles.ranking, ""),
+    statPair("Age started", homeInfo && homeInfo.agestarted, awayInfo && awayInfo.agestarted, ""),
+    statPair("Turned pro", homeInfo && homeInfo.turnedpro, awayInfo && awayInfo.turnedpro, "")
+  ];
+
+  return rows.filter(Boolean);
+}
+
+function normalizeTimeline(feed) {
+  const data = feed && feed.data;
+  const events = Array.isArray(data && data.events) ? data.events : [];
+
+  return events.slice(-8).reverse().map((event) => ({
+    type: cleanText(event.type || event.name || event._doctype),
+    name: cleanText(event.name || event.type || event._doctype),
+    time: cleanText(event.time),
+    seconds: cleanText(event.seconds),
+    team: cleanText(event.team),
+    score: event.setscore || event.score || null,
+    pointType: cleanText(event.lastpointtype && event.lastpointtype.type),
+    gameStatus: cleanText(event.currentgamestatus && event.currentgamestatus.status)
+  }));
+}
+
+function normalizeSources(cctx, feeds, statUrl, openUrl) {
+  const feedRows = Array.isArray(feeds && feeds.rows) ? feeds.rows : [];
+
+  return {
+    apiEndpoints: [
+      {
+        label: "BetBoom match details",
+        method: "POST",
+        url: BETBOOM_API_BASE + "/sporthub/tree/get_match_details_info"
+      },
+      {
+        label: "StatsHub page",
+        method: "GET",
+        url: statUrl
+      }
+    ].concat(feedRows.map((row) => ({
+      label: "StatsHub feed " + row.feed,
+      method: "GET",
+      feed: row.feed,
+      args: row.args,
+      ok: row.ok === true,
+      event: row.event || "",
+      maxage: row.maxage || null,
+      error: row.error || "",
+      url: statshubFeedEndpoint(cctx, row.feed, row.args).replace(/\?T=.*/, "?T=<public-page-token>")
+    }))),
+    imageEndpoints: [
+      "https://static.sporthub.bet/{hash}/multifeed/states/Statistic.webp",
+      "https://static.sporthub.bet/{hash}/multifeed/teams/{uuid}.webp",
+      "https://img-cdn001.akamaized.net/ls/crest/4x3/{country}.svg",
+      "https://img-cdn001.akamaized.net/ls/crest/medium/int.png",
+      "https://img-cdn001.akamaized.net/ls/teams/{size}/{teamUid}.png",
+      "https://sh-cdn001.akamaized.net/assets/{assetName}"
+    ],
+    statUrl,
+    openUrl
+  };
+}
+
 function parseStatsHubHtml(html, matchId, statUrl, openUrl, details) {
   const source = String(html || "").replace(/\\"/g, "\"").replace(/\\\//g, "/");
   const title = extractTitle(html);
@@ -412,11 +900,133 @@ function parseStatsHubHtml(html, matchId, statUrl, openUrl, details) {
   };
 }
 
+async function normalizeStatsHubPayload(html, matchId, statUrl, openUrl, details, requestUrl) {
+  const root = decodeStatsHubRouterData(html);
+  const route = overviewRoute(root);
+  const rootData = rootRoute(root);
+  const matchRoot = matchRootRoute(root);
+  const matchData = route && route.matchInfo && route.matchInfo.data;
+  const cctx = rootData && rootData.cctx;
+
+  if (!matchData || !matchData.match) {
+    const fallback = parseStatsHubHtml(html, matchId, statUrl, openUrl, details);
+    fallback.images = await probeUsableImages((fallback.images || []).concat(extraImageCandidates(requestUrl)));
+    return fallback;
+  }
+
+  const feeds = await fetchStatsHubFeeds(cctx || {}, matchData);
+  const feedList = feeds.byFeed || {};
+  const homeInfo = firstFeedData((feedList.stats_team_info || [])[0] && (feedList.stats_team_info || [])[0].raw) ||
+    ((feedList.stats_team_info || [])[0] && (feedList.stats_team_info || [])[0].data);
+  const awayInfo = firstFeedData((feedList.stats_team_info || [])[1] && (feedList.stats_team_info || [])[1].raw) ||
+    ((feedList.stats_team_info || [])[1] && (feedList.stats_team_info || [])[1].data);
+  const match = matchData.match;
+  const teams = match.teams || {};
+  const home = normalizePlayer("home", teams.home, homeInfo);
+  const away = normalizePlayer("away", teams.away, awayInfo);
+  const tournament = matchData.tournament || {};
+  const tennisInfo = tournament.tennisinfo || {};
+  const stadium = matchData.stadium || {};
+  const coverage = match.coverage || {};
+  const title = [home.name, away.name].filter(Boolean).join(" vs ");
+  const startTime = match._dt || match.time || {};
+  const status = cleanText(match.status && (match.status.name || match.status.shortName)) || "StatsHub";
+  const facts = [
+    { label: "Start", value: cleanText([startTime.date, startTime.time, startTime.tz].filter(Boolean).join(" ")) },
+    { label: "Status", value: status },
+    { label: "Tournament", value: cleanText((matchData.uniquetournament && matchData.uniquetournament.name) || tournament.name) },
+    { label: "Round", value: cleanText(match.roundname && (match.roundname.shortname || match.roundname.name)) },
+    { label: "Surface", value: cleanText(tournament.ground && tournament.ground.name) },
+    { label: "Venue", value: cleanText(stadium.name) },
+    { label: "City", value: cleanText([stadium.city, stadium.country].filter(Boolean).join(", ")) },
+    { label: "Category", value: cleanText(matchData.realcategory && matchData.realcategory.name) },
+    { label: "Level", value: cleanText(tournament.tournamentlevelname) },
+    { label: "Best of", value: cleanText(match.bestofsets || match.bestof || tennisInfo.sets) },
+    { label: "Prize", value: cleanText(tennisInfo.prize && [tennisInfo.prize.amount, tennisInfo.prize.currency].filter(Boolean).join(" ")) },
+    { label: "Stats coverage", value: coverage.hasstats ? "Available" : "" },
+    { label: "Live score", value: coverage.inlivescore ? "Available" : "" },
+    { label: "Live odds", value: coverage.liveodds ? "Available" : "" },
+    { label: "Media", value: coverage.mediacoverage ? "Available" : "" },
+    { label: "LMT support", value: cleanText(coverage.lmtsupport) }
+  ].filter((item) => item.value);
+  const imageCandidates = detailsImages(details)
+    .concat(extractHtmlImages(html))
+    .concat([
+      { label: home.country || home.name, url: home.flagUrl },
+      { label: away.country || away.name, url: away.flagUrl },
+      { label: "Tournament country", url: countryFlagUrl(tennisInfo.cc || stadium.cc) },
+      { label: "StatsHub shadow", url: statshubAssetUrl("/assets/shadow-BUyighge.png") },
+      { label: "StatsHub highlight", url: statshubAssetUrl("/assets/highlight-DIJTM9SR.png") },
+      { label: "StatsHub tennis", url: statshubAssetUrl("/assets/tennis-BJZRFddm.jpg") },
+      { label: "SportHub team image", url: BETBOOM_STATIC_TEAM_SAMPLE }
+    ])
+    .concat(teamLogoCandidates(teams.home))
+    .concat(teamLogoCandidates(teams.away))
+    .concat(extraImageCandidates(requestUrl));
+  const images = await probeUsableImages(imageCandidates);
+  const stats = normalizeStats(homeInfo, awayInfo, matchData);
+  const timeline = normalizeTimeline((feedList.match_timeline || [])[0] || (feedList.match_timelinedelta || [])[0]);
+
+  home.imageUrl = (images.find((image) => image.label === home.name) || {}).url || "";
+  away.imageUrl = (images.find((image) => image.label === away.name) || {}).url || "";
+
+  return {
+    match: {
+      matchId,
+      statshubMatchId: cleanText(match._id),
+      title: title || cleanText(matchData.uniquetournament && matchData.uniquetournament.name) || "BetBoom match",
+      tournament: cleanText((matchData.uniquetournament && matchData.uniquetournament.name) || tournament.name),
+      tournamentFullName: cleanText(tournament.name),
+      category: cleanText(matchData.realcategory && matchData.realcategory.name),
+      sport: cleanText(matchData.sport && matchData.sport.name),
+      round: cleanText(match.roundname && (match.roundname.shortname || match.roundname.name)),
+      surface: cleanText(tournament.ground && tournament.ground.name),
+      venue: cleanText(stadium.name),
+      city: cleanText(stadium.city),
+      country: cleanText(stadium.country || tennisInfo.country),
+      startTimeText: cleanText([startTime.date, startTime.time, startTime.tz].filter(Boolean).join(" ")),
+      startTimestamp: startTime.uts || null,
+      status,
+      result: match.result || {},
+      coverage,
+      statUrl,
+      openUrl
+    },
+    players: [home, away].filter((player) => player.name),
+    stats,
+    facts,
+    timeline,
+    images,
+    feeds: (feeds.rows || []).map((row) => ({
+      feed: row.feed,
+      args: row.args,
+      ok: row.ok === true,
+      event: row.event || "",
+      maxage: row.maxage || null,
+      error: row.error || ""
+    })),
+    sources: normalizeSources(cctx || {}, feeds, statUrl, openUrl),
+    ids: {
+      betboomMatchId: matchId,
+      statshubPathMatchId: "m" + matchId,
+      statshubMatchId: cleanText(match._id),
+      homeUid: cleanText(teams.home && teams.home.uid),
+      awayUid: cleanText(teams.away && teams.away.uid),
+      tournamentId: cleanText(match._tid),
+      uniqueTournamentId: cleanText(match._utid),
+      seasonId: cleanText(match._seasonid),
+      sportId: cleanText(match._sid),
+      realCategoryId: cleanText(match._rcid || (matchRoot && matchRoot.rcid))
+    },
+    details
+  };
+}
+
 async function fetchStatsHubHtml(statUrl) {
   const upstream = await fetch(statUrl, {
     headers: {
       accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "accept-language": "ru,en;q=0.8",
+      "accept-language": "en,en-US;q=0.9,ru;q=0.5",
       referer: "https://betboom.ru/",
       "user-agent": STATSHUB_UA
     }
@@ -431,7 +1041,7 @@ async function fetchStatsHubHtml(statUrl) {
 
 async function handleBetboomMatchDetails(requestUrl, cors) {
   const matchId = safeMatchId(requestUrl.searchParams.get("matchId"));
-  const lang = requestUrl.searchParams.get("lang") || "ru";
+  const lang = requestUrl.searchParams.get("lang") || "en";
   const theme = requestUrl.searchParams.get("theme") || "THEMES_BLACK";
   const openUrl = safeBetboomOpenUrl(requestUrl.searchParams.get("openUrl"));
 
@@ -461,7 +1071,7 @@ async function handleBetboomMatchDetails(requestUrl, cors) {
 
 async function handleBetboomStatsHub(requestUrl, cors) {
   const matchId = safeMatchId(requestUrl.searchParams.get("matchId"));
-  const lang = requestUrl.searchParams.get("lang") || "ru";
+  const lang = requestUrl.searchParams.get("lang") || "en";
   const theme = requestUrl.searchParams.get("theme") || "THEMES_BLACK";
   const openUrl = safeBetboomOpenUrl(requestUrl.searchParams.get("openUrl"));
 
@@ -489,7 +1099,7 @@ async function handleBetboomStatsHub(requestUrl, cors) {
 
     try {
       const html = await fetchStatsHubHtml(statUrl);
-      normalized = parseStatsHubHtml(html, matchId, statUrl, openUrl, details);
+      normalized = await normalizeStatsHubPayload(html, matchId, statUrl, openUrl, details, requestUrl);
     } catch (error) {
       normalized.error = error.message || "StatsHub unavailable";
     }

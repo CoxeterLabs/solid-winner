@@ -188,7 +188,10 @@ test("default BetBoom match panel uses the Worker statshub proxy", () => {
   assert.equal(api.panelEnabled(manifest.pages[0].widgets[0], "betboomMatch"), true);
   assert.equal(betboomMatch.title, "BetBoom Match Lab");
   assert.equal(betboomMatch.workerPath, "/betboom/statshub");
+  assert.equal(betboomMatch.lang, "en");
   assert.equal(betboomMatch.pollMs, 600000);
+  assert.equal(betboomMatch.maxStats, 12);
+  assert.equal(betboomMatch.maxImages, 14);
   assert.equal(betboomMatch.matches.length, 1);
   assert.deepEqual(plain(betboomMatch.tabs), ["overview", "stats", "players", "images"]);
 
@@ -202,7 +205,11 @@ test("default BetBoom match panel uses the Worker statshub proxy", () => {
   assert.equal(parsed.origin + parsed.pathname, "https://sports.hypercubik.workers.dev/");
   assert.equal(parsed.searchParams.get("path"), "/betboom/statshub");
   assert.equal(parsed.searchParams.get("matchId"), "5146706");
-  assert.equal(parsed.searchParams.get("lang"), "ru");
+  assert.equal(parsed.searchParams.get("lang"), "en");
+  assert.match(
+    parsed.searchParams.get("imageUrls") || "",
+    /static\.sporthub\.bet\/aa3d3491a0d2a4774baa3b1863918115\/multifeed\/teams\/47759e63-4ac3-4ed3-a8a5-64325f9fbaa7\.webp/
+  );
 });
 
 test("BetBoom match summary keeps public stats, players, and images", () => {
