@@ -1006,6 +1006,12 @@ test("live animation keeps an existing iframe when the resolved source is unchan
   );
 });
 
+test("live provider iframe is not treated as an inline-safe visual source", () => {
+  const api = loadWidgetTestApi();
+
+  assert.equal(api.liveProviderInlineAllowed(), false);
+});
+
 test("live visual resolver keeps animation default and video optional", () => {
   const api = loadWidgetTestApi();
   const animationUrl = "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66127216?s=3&lang=en";
@@ -1022,6 +1028,38 @@ test("live visual resolver keeps animation default and video optional", () => {
   assert.equal(api.liveVisualMode(sources, "animation", true), "animation");
   assert.equal(api.liveVisualMode(sources, "animation", true, false), "native");
   assert.equal(api.liveVisualMode(sources, "video", true), "video");
+});
+
+test("live visual iframe signatures stay stable when live clock changes", () => {
+  const api = loadWidgetTestApi();
+  const sources = {
+    animation: "https://video-translations.top-parser.com/p/https://bet-broadcast.com/tracker/get/66158885?s=3&lang=en",
+    video: "https://ui-monitor.lynon.online/sportsbook-new/tp-stream/sm/iframe?ref=redacted&t=1782849600&lang=en"
+  };
+  const item = { key: "live-test" };
+  const summaryA = {
+    homeName: "England",
+    awayName: "Congo DR",
+    scoreText: "0 - 1",
+    period: "2nd Half",
+    clockText: "45:08",
+    statRows: [{ home: "3", label: "Goal Kicks", away: "14" }],
+    periodRows: [{ home: "0", label: "1st Half", away: "1" }]
+  };
+  const summaryB = { ...summaryA, clockText: "45:11" };
+
+  assert.equal(
+    api.liveVisualSlotSignature(sources, "video", true, true, item, summaryA),
+    api.liveVisualSlotSignature(sources, "video", true, true, item, summaryB)
+  );
+  assert.equal(
+    api.liveVisualSlotSignature(sources, "animation", true, true, item, summaryA),
+    api.liveVisualSlotSignature(sources, "animation", true, true, item, summaryB)
+  );
+  assert.notEqual(
+    api.liveVisualSlotSignature(sources, "native", true, true, item, summaryA),
+    api.liveVisualSlotSignature(sources, "native", true, true, item, summaryB)
+  );
 });
 
 test("resolves object panel settings for modular widgets", () => {

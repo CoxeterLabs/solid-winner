@@ -157,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-provider-storage-safe-1",
+      version: "20260701-stable-live-visuals-1",
       global: {
         styles: [],
         scripts: []
@@ -2201,14 +2201,9 @@
   }
 
   function liveProviderInlineAllowed() {
-    var nav = typeof navigator !== "undefined" ? navigator : {};
-    var ua = String(nav.userAgent || "");
-    var vendor = String(nav.vendor || "");
-    var platform = String(nav.platform || "");
-    var iOS = /iPad|iPhone|iPod/i.test(ua) || (platform === "MacIntel" && Number(nav.maxTouchPoints || 0) > 1);
-    var safari = /Safari/i.test(ua) && /Apple/i.test(vendor) && !/CriOS|FxiOS|EdgiOS|Chrome|Chromium|Android/i.test(ua);
-
-    return !(iOS || safari);
+    // The provider tracker reads browser storage inside a third-party frame.
+    // That is unreliable across mobile Safari, embedded browsers, and hardened Chrome.
+    return false;
   }
 
   function liveVisualMode(sources, preferred, nativeAvailable, providerInline) {
@@ -2228,6 +2223,12 @@
     var src = normalizeLiveVisualSources(sources);
 
     return src.animation + "||" + src.video;
+  }
+
+  function liveVisualSlotSignature(sources, mode, providerInline, nativeAvailable, item, summary) {
+    return liveVisualSignature(sources) +
+      "||provider-inline:" + (providerInline ? "1" : "0") +
+      (mode === "native" && nativeAvailable ? "||native:" + liveNativeVisualSignature(item, summary) : "");
   }
 
   function sportscastIdFromAnimationUrl(value) {
@@ -2949,7 +2950,7 @@
     var frameSrc = mode && mode !== "native" ? src[mode] : "";
     var frame = slot && slot.querySelector && slot.querySelector("iframe");
     var nativeEl = slot && slot.querySelector && slot.querySelector(".live-native-visual");
-    var signature = liveVisualSignature(src) + "||provider-inline:" + (providerInline ? "1" : "0") + "||native:" + (native ? liveNativeVisualSignature(item, summary) : "");
+    var signature = liveVisualSlotSignature(src, mode, providerInline, native, item, summary);
 
     if (!slot) return;
     if (!mode) {
@@ -5794,6 +5795,8 @@
       liveAnimationUrlFromResolver: liveAnimationUrlFromResolver,
       liveAnimationResolverUrl: liveAnimationResolverUrl,
       liveEventSummary: liveEventSummary,
+      liveProviderInlineAllowed: liveProviderInlineAllowed,
+      liveVisualSlotSignature: liveVisualSlotSignature,
       liveVisualMode: liveVisualMode,
       liveVisualSourcesFromResolver: liveVisualSourcesFromResolver,
       matchClockSeconds: matchClockSeconds,
