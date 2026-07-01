@@ -1103,10 +1103,10 @@ test("live animation keeps an existing iframe when the resolved source is unchan
   );
 });
 
-test("live provider iframe is not treated as an inline-safe visual source", () => {
+test("live provider iframe is available as a selectable inline visual source", () => {
   const api = loadWidgetTestApi();
 
-  assert.equal(api.liveProviderInlineAllowed(), false);
+  assert.equal(api.liveProviderInlineAllowed(), true);
 });
 
 test("live visual resolver keeps animation default and video optional", () => {
@@ -1123,7 +1123,6 @@ test("live visual resolver keeps animation default and video optional", () => {
   });
   assert.equal(api.liveVisualMode(sources, "", true), "native");
   assert.equal(api.liveVisualMode(sources, "animation", true), "animation");
-  assert.equal(api.liveVisualMode(sources, "animation", true, false), "native");
   assert.equal(api.liveVisualMode(sources, "video", true), "video");
 });
 

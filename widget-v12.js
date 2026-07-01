@@ -157,7 +157,7 @@
 
   function createDefaultManifest() {
     return {
-      version: "20260701-native-tracker-data-1",
+      version: "20260701-inline-provider-option-1",
       global: {
         styles: [],
         scripts: []
@@ -2214,9 +2214,9 @@
   }
 
   function liveProviderInlineAllowed() {
-    // The provider tracker reads browser storage inside a third-party frame.
-    // That is unreliable across mobile Safari, embedded browsers, and hardened Chrome.
-    return false;
+    // Keep the provider iframe available as an explicit user-selectable source.
+    // Native/video remain available because some browsers still deny third-party storage.
+    return true;
   }
 
   function liveVisualMode(sources, preferred, nativeAvailable, providerInline) {
@@ -3022,7 +3022,7 @@
     var title = mode === "video" ? "Live match video" : "Provider match animation";
     var note = mode === "animation" ? '<div class="live-provider-note">Provider iframe may be blocked by browser storage. <a href="' + esc(src) + '" target="_blank" rel="noopener noreferrer">Open provider</a></div>' : "";
 
-    return '<iframe title="' + esc(title) + '" src="' + esc(src) + '" loading="eager" allow="autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>' + note;
+    return '<iframe title="' + esc(title) + '" src="' + esc(src) + '" loading="eager" allow="storage-access-by-user-activation; autoplay; fullscreen; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="no-referrer"></iframe>' + note;
   }
 
   function bindLiveVisualTabs(item, slot, sources, summary) {
